@@ -41,5 +41,6 @@
 
 
 //JJuint8_t insertdisk (uint8_t drivenum, char *filename);
+void diskInit();
 
 #endif

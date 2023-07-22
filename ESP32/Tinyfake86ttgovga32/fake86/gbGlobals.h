@@ -112,27 +112,11 @@
  extern unsigned char gb_video_cga[16384];
  //extern unsigned char gb_video_hercules[16384];
  
- extern unsigned char *gb_ram_00; //32 KB
- extern unsigned char *gb_ram_01;
- extern unsigned char *gb_ram_02;
- extern unsigned char *gb_ram_03;
- extern unsigned char *gb_ram_04;
- extern unsigned char *gb_ram_bank[5];
+ static const uint32_t   PAGE_COUNT  = 20;
+ static const size_t     PAGE_SIZE   = 32768;
+ extern unsigned char *gb_ram_bank[PAGE_COUNT];
  
 // extern const unsigned char gb_reserved_memory[16];
-
-
-
-
-
-
-
-
-
-
-
-
-
  extern volatile unsigned char keymap[256];
  extern volatile unsigned char oldKeymap[256];
 
@@ -151,7 +135,7 @@
  extern unsigned char gb_key_cur[45];
  extern unsigned char gb_key_before[45];
 
- extern unsigned char **gb_buffer_vga; 
+ extern char **gb_buffer_vga; 
  //extern unsigned char gb_color_vga[16];
 
  extern unsigned char gb_font_8x8;

@@ -19,5 +19,7 @@ boolean checkKey(uint8_t scancode);
 // inject key from wiimote, for not modifying OSD code
 void emulateKeyChange(uint8_t scancode, uint8_t isdown);
 
+unsigned char ATKeyboard_GetKey(uint8_t nIndex);
+
 #endif
 

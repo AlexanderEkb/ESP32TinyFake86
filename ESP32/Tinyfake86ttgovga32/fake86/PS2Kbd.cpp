@@ -1,9 +1,5 @@
 #include "gbConfig.h"
 #include "gbGlobals.h"
-#ifndef use_lib_bitluni_fast
- #include "MartianVGA.h"
-#endif 
-#include "fake86.h"
 #include "hardware.h"
 #include "keys.h"
 #include "PS2Kbd.h"
@@ -126,4 +122,9 @@ boolean checkKey(uint8_t scancode) {
 void emulateKeyChange(uint8_t scancode, uint8_t isdown)
 {
     keymap[scancode] = isdown ? 0 : 1;
+}
+
+unsigned char ATKeyboard_GetKey(uint8_t nIndex)
+{
+    return keymap[nIndex];
 }

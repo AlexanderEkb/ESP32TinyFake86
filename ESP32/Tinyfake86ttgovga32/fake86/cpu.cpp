@@ -292,8 +292,8 @@ void bootstrapPoll()
    jj_write86_remap(0x413,gb_ram_truco_low);
    jj_write86_remap(0x414,gb_ram_truco_high);
   #else 
-   gb_ram_00[0x410]= 0x41;
-   gb_ram_00[0x475]= 0;
+   gb_ram_bank[0][0x410]= 0x41;
+   gb_ram_bank[0][0x475]= 0;
 
    //gb_ram_00[0x413]= 0x80; gb_ram_00[0x414]= 0x00; //128 KB
    gb_ram_bank[0][0x413]= gb_ram_truco_low;

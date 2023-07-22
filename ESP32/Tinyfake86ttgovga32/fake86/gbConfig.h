@@ -10,9 +10,6 @@
  //Corrige teclados que no se inicializan(solucion dcrespo3D)
  //#define FIX_PERIBOARD_NOT_INITING
 
- //Usa la libreria bitluni modificada en C tiny fast
- #define use_lib_bitluni_fast
-
  //#define use_lib_sna_rare
  //#define use_lib_speaker_cpu
 
@@ -70,7 +67,7 @@
  //#define use_lib_net
  
  //Usar 1 solo nucleo
- #define use_lib_singlecore
+//  #define use_lib_singlecore
  
  //#define use_lib_snapshot
  //#define use_lib_limit_256KB
@@ -90,7 +87,7 @@
  //128 KB arranca alley cat boot
  //#define gb_max_ram 131072
  //160 KB Para MADMIX
- #define gb_max_ram 163840
+ #define gb_max_ram 655360
  //192 KB
  //#define gb_max_ram 196608
  //224 KB Para MADMIX2
@@ -123,7 +120,7 @@
  //milisegundos espera en cada frame
  #define use_lib_delay_tick_cpu_auto 0
  #define use_lib_delay_tick_cpu_milis 0
- #define use_lib_vga_poll_milis 41
+ #define use_lib_vga_poll_milis 10
  #define use_lib_keyboard_poll_milis 20
  #define use_lib_timers_poll_milis 54
 
@@ -137,11 +134,9 @@
  #define use_lib_320x200
 
  //Logs
- //#define use_lib_log_serial
+ #define use_lib_log_serial
  
- //#define use_lib_bitluni_fast
-
- //#define use_lib_bitluni_3bpp
+  //#define use_lib_bitluni_3bpp
  
  //#define use_lib_bitluni_low_memory
  

@@ -30,6 +30,8 @@
 //#include "dataFlash/dsk/dskcompaqdos211solnegro.h"
 //#include "dataFlash/dsk/dskcompaqdos211pakupaku.h"
 #include "dataFlash/gbdsk.h"
+#include <esp_heap_caps.h>
+#include <Arduino.h>
 
 //JJ extern uint8_t RAM[0x100000]
 //uint8_t cf, hdcount;
@@ -42,7 +44,16 @@ extern void write86 (uint32_t addr32, uint8_t value);
 //JJ struct struct_drive disk[256];
 //JJ struct struct_drive disk[1]; //Dejo 1 para probar
 unsigned char sectorbuffer[512];
+uint8_t * pCache;
 
+void diskInit()
+{
+	pCache = (uint8_t *)heap_caps_malloc(720 * 1024, MALLOC_CAP_SPIRAM); 
+	if(pCache == nullptr)
+	{
+		Serial.println("Disc cache allocation failed!");
+	}
+}
 //JJuint8_t insertdisk (uint8_t drivenum, char *filename)
 //JJ{
 //JJ if (drivenum >1)
