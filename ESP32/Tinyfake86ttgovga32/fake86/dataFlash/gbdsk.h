@@ -27,7 +27,8 @@
 
  //Titulos
  static const char * gb_list_dsk_title[max_list_dsk]={
-  "Pack00"
+  "Pack00",
+  // "VC"
   //"SOL NEGRO"
   //,"Paku Paku"
   //"STREET FIGHTING MAN"
@@ -49,7 +50,8 @@
    
  //Datos
  static const unsigned char * gb_list_dsk_data[max_list_dsk]={
-  gb_dsk_packgames00
+  gb_dsk_packgames00,
+  // gb_dsk_vc
   //gb_dsk_solnegro
   //,gb_dsk_pakupaku
   //gb_dsk_streetfightingman1de2

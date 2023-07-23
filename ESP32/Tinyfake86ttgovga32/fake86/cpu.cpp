@@ -281,7 +281,7 @@ void SetRAMTruco()
 }
 
 //Lo saco fuera de Read86. Se ejecuta al inicio y en timer 54 ms.
-void bootstrapPoll()
+void updateBIOSDataArea()
 { 
  if (!didbootstrap)
  {
@@ -292,30 +292,13 @@ void bootstrapPoll()
    jj_write86_remap(0x413,gb_ram_truco_low);
    jj_write86_remap(0x414,gb_ram_truco_high);
   #else 
-   gb_ram_bank[0][0x410]= 0x41;
-   gb_ram_bank[0][0x475]= 0;
+   gb_ram_bank[0][0x410]= 0x41;	// Equipment word: no FPU, no mouse, two floppies, EGA or better
+   gb_ram_bank[0][0x475]= 0;		// Number of HDDs intalled
 
    //gb_ram_00[0x413]= 0x80; gb_ram_00[0x414]= 0x00; //128 KB
-   gb_ram_bank[0][0x413]= gb_ram_truco_low;
+   gb_ram_bank[0][0x413]= gb_ram_truco_low;	// Amount of RAM, in Kbytes
    gb_ram_bank[0][0x414]= gb_ram_truco_high;    
   #endif
-//  if (gb_use_remap_cartdridge==1)
-//  {
-//   jj_write86_remap(0x410,0x41);
-//   jj_write86_remap(0x410,hdcount);
-//
-//   jj_write86_remap(0x413,gb_ram_truco_low);
-//   jj_write86_remap(0x414,gb_ram_truco_high);   	  
-//  }
-//  else
-//  {
-//   gb_ram_00[0x410]= 0x41;
-//   gb_ram_00[0x475]= 0;
-//
-//   //gb_ram_00[0x413]= 0x80; gb_ram_00[0x414]= 0x00; //128 KB
-//   gb_ram_bank[0][0x413]= gb_ram_truco_low;
-//   gb_ram_bank[0][0x414]= gb_ram_truco_high;
-//  }
  }
 }
 

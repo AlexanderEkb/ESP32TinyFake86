@@ -1,5 +1,6 @@
 #ifndef _GB_GLOBALS_H
  #define _GB_GLOBALS_H
+ #include <stdint.h>
  #include "gbConfig.h"
  #include <stdio.h>
 

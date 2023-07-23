@@ -1,4 +1,5 @@
 #include "gbConfig.h"
+#include "fake86.h"
 #include "osd.h"
 #include "dataFlash/gbcom.h"
 #include "gbGlobals.h"

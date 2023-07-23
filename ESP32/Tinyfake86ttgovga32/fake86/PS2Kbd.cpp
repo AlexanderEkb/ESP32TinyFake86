@@ -1,5 +1,6 @@
 #include "gbConfig.h"
 #include "gbGlobals.h"
+#include "fake86.h"
 #include "hardware.h"
 #include "keys.h"
 #include "PS2Kbd.h"

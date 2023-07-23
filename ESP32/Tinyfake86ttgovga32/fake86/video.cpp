@@ -18,7 +18,41 @@
 // video.c: many various functions to emulate bits of the video controller.
 //   a lot of this code is inefficient, and just plain ugly. i plan to rework
 //   large sections of it soon.
-
+/*
+ * 0x3D8 port:
+ * ===========
+ * bit 7:
+ * bit 6:
+ * bit 5: blinking (1 - enable)
+ * bit 4: hi-res graphics. No effect in text modes.
+ * bit 3: enable video output
+ * bit 2: disable colorburst / select 3rd palette on RGB display
+ * bit 1: 1 - graphics, 0 - text
+ * bit 0: 80-column text mode
+ * 
+ * 0x3D9 port:
+ * ===========
+ * bit 7:
+ * bit 6:
+ * bit 5: 320x200 modes, palette. 1 - MCW, 0 - RGY
+ * bit 4: 320x200 modes, bright foreground.
+ * bit 3: | text modes: border
+ * bit 2: | 320x200: border/background
+ * bit 1: | 640x200: foreground
+ * bit 0: |
+ * 
+ * 0x3DA port:
+ * ===========
+ * bit 7:
+ * bit 6:
+ * bit 5: 
+ * bit 4: 
+ * bit 3: vertical retrace. Meaning is similar to bit 0 whatever it means.
+ * bit 2: light pen switch status.
+ * bit 1: light pen trigger is set.
+ * bit 0: display enable. VRAM may be accesed with no afraid of "snow" effect.
+ * 
+*/
 #include "gbConfig.h"
 //#include <SDL/SDL.h>
 #include <stdint.h>
@@ -81,12 +115,6 @@ void vidinterrupt()
 	switch (regs.byteregs[regah]) 
 	{ //what video interrupt function?
 			case 0: //set video mode
-				//if (verbose) {
-						//printf ("Set video mode %02Xh\n", regs.byteregs[regal]);
-						//fflush(stdout);
-				//	}
-				//JJVGA VGA_SC[0x4] = 0; //VGA modes are in chained mode by default after a mode switch
-				//regs.byteregs[regal] = 3;
 				switch (regs.byteregs[regal] & 0x7F)
 				{
 						case 0: //40x25 mono text
@@ -96,14 +124,6 @@ void vidinterrupt()
 							vidcolor = 0;
 							vidgfxmode = 0;
 							blankattr = 7;
-							//for (tempcalc = videobase; tempcalc<videobase+16384; tempcalc+=2)
-                            //{
-							// //RAM[tempcalc] = 0;
-							// //RAM[tempcalc+1] = blankattr;
-							// write86(tempcalc,0);
-							// write86((tempcalc+1),blankattr);
-                            //}
-							//Optimizado
 							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
                             {
                              gb_video_cga[tempcalc]= 0;
@@ -117,20 +137,11 @@ void vidinterrupt()
 							vidcolor = 1;
 							vidgfxmode = 0;
 							blankattr = 7;
-							//for (tempcalc = videobase; tempcalc<videobase+16384; tempcalc+=2)
-                            //{
-							// //RAM[tempcalc] = 0;
-							// //RAM[tempcalc+1] = blankattr;
-							// write86(tempcalc,0);
-							// write86((tempcalc+1),blankattr);
-							//}
-							//Optimizado
 							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
                             {
                              gb_video_cga[tempcalc]= 0;
                              gb_video_cga[tempcalc+1]= 7;
                             }							
-							//JJ puerto portram[0x3D8] = portram[0x3D8] & 0xFE;
 							gb_portramTiny[fast_tiny_port_0x3D8]= gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
 							break;
 						case 2: //80x25 mono text
@@ -140,14 +151,6 @@ void vidinterrupt()
 							vidcolor = 1;
 							vidgfxmode = 0;
 							blankattr = 7;
-							//for (tempcalc = videobase; tempcalc<videobase+16384; tempcalc+=2)
-                            //{
-							// //RAM[tempcalc] = 0;
-							// //RAM[tempcalc+1] = blankattr;
-							// write86(tempcalc,0);
-							// write86((tempcalc+1),blankattr);
-                            //}
-							//Optimizado
 							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
                             {
                              gb_video_cga[tempcalc]= 0;
@@ -163,14 +166,6 @@ void vidinterrupt()
 							vidcolor = 1;
 							vidgfxmode = 0;
 							blankattr = 7;
-							//for (tempcalc = videobase; tempcalc<videobase+16384; tempcalc+=2)
-                            //{
-							// //RAM[tempcalc] = 0;
-							// //RAM[tempcalc+1] = blankattr;
-							// write86(tempcalc,0);
-							// write86((tempcalc+1),blankattr);
-                            //}
-							//Optimizado
 							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
                             {
                              gb_video_cga[tempcalc]= 0;
@@ -187,13 +182,6 @@ void vidinterrupt()
 							vidcolor = 1;
 							vidgfxmode = 1;
 							blankattr = 7;
-							//for (tempcalc = videobase; tempcalc<videobase+16384; tempcalc+=2)
-                            //{
-							// //RAM[tempcalc] = 0;
-							// //RAM[tempcalc+1] = blankattr;
-							// write86(tempcalc,0);
-							// write86((tempcalc+1),blankattr);
-							//}
 							//Optimizado
 							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
                             {
@@ -201,12 +189,10 @@ void vidinterrupt()
                              gb_video_cga[tempcalc+1]= 7;
                             }							
 							if (regs.byteregs[regal]==4){
-							 //JJ puerto portram[0x3D9] = 48;
-							 gb_portramTiny[fast_tiny_port_0x3D9]= 48;
+								gb_portramTiny[fast_tiny_port_0x3D9]= 48;
 							}
 							else{
-							 //JJ puerto portram[0x3D9] = 0;
-							 gb_portramTiny[fast_tiny_port_0x3D9]= 0;
+							 	gb_portramTiny[fast_tiny_port_0x3D9]= 0;
 							}
 							break;
 						case 6:
@@ -216,20 +202,11 @@ void vidinterrupt()
 							vidcolor = 0;
 							vidgfxmode = 1;
 							blankattr = 7;
-							//for (tempcalc = videobase; tempcalc<videobase+16384; tempcalc+=2)
-                            //{
-							// //RAM[tempcalc] = 0;
-							// //RAM[tempcalc+1] = blankattr;
-							// write86(tempcalc,0);
-							// write86((tempcalc+1),blankattr);
-                            //}
-							//Optimizado
 							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
                             {
                              gb_video_cga[tempcalc]= 0;
                              gb_video_cga[tempcalc+1]= 7;
                             }							
-							//JJ puerto portram[0x3D8] = portram[0x3D8] & 0xFE;
 							gb_portramTiny[fast_tiny_port_0x3D8]= gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
 							break;
 						case 127:
@@ -238,14 +215,7 @@ void vidinterrupt()
 							rows = 25;
 							vidcolor = 0;
 							vidgfxmode = 1;
-							//for (tempcalc = videobase; tempcalc<videobase+16384; tempcalc++)
-                            //{
-							// //RAM[tempcalc] = 0;
-							// write86(tempcalc,0);
-							//}
-							//Optimizado
 							memset(gb_video_cga,0,16384);
-							//JJ puerto portram[0x3D8] = portram[0x3D8] & 0xFE;
 							gb_portramTiny[fast_tiny_port_0x3D8]= gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
 							break;
 						case 0x9: //320x200 16-color

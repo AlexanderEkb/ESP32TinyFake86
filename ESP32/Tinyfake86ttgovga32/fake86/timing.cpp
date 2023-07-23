@@ -128,7 +128,7 @@ void timing()
  if (auxCurTick >= gb_timers_poll_milis)
  {
   jj_last_ms_tick = jj_cur_ms_tick;
-  bootstrapPoll();  //Cada 54 milis
+  updateBIOSDataArea();  //Cada 54 milis
   if (i8253.active[0])
   {
    doirq(0);

@@ -32,10 +32,12 @@
 #include "dataFlash/gbdsk.h"
 #include <esp_heap_caps.h>
 #include <Arduino.h>
+#include "sdcard.h"
 
 //JJ extern uint8_t RAM[0x100000]
 //uint8_t cf, hdcount;
 //extern uint16_t segregs[4];
+extern SdCard sdcard;
 extern union _bytewordregs_ regs;
 
 extern uint8_t read86 (uint32_t addr32);
@@ -105,7 +107,8 @@ void readdisk (uint8_t drivenum, uint16_t dstseg, uint16_t dstoff, uint16_t cyl,
   //memcpy(sectorbuffer,&gb_dsk_compaq211madmix[fileoffset],512);
   //memcpy(sectorbuffer,&gb_dsk_solnegro[fileoffset],512);  
   //memcpy(sectorbuffer,&gb_dsk_pakupaku[fileoffset],512);
-  memcpy(sectorbuffer,&gb_list_dsk_data[gb_id_cur_dsk][fileoffset],512);
+  // memcpy(sectorbuffer,&gb_list_dsk_data[gb_id_cur_dsk][fileoffset],512);
+	sdcard.Read(drivenum, sectorbuffer, fileoffset, 512);
   fileoffset+= 512;
   if (fileoffset >= (368640-1))
   {

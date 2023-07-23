@@ -132,7 +132,7 @@ void reset86(void);
 void exec86 (uint32_t execloops);
 void FuerzoParityRAM(void);
 
-void bootstrapPoll(void);
+void updateBIOSDataArea(void);
 void SetRAMTruco(void);
 void ExternalSetCF(unsigned char valor);
 

@@ -59,5 +59,6 @@
     "workbench.settings.enableNaturalLanguageSearch": false,
     "telemetry.enableCrashReporter": false,
     "npm.fetchOnlinePackageInfo": false,
-    "telemetry.enableTelemetry": false
+    "telemetry.enableTelemetry": false,
+    "idf.flashType": "UART"
 }

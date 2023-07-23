@@ -12,6 +12,7 @@
 #endif 
 #include "gbConfig.h"
 #include "gbGlobals.h"
+#include "fake86.h"
 #include "hardware.h"
 #include "driver/timer.h"
 #include "soc/timer_group_struct.h"
@@ -84,7 +85,7 @@ char **gb_buffer_vga;
 
 CompositeColorOutput composite(CompositeColorOutput::NTSC);
 Keyboard keyboard(Keyboard::KEYBOARD_DRIVER_AT);
-SdCard sdcard = SdCard();
+SdCard sdcard;
 
 unsigned char *gb_ram_bank[PAGE_COUNT];
 unsigned char gb_video_cga[16384];
@@ -240,26 +241,20 @@ void setup(void);
 void SDL_DumpVGA(void);
 //Setup principal
 void setup()
-{
-#ifdef use_lib_log_serial
-   Serial.begin(115200);
-   Serial.printf("HEAP BEGIN %d\n", ESP.getFreeHeap());
-#endif
-   pinMode(2, GPIO_PULLUP_ONLY);
-   pinMode(4, GPIO_PULLUP_ONLY);
-   pinMode(12, GPIO_PULLUP_ONLY);
-   pinMode(13, GPIO_PULLUP_ONLY);
-   pinMode(14, GPIO_PULLUP_ONLY);
-   pinMode(15, GPIO_PULLUP_ONLY);
-   sdcard.Init();
-   pinMode(SPEAKER_PIN, OUTPUT);
-   // REG_WRITE(GPIO_OUT_W1TC_REG , BIT25); //LOW clear
-   digitalWrite(SPEAKER_PIN, LOW);  
+{ 
+ pinMode(SPEAKER_PIN, OUTPUT);
+ //REG_WRITE(GPIO_OUT_W1TC_REG , BIT25); //LOW clear
+ digitalWrite(SPEAKER_PIN, LOW);  
 
+#ifdef use_lib_log_serial
+  Serial.begin(115200);
+   Serial.printf("\nHEAP BEGIN %d\n", ESP.getFreeHeap());
+#endif
+ sdcard.Init();
  CreateRAM();
  ClearRAM();
  SetRAMTruco();//Primero pongo RAM 
- bootstrapPoll(); //Al inicio
+ updateBIOSDataArea(); //Al inicio
  //insertdisk (0, "COMPAQDOS211cat.img");
  FuerzoParityRAM(); //Fuerzo que Parity sea en RAM
  
