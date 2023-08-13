@@ -30,6 +30,7 @@
 #include "gb_sdl_font8x8.h"
 #include "osd.h"
 #include "keyboard.h"
+#include "stm32kbd.h"
 #include "sdcard.h"
 
 #define SUPPORT_NTSC 1
@@ -84,7 +85,7 @@ unsigned char port3da=0;
 char **gb_buffer_vga;
 
 CompositeColorOutput composite(CompositeColorOutput::NTSC);
-Keyboard keyboard(Keyboard::KEYBOARD_DRIVER_AT);
+KeyboardDriver * keyboard = new KeyboardDriverAT(); // stm32keyboard();
 SdCard sdcard;
 
 unsigned char *gb_ram_bank[PAGE_COUNT];
@@ -195,7 +196,7 @@ void ProcesarAcciones()
   gb_reset=0;
   ClearRAM();
   memset(gb_video_cga,0,16384);
-  keyboard.Reset();
+  keyboard->Reset();
   running = 1;
   reset86();	
   inithardware();
@@ -268,7 +269,7 @@ void setup()
 
   LOG("VGA %d\n", ESP.getFreeHeap()); 
  PreparaColorVGA();
-   keyboard.Init();
+   keyboard->Init();
  
 
 	running = 1;
@@ -357,7 +358,7 @@ void loop()
    if ((gb_keyboard_time_cur- gb_keyboard_time_before) > gb_keyboard_poll_milis)
    {
       gb_keyboard_time_before= gb_keyboard_time_cur;
-      keyboard.Exec();
+      keyboard->Exec();
       ProcesarAcciones();    
       do_tinyOSD();    
    }
