@@ -133,9 +133,6 @@
  extern unsigned char gb_show_osd_main_menu;*/
 
 
- extern unsigned char gb_key_cur[45];
- extern unsigned char gb_key_before[45];
-
  extern char **gb_buffer_vga; 
  //extern unsigned char gb_color_vga[16];
 

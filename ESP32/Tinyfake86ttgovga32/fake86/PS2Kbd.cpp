@@ -6,21 +6,22 @@
 #include "PS2Kbd.h"
 #include <Arduino.h>
 
+#ifndef LOG
+#ifdef use_lib_log_serial
+#define LOG(...) Serial.printf(__VA_ARGS__)
+#else
+#define LOG(...) (void)
+#endif
+#endif
 volatile unsigned char keymap[256];
-volatile unsigned char oldKeymap[256];
+volatile static uint8_t incoming = 0;
+volatile static uint8_t bitcount = 0;
 
-unsigned int shift = 0;
-byte lastcode = 0;
 boolean keyup = false;
-boolean shift_presed = false;
-boolean symbol_pressed = false;
-byte rc = 0;
 
 // #define DEBUG_LOG_KEYSTROKES 1
 
 void IRAM_ATTR kb_interruptHandler(void) {
-    static uint8_t bitcount = 0;
-    static uint8_t incoming = 0;
     static uint32_t prev_ms = 0;
     uint32_t now_ms;
     uint8_t n, val;
@@ -31,46 +32,53 @@ void IRAM_ATTR kb_interruptHandler(void) {
 
     val = digitalRead(KEYBOARD_DATA);
     now_ms = millis();
-    if (now_ms - prev_ms > 250) {
+    if (now_ms - prev_ms > 5) {
         bitcount = 0;
         incoming = 0;
     }
     prev_ms = now_ms;
-    n = bitcount - 1;
-    if (n <= 7) {
-        incoming |= (val << n);
-    }
+    // n = bitcount - 1;
+    // if (n <= 7) {
+    //     incoming |= (val << n);
+    // }
+    incoming <<= 1;
+    incoming |= val;
     bitcount++;
-    if (bitcount == 11) {
-
-        if (1) {
-            if (keyup == true) {
-                if (keymap[incoming] == 0) {
-                    keymap[incoming] = 1;
-                } else {
-                    // Serial.println("WARNING: Keyboard cleaned");
-                    for (int gg = 0; gg < 256; gg++)
-                        keymap[gg] = 1;
-                }
-                keyup = false;
-            } else
-                keymap[incoming] = 0;
-
-#ifdef DEBUG_LOG_KEYSTROKES
-                #ifdef use_lib_log_serial
-                Serial.printf("PS2Kbd[%s]: %02X\n",
-                    keyup ? " up " : "down", incoming);
-                #endif    
-#endif
-
-            if (incoming == 240)
-                keyup = true;
-            else
-                keyup = false;
-        }
+    if (bitcount == 8)
+    {
         bitcount = 0;
-        incoming = 0;
+        keymap[incoming] = 0;
     }
+//     if (bitcount == 11) {
+
+//         if (1) {
+//             if (keyup == true) {
+//                 if (keymap[incoming] == 0) {
+//                     keymap[incoming] = 1;
+//                 } else {
+//                     // Serial.println("WARNING: Keyboard cleaned");
+//                     for (int gg = 0; gg < 256; gg++)
+//                         keymap[gg] = 1;
+//                 }
+//                 keyup = false;
+//             } else
+//                 keymap[incoming] = 0;
+
+// #ifdef DEBUG_LOG_KEYSTROKES
+//                 #ifdef use_lib_log_serial
+//                 Serial.printf("PS2Kbd[%s]: %02X\n",
+//                     keyup ? " up " : "down", incoming);
+//                 #endif    
+// #endif
+
+//             if (incoming == 240)
+//                 keyup = true;
+//             else
+//                 keyup = false;
+//         }
+//         bitcount = 0;
+//         incoming = 0;
+//     }
 }
 
 //#define FIX_PERIBOARD_NOT_INITING
@@ -98,11 +106,7 @@ void kb_begin()
     attachInterrupt(digitalPinToInterrupt(KEYBOARD_CLK), kb_interruptHandler, FALLING);
 
     memset((void *)keymap, 1, sizeof(keymap));
-    memset((void *)oldKeymap, 1, sizeof(oldKeymap));
 }
-
-// Check if keymatrix is changed
-boolean isKeymapChanged() { return (keymap != oldKeymap); }
 
 // Check if key is pressed and clean it
 boolean checkAndCleanKey(uint8_t scancode) {
@@ -128,4 +132,15 @@ void emulateKeyChange(uint8_t scancode, uint8_t isdown)
 unsigned char ATKeyboard_GetKey(uint8_t nIndex)
 {
     return keymap[nIndex];
+}
+
+uint8_t getScancode(void)
+{
+    uint8_t _incoming = 0;
+    if(bitcount == 0)
+    {
+      _incoming = incoming;
+      incoming = 0;
+    }
+    return _incoming;
 }

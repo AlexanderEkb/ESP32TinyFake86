@@ -12,9 +12,9 @@ extern byte lastcode;
 
 void IRAM_ATTR kb_interruptHandler(void);
 void kb_begin();
-boolean isKeymapChanged();
 boolean checkAndCleanKey(uint8_t scancode);
 boolean checkKey(uint8_t scancode);
+uint8_t getScancode(void);
 
 // inject key from wiimote, for not modifying OSD code
 void emulateKeyChange(uint8_t scancode, uint8_t isdown);
