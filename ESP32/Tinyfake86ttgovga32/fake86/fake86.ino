@@ -30,7 +30,6 @@
 #include "gb_sdl_font8x8.h"
 #include "osd.h"
 #include "keyboard.h"
-#include "stm32kbd.h"
 #include "sdcard.h"
 
 #define SUPPORT_NTSC 1
@@ -358,7 +357,14 @@ void loop()
    if ((gb_keyboard_time_cur- gb_keyboard_time_before) > gb_keyboard_poll_milis)
    {
       gb_keyboard_time_before= gb_keyboard_time_cur;
-      keyboard->Exec();
+      const uint8_t scancode = keyboard->Exec();
+      if (scancode != 0)
+      {
+         gb_portramTiny[fast_tiny_port_0x60] = scancode;
+         gb_portramTiny[fast_tiny_port_0x64] |= 2;
+         doirq(1);
+      }
+
       ProcesarAcciones();    
       do_tinyOSD();    
    }

@@ -1,40 +1,70 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
+#include "fake86.h"
+#include "gbConfig.h"
 #include "gbGlobals.h"
-#include "PS2Kbd.h"
+#include "hardware.h"
 #include "i8259.h"
+#include "keys.h"
+#include <Arduino.h>
 
-class KeyboardDriver
-{
+void IRAM_ATTR kb_interruptHandler(void);
+uint8_t getScancode(void);
+
+class KeyboardDriver {
   public:
     virtual void Init() = 0;
     virtual void Reset() = 0;
-    virtual void Exec() = 0;
+    virtual uint8_t Exec() = 0;
+    virtual uint8_t getLastKey() = 0;
 };
 
 class KeyboardDriverAT : public KeyboardDriver
 {
   public:
+    KeyboardDriverAT()
+    {
+      incoming = 0;
+      bitcount = 0;
+      lastScanCode = 0;
+    }
     static const uint32_t KEY_COUNT = 53;
-    KeyboardDriverAT() {}
     virtual void Init() {
-        Reset();
-        kb_begin();
+      pinMode(KEYBOARD_DATA, INPUT_PULLUP);
+      pinMode(KEYBOARD_CLK, INPUT_PULLUP);
+      digitalWrite(KEYBOARD_DATA, true);
+      digitalWrite(KEYBOARD_CLK, true);
+      attachInterrupt(digitalPinToInterrupt(KEYBOARD_CLK), kb_interruptHandler, FALLING);
     }
 
     virtual void Reset() {}
-    virtual void Exec()
+    virtual uint8_t Exec()
     {
       uint8_t scancode = getScancode();
-      if(scancode != 0)
-      {
-        gb_portramTiny[fast_tiny_port_0x60] = scancode;
-        gb_portramTiny[fast_tiny_port_0x64] |= 2;
-        doirq(1);
-      }
+      return scancode;
     }
+
+    virtual uint8_t getLastKey() {
+      uint8_t result = lastScanCode;
+      lastScanCode = 0;
+      return result;
+    }
+
+    uint8_t getScancode(void) {
+      uint8_t _incoming = 0;
+      if (bitcount == 0) {
+        _incoming = incoming;
+        incoming = 0;
+      }
+      return _incoming;
+    }
+
   private:
+    volatile static uint8_t incoming;
+    volatile static uint8_t bitcount;
+    volatile static uint8_t lastScanCode;
+    friend void IRAM_ATTR kb_interruptHandler(void);
     /*
     // https://homepages.cwi.nl/~aeb/linux/kbd/scancodes-1.html
     //  00    01    02    03    04    05    06    07    08    09    0a    0b    0c    0d    0e    0f
@@ -65,25 +95,4 @@ class KeyboardDriverAT : public KeyboardDriver
     //*********************************************
 };
 
-class Keyboard {
-  public:
-    enum KEYBOARD_DRIVER { KEYBOARD_DRIVER_NONE, KEYBOARD_DRIVER_AT };
-    Keyboard(KEYBOARD_DRIVER eDriver) {
-      m_oDriver = new KeyboardDriverAT();
-    }
-    void Init()
-    {
-      m_oDriver->Init();
-    }
-    void Reset()
-    {
-      m_oDriver->Reset();
-    }
-    void Exec()
-    {
-      m_oDriver->Exec();
-    }
-  private:
-    KeyboardDriver * m_oDriver;
-};
 #endif /* KEYBOARD_H */

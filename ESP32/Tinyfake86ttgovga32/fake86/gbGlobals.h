@@ -3,13 +3,7 @@
  #include <stdint.h>
  #include "gbConfig.h"
  #include <stdio.h>
-
-
-
- //#include <SDL/SDL.h>
-//JJ #include "mutex.h"
- #include "gbConfig.h"
- 
+ #include "keyboard.h" 
 
  #define fast_tiny_port_0x60 11
  #define fast_tiny_port_0x61 12
@@ -26,8 +20,7 @@
  // extern unsigned long tickgap; //no lo necesito fuerzo 54 ms
  //JJ extern CRITICAL_SECTION screenmutex;
  //extern SDL_Surface *screen;
- 
- extern unsigned char bootdrive,renderbenchmark;
+ extern unsigned char bootdrive, renderbenchmark;
  //noscale, usessource, useconsole,doaudio,cgaonly,nosmooth,ethif
  
  extern unsigned char gb_force_set_cga;
@@ -118,7 +111,6 @@
  extern unsigned char *gb_ram_bank[PAGE_COUNT];
  
 // extern const unsigned char gb_reserved_memory[16];
- extern volatile unsigned char keymap[256];
  extern volatile unsigned char oldKeymap[256];
 
  //extern unsigned char keydown[0x100];

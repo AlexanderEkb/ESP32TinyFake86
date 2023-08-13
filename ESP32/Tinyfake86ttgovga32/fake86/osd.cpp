@@ -1,15 +1,18 @@
+#include <string.h>
 #include "gbConfig.h"
 #include "fake86.h"
 #include "osd.h"
 #include "dataFlash/gbcom.h"
 #include "gbGlobals.h"
-#include "PS2Kbd.h"
 #include "gb_sdl_font8x8.h"
 #include "render.h"
 #include "dataFlash/gbsnarare.h"
 #include "dataFlash/gbdsk.h"
 #include "cpu.h"
 #include "ports.h"
+#include "keys.h"
+#include "keyboard.h"
+#include <Esp.h>
 
 
 //#define BLACK   0
@@ -255,36 +258,35 @@ unsigned char ShowTinyMenu(const char *cadTitle,const char **ptrValue,unsigned c
 
   while (salir == 0)
   {
-    //case SDLK_UP:
-    if (checkAndCleanKey(KEY_CURSOR_LEFT))
+    extern KeyboardDriver *keyboard;
+    uint8_t scancode = keyboard->getLastKey();
+    switch (scancode)
     {
+    case (KEY_CURSOR_LEFT):
       if (aReturn>10) aReturn-=10;
       OSDMenuRowsDisplayScroll(ptrValue,aReturn,aMax);       
-    }
-    if (checkAndCleanKey(KEY_CURSOR_RIGHT))
-    {
+      break;
+    case (KEY_CURSOR_RIGHT):
       if (aReturn<(aMax-10)) aReturn+=10;
       OSDMenuRowsDisplayScroll(ptrValue,aReturn,aMax);       
-    }     
+      break;     
 
-    if (checkAndCleanKey(KEY_CURSOR_UP))
-    {
+    case (KEY_CURSOR_UP):
       if (aReturn>0) aReturn--;
       OSDMenuRowsDisplayScroll(ptrValue,aReturn,aMax);
-    }
-    if (checkAndCleanKey(KEY_CURSOR_DOWN))
-    {
+      break;
+    case (KEY_CURSOR_DOWN):
       if (aReturn < (aMax-1)) aReturn++;
       OSDMenuRowsDisplayScroll(ptrValue,aReturn,aMax);
-    }
-    if (checkAndCleanKey(KEY_ENTER))
-    {
+      break;
+    case (KEY_ENTER):
       salir= 1;
-    }
+      break;
     //case SDLK_KP_ENTER: case SDLK_RETURN: salir= 1;break;
-    if (checkAndCleanKey(KEY_ESC))
-    {
-      salir=1; aReturn= 255;    
+    case (KEY_ESC):
+      salir=1; 
+      aReturn= 255;    
+      break;
     }
  } 
  gb_show_osd_main_menu= 0;
@@ -436,12 +438,11 @@ void do_tinyOSD()
  int auxVol;
  int auxFrec;  
  unsigned char aSelNum;
- if (checkAndCleanKey(KEY_F12))
+ extern KeyboardDriver *keyboard;
+ uint8_t scancode = keyboard->getLastKey();
+ if (scancode == KEY_F12)
  {
   gb_show_osd_main_menu= 1;
-  #ifdef use_lib_sound_ay8912  
-   gb_silence_all_channels = 1;
-  #endif    
   return;
  }
 
