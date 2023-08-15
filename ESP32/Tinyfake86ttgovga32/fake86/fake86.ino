@@ -24,7 +24,6 @@
 #include "video.h"
 #include "timing.h"
 #include "disk.h"
-#include "dataFlash/com/comdigger.h"
 #include "dataFlash/gbcom.h"
 #include "gb_sdl_font8x8.h"
 #include "osd.h"
