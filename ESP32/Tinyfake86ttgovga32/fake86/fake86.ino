@@ -16,7 +16,6 @@
 #include "hardware.h"
 #include "driver/timer.h"
 #include "soc/timer_group_struct.h"
-#include "input.h"
 #include "i8253.h"
 #include "i8259.h"
 #include "i8237.h"
@@ -188,7 +187,7 @@ void inithardware()
 }
 
 
-void ProcesarAcciones()
+void PerformSpecialActions()
 {
  if (gb_reset == 1)
  {
@@ -365,7 +364,7 @@ void loop()
          doirq(1);
       }
 
-      ProcesarAcciones();    
+      PerformSpecialActions();    
       do_tinyOSD();    
    }
 

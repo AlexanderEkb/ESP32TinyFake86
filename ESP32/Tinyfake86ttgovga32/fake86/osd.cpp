@@ -6,8 +6,6 @@
 #include "gbGlobals.h"
 #include "gb_sdl_font8x8.h"
 #include "render.h"
-#include "dataFlash/gbsnarare.h"
-#include "dataFlash/gbdsk.h"
 #include "cpu.h"
 #include "ports.h"
 #include "keys.h"
@@ -196,7 +194,7 @@ void OSDMenuRowsDisplayScroll(const char **ptrValue,unsigned char currentId,unsi
 unsigned char ShowTinyMenu(const char *cadTitle,const char **ptrValue,unsigned char aMax)
 {
   unsigned char aReturn=0;
-  unsigned char salir=0;
+  bool bExit = false;
   SDLClear();
   SDLprintText("Port Fake86 by Ackerman",gb_pos_x_menu-(4<<3),gb_pos_y_menu-16,WHITE,0);
   for (int i=0;i<20;i++)
@@ -205,7 +203,7 @@ unsigned char ShowTinyMenu(const char *cadTitle,const char **ptrValue,unsigned c
 
   OSDMenuRowsDisplayScroll(ptrValue,0,aMax);
 
-  while (salir == 0)
+  while (!bExit)
   {
     extern KeyboardDriver *keyboard;
     uint8_t scancode = keyboard->getLastKey();
@@ -229,11 +227,11 @@ unsigned char ShowTinyMenu(const char *cadTitle,const char **ptrValue,unsigned c
       OSDMenuRowsDisplayScroll(ptrValue,aReturn,aMax);
       break;
     case (KEY_ENTER):
-      salir= 1;
+      bExit = true;
       break;
-    //case SDLK_KP_ENTER: case SDLK_RETURN: salir= 1;break;
+    //case SDLK_KP_ENTER: case SDLK_RETURN: bExit= 1;break;
     case (KEY_ESC):
-      salir=1; 
+      bExit = true; 
       aReturn= 255;    
       break;
     }

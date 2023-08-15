@@ -42,7 +42,6 @@
 #include "i8253.h"
 #include "gbGlobals.h"
 #include <Arduino.h>
-#include "dataFlash/gbsnarare.h"
 
 extern struct i8253_s i8253;
 

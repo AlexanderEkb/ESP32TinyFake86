@@ -29,7 +29,7 @@
 
 struct structpic i8259;
 
-//extern uint8_t keyboardwaitack;
+uint8_t keyboardwaitack;
 
 //JJ extern void set_port_write_redirector(uint16_t startport, uint16_t endport, void *callback);
 //JJ extern void set_port_read_redirector(uint16_t startport, uint16_t endport, void *callback);

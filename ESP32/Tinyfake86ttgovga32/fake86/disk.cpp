@@ -29,7 +29,6 @@
 //#include "dataFlash/dsk/dskcompaqdos211madmix.h"
 //#include "dataFlash/dsk/dskcompaqdos211solnegro.h"
 //#include "dataFlash/dsk/dskcompaqdos211pakupaku.h"
-#include "dataFlash/gbdsk.h"
 #include <esp_heap_caps.h>
 #include <Arduino.h>
 #include "sdcard.h"

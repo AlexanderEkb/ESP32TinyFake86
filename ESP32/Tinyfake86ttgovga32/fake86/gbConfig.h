@@ -4,15 +4,6 @@
  #define true 1
  #define false 0
 
- //Cuando uso capturadora usb
- //#define use_lib_capture_usb
- 
- //Corrige teclados que no se inicializan(solucion dcrespo3D)
- //#define FIX_PERIBOARD_NOT_INITING
-
- //#define use_lib_sna_rare
- //#define use_lib_speaker_cpu
-
  //Section Optimice
  #define use_lib_fast_push
  #define use_lib_fast_pop
@@ -128,10 +119,6 @@
 
 
 
-
- //Video mode
- //#define use_lib_200x150
- #define use_lib_320x200
 
  //Logs
  #define use_lib_log_serial
