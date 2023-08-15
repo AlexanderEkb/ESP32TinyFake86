@@ -50,12 +50,13 @@ typedef struct DRIVE_DESC
     uint32_t cylinders;
     uint32_t heads;
 		uint32_t sectors;
+		uint32_t sectorSize;
 		uint32_t capacity;
 } DRIVE_DESC;
 
 static DRIVE_DESC drives[2] = {
-    {40, 2, 9, 368640},			// A:
-    {40, 2, 9, 368640},			// B:
+    {80, 2, 18, 512, 1474560},			// A:
+    {80, 2, 18, 512, 1474560},			// B:
 };
 
 void diskInit()
@@ -66,50 +67,23 @@ void diskInit()
 		Serial.println("Disc cache allocation failed!");
 	}
 }
-//JJuint8_t insertdisk (uint8_t drivenum, char *filename)
-//JJ{
-//JJ if (drivenum >1)
-//JJ  return 0;
-//JJ disk[drivenum].inserted = 1;
-//JJ disk[drivenum].filesize= 368640; 
-//JJ //floppy image
-//JJ disk[drivenum].cyls = 80;
-//JJ disk[drivenum].sects = 18;
-//JJ disk[drivenum].heads = 2;
-//JJ if (disk[drivenum].filesize <= 1228800) disk[drivenum].sects = 15;
-//JJ if (disk[drivenum].filesize <= 737280) disk[drivenum].sects = 9;
-//JJ if (disk[drivenum].filesize <= 368640) {
-//JJ  disk[drivenum].cyls = 40;
-//JJ  disk[drivenum].sects = 9;
-//JJ }
-//JJ if (disk[drivenum].filesize <= 163840) {
-//JJ  disk[drivenum].cyls = 40;
-//JJ  disk[drivenum].sects = 8;
-//JJ  disk[drivenum].heads = 1;
-//JJ }
-//JJ return (0);
-//JJ}
-
-//JJ void ejectdisk (uint8_t drivenum) {
-//JJ  disk[drivenum].inserted = 0;
-//JJ }
 
 void readdisk (uint8_t drivenum, uint16_t dstseg, uint16_t dstoff, uint16_t cyl, uint16_t sect, uint16_t head, uint16_t sectcount) {
 	uint32_t memdest, lba, fileoffset, cursect, sectoffset;
 	if (!sect)
 		return;
 	lba = ( (uint32_t) cyl * drives[drivenum].heads + (uint32_t) head) * drives[drivenum].sectors + (uint32_t) sect - 1;
-	fileoffset = lba * 512;
+	fileoffset = lba * drives[drivenum].sectorSize;
 	if (fileoffset>=(drives[drivenum].capacity-1)) 
 		return;
 	memdest = ( (uint32_t) dstseg << 4) + (uint32_t) dstoff;
 	for (cursect=0; cursect<sectcount; cursect++)
 	{
-		sdcard.Read(drivenum, sectorbuffer, fileoffset, 512);
-		fileoffset+= 512;
-		if (fileoffset >= (368640-1))
+		sdcard.Read(drivenum, sectorbuffer, fileoffset, drives[drivenum].sectorSize);
+        fileoffset += drives[drivenum].sectorSize;
+        if (fileoffset >= (drives[drivenum].capacity-1))
 			break;
-		for (sectoffset=0; sectoffset<512; sectoffset++)
+		for (sectoffset=0; sectoffset<drives[drivenum].sectorSize; sectoffset++)
 			write86 (memdest++, sectorbuffer[sectoffset]);
 	}
 	regs.byteregs[regal] = cursect;

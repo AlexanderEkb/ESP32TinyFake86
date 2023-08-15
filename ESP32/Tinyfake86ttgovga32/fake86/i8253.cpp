@@ -36,7 +36,6 @@
 
 struct i8253_s i8253;
 
-//extern uint64_t hostfreq, lasttick, curtick, tickgap, totalexec;
 extern uint64_t hostfreq, curtick, totalexec;
 
 void out8253 (uint16_t portnum, uint8_t value) {

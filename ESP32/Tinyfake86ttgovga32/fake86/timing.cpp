@@ -14,7 +14,7 @@
 //  You should have received a copy of the GNU General Public License
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-// timing.c: critical functions to provide accurate timing for the
+// simulateCGARetrace.c: critical functions to provide accurate timing for the
 //   system timer interrupt, and to generate new audio output samples.
 
 #include "gbConfig.h"
@@ -100,26 +100,29 @@ void inittiming() {
 }
 
 
-unsigned int localscanline=0;
+static uint32_t localscanline=0;
 
-
-void timing()
-{//Funcion Alleycat y Digger 
- unsigned char i8253chan;
- jj_cur_ms_tick= millis();
- unsigned int auxCurTick= (jj_last_ms_tick - jj_cur_ms_tick);
- //auxCurTick= (jj_lastscanline_ms_tick - jj_cur_ms_tick);
- //FIX cerezas digger no es suficiente rapido para retrazo
- //if (auxCurTick >= 31) 
- {
-  localscanline++;
-  if (localscanline > 479) port3da = 8;			
-  else port3da = 0;
-  if (localscanline & 1) port3da |= 1;
-  if (localscanline>525)
-   localscanline=0;
-  // jj_lastscanline_ms_tick= jj_cur_ms_tick;
-  //lastscanlinetick = curtick;
+void simulateCGARetrace()
+{
+  static const uint8_t CGA_HORIZONTAL_RETRACE = 0x01;
+  static const uint8_t CGA_VERTICAL_RETRACE   = 0x08;
+  // Funcion Alleycat y Digger
+  unsigned char i8253chan;
+  jj_cur_ms_tick = millis();
+  unsigned int auxCurTick = (jj_last_ms_tick - jj_cur_ms_tick);
+  // auxCurTick= (jj_lastscanline_ms_tick - jj_cur_ms_tick);
+  // FIX cerezas digger no es suficiente rapido para retrazo
+  // if (auxCurTick >= 31)
+  {
+      localscanline++;
+      if (localscanline > 479)
+          port3da = CGA_VERTICAL_RETRACE;
+      else
+          port3da = 0;
+      if (localscanline & 1)
+          port3da |= CGA_HORIZONTAL_RETRACE;
+      if (localscanline > 525)
+          localscanline = 0;
  }
 
  //Fuerzo siempre 54 ms 18.2 ticks 

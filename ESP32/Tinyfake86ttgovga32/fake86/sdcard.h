@@ -18,6 +18,13 @@
 #define RG_STORAGE_SPEED SDMMC_FREQ_DEFAULT // Used by driver 1 and 2
 #define RG_STORAGE_ROOT "/sd"               // Storage mount point
 #define RG_PATH_MAX 255
+
+#ifdef use_lib_log_serial
+#define LOG(...) Serial.printf(__VA_ARGS__)
+#else
+#define LOG(...) (void)
+#endif
+
 enum {
     RG_SCANDIR_STAT = 1, // This will populate file size
     RG_SCANDIR_SORT = 2, // This will sort using natural order
@@ -163,12 +170,14 @@ class SdCard {
     {
         if(floppies[drive].pImage != nullptr)
         {
+            LOG("Reading drive %i off %i length %i\n", drive, offset, size);
             fseek(floppies[drive].pImage, offset, SEEK_SET);
             fread(pDest, size, 1, floppies[drive].pImage);
             return true;
         }
         else
         {
+            LOG("Error reading drive %i off %i length %i\n", drive, offset, size);
             return false;
         }
     }

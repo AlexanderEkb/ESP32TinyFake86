@@ -263,7 +263,7 @@ extern uint8_t	portin (uint16_t portnum);
 extern uint16_t portin16 (uint16_t portnum);
 
 unsigned char gb_ram_truco_low=0x80; //128 KB
-unsigned char gb_ram_truco_high=0x00;
+unsigned char gb_ram_truco_high=0x20;
 
 //Fuerzo RAM
 void SetRAMTruco()
@@ -284,20 +284,12 @@ void updateBIOSDataArea()
 { 
  if (!didbootstrap)
  {
-  #ifdef use_lib_sna_rare	 
-   jj_write86_remap(0x410,0x41);
-   jj_write86_remap(0x410,hdcount);
-
-   jj_write86_remap(0x413,gb_ram_truco_low);
-   jj_write86_remap(0x414,gb_ram_truco_high);
-  #else 
    gb_ram_bank[0][0x410]= 0x41;	// Equipment word: no FPU, no mouse, two floppies, EGA or better
    gb_ram_bank[0][0x475]= 0;		// Number of HDDs intalled
 
    //gb_ram_00[0x413]= 0x80; gb_ram_00[0x414]= 0x00; //128 KB
    gb_ram_bank[0][0x413]= gb_ram_truco_low;	// Amount of RAM, in Kbytes
    gb_ram_bank[0][0x414]= gb_ram_truco_high;    
-  #endif
  }
 }
 
@@ -1974,7 +1966,7 @@ extern float	timercomp;
 uint64_t	timerticks = 0, realticks = 0;
 uint64_t	lastcountertimer = 0, counterticks = 10000;
 extern uint8_t	nextintr();
-extern void	timing();
+extern void	simulateCGARetrace();
 
 void exec86 (uint32_t execloops) {
 
@@ -1992,7 +1984,7 @@ void exec86 (uint32_t execloops) {
       my_callback_speaker_func();
 	 #endif 
 
-			if ( (totalexec & 31) == 0) timing();
+			if ( (totalexec & 31) == 0) simulateCGARetrace();
 
             //if ( (totalexec & 0x07) == 0)
 			//{
