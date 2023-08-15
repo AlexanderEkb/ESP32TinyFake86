@@ -50,7 +50,8 @@
         "stdexcept": "cpp",
         "cinttypes": "cpp",
         "utility": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "string_view": "cpp"
     },
     "merge-conflict.codeLens.enabled": false,
     "editor.codeLens": false,

@@ -24,13 +24,8 @@ enum {
 };
 
 typedef struct __attribute__((packed)) {
-    uint8_t is_valid : 1;
-    uint8_t is_file : 1;
-    uint8_t is_dir : 1;
-    uint8_t unused : 5;
     char name[75];
-    int32_t mtime, size;
-} rg_scandir_t;
+} scandir_t;
 
 class SdCard {
   static const uint32_t FLOPPY_COUNT = 2;
@@ -136,7 +131,7 @@ class SdCard {
 
         if (!error_code) {
             RG_LOGI("Storage mounted at %s. driver=%d\n", RG_STORAGE_ROOT, RG_STORAGE_DRIVER);
-            OpenImage(0, "/sd/boot.img");
+            OpenImage(0, "boot.img");
         } else
             RG_LOGE("Storage mounting failed. driver=%d, err=0x%x\n", RG_STORAGE_DRIVER, error_code);
 
@@ -146,8 +141,13 @@ class SdCard {
 
     bool OpenImage(uint32_t drive, char * pFilename)
     {
-        Serial.printf("Opening image '%s', drive #%i...", pFilename, drive);
-        floppies[drive].pImage = fopen(pFilename, "r");
+        if (floppies[drive].pImage != nullptr)
+            fclose(floppies[drive].pImage);
+        static const uint32_t LENGTH = 256;
+        char fullpath[LENGTH];
+        snprintf(fullpath, LENGTH, "%s/%s", RG_STORAGE_ROOT, pFilename);
+        Serial.printf("Opening image '%s', drive #%i...", fullpath, drive);
+        floppies[drive].pImage = fopen(fullpath, "r");
         const bool result = (floppies[drive].pImage != nullptr);
         if(result)
         {
@@ -172,6 +172,56 @@ class SdCard {
             return false;
         }
     }
+    scandir_t *scandir() {
+        RG_LOGI("Scanning...\r\n");
+        DIR *dir = opendir(RG_STORAGE_ROOT);
+        if (!dir)
+            return NULL;
+
+        scandir_t *results = (scandir_t *)calloc(1, sizeof(scandir_t));
+        size_t capacity = 0;
+        size_t count = 0;
+        struct dirent *ent;
+        struct stat statbuf;
+
+        char fullpath[RG_PATH_MAX + 1] = {0};
+        char *basename = fullpath + sprintf(fullpath, "/");
+        size_t basename_len = RG_PATH_MAX - (basename - fullpath);
+
+        while ((ent = readdir(dir))) {
+            strncpy(basename, ent->d_name, basename_len);
+
+            if (basename[0] == '.') // For backwards compat we'll ignore all hidden files...
+                continue;
+
+            if (ent->d_type != DT_REG)
+                continue;
+
+            uint32_t length = strlen(basename);
+            char *extension = &basename[length - 4];
+            if (strncmp(extension, ".img", 4))
+                continue;
+
+            if (count + 1 >= capacity) {
+                capacity += 100;
+                void *temp = realloc(results, (capacity + 1) * sizeof(scandir_t));
+                if (!temp) {
+                    RG_LOGW("Not enough memory to finish scan!\n");
+                    break;
+                }
+                results = (scandir_t *)temp;
+            }
+
+            scandir_t *result = &results[count++];
+
+            strncpy(result->name, basename, sizeof(result->name) - 1);
+        }
+        memset(&results[count], 0, sizeof(scandir_t));
+        RG_LOGI("%i entries found.\r\n", count);
+        closedir(dir);
+        return results;
+    }
+
   private:
     typedef struct DRIVE_DESC
     {
@@ -214,64 +264,6 @@ class SdCard {
         //     rg_system_set_led(0);
 
         return ret;
-    }
-    rg_scandir_t *rg_storage_scandir(const char *path, bool (*validator)(const char *path), uint32_t flags) {
-        RG_LOGI("Scanning...\r\n");
-        DIR *dir = opendir(path);
-        if (!dir)
-            return NULL;
-
-        rg_scandir_t *results = (rg_scandir_t *)calloc(1, sizeof(rg_scandir_t));
-        size_t capacity = 0;
-        size_t count = 0;
-        struct dirent *ent;
-        struct stat statbuf;
-
-        char fullpath[RG_PATH_MAX + 1] = {0};
-        char *basename = fullpath + sprintf(fullpath, "%s/", path);
-        size_t basename_len = RG_PATH_MAX - (basename - fullpath);
-
-        while ((ent = readdir(dir))) {
-            strncpy(basename, ent->d_name, basename_len);
-
-            if (basename[0] == '.') // For backwards compat we'll ignore all hidden files...
-                continue;
-
-            if (validator && !validator(fullpath))
-                continue;
-
-            if (count + 1 >= capacity) {
-                capacity += 100;
-                void *temp = realloc(results, (capacity + 1) * sizeof(rg_scandir_t));
-                if (!temp) {
-                    RG_LOGW("Not enough memory to finish scan!\n");
-                    break;
-                }
-                results = (rg_scandir_t *)temp;
-            }
-
-            rg_scandir_t *result = &results[count++];
-
-            strncpy(result->name, basename, sizeof(result->name) - 1);
-            RG_LOGI("%s\r\n", basename);
-            result->is_valid = 1;
-#if defined(DT_REG) && defined(DT_DIR)
-            result->is_file = ent->d_type == DT_REG;
-            result->is_dir = ent->d_type == DT_DIR;
-#else
-            flags |= RG_SCANDIR_STAT;
-#endif
-
-            if ((flags & RG_SCANDIR_STAT) && stat(fullpath, &statbuf) == 0) {
-                result->is_file = S_ISREG(statbuf.st_mode);
-                result->is_dir = S_ISDIR(statbuf.st_mode);
-                result->size = statbuf.st_size;
-                result->mtime = statbuf.st_mtime;
-            }
-        }
-        memset(&results[count], 0, sizeof(rg_scandir_t));
-        RG_LOGI("%i entries found.\r\n", count);
-        return results;
     }
 };
 

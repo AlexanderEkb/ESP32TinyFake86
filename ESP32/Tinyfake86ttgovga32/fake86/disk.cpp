@@ -43,10 +43,21 @@ extern union _bytewordregs_ regs;
 extern uint8_t read86 (uint32_t addr32);
 extern void write86 (uint32_t addr32, uint8_t value);
 
-//JJ struct struct_drive disk[256];
-//JJ struct struct_drive disk[1]; //Dejo 1 para probar
 unsigned char sectorbuffer[512];
 uint8_t * pCache;
+
+typedef struct DRIVE_DESC
+{
+    uint32_t cylinders;
+    uint32_t heads;
+		uint32_t sectors;
+		uint32_t capacity;
+} DRIVE_DESC;
+
+static DRIVE_DESC drives[2] = {
+    {40, 2, 9, 368640},			// A:
+    {40, 2, 9, 368640},			// B:
+};
 
 void diskInit()
 {
@@ -85,45 +96,26 @@ void diskInit()
 //JJ }
 
 void readdisk (uint8_t drivenum, uint16_t dstseg, uint16_t dstoff, uint16_t cyl, uint16_t sect, uint16_t head, uint16_t sectcount) {
- uint32_t memdest, lba, fileoffset, cursect, sectoffset;
- //JJ if (!sect || !disk[drivenum].inserted) return;
- if (!sect) return;
- //JJ lba = ( (uint32_t) cyl * (uint32_t) disk[drivenum].heads + (uint32_t) head) * (uint32_t) disk[drivenum].sects + (uint32_t) sect - 1;
- lba = ( (uint32_t) cyl * (uint32_t) gb_list_dsk_heads[gb_id_cur_dsk] + (uint32_t) head) * (uint32_t) gb_list_dsk_sects[gb_id_cur_dsk] + (uint32_t) sect - 1;
- fileoffset = lba * 512;
-//JJ if (fileoffset>=(disk[drivenum].filesize-1)) return;
- if (fileoffset>=((unsigned int)gb_list_dsk_filesize[gb_id_cur_dsk]-1)) return;
- //fseek (disk[drivenum].diskfile, fileoffset, SEEK_SET);	
- memdest = ( (uint32_t) dstseg << 4) + (uint32_t) dstoff;
- //for the readdisk function, we need to use write86 instead of directly fread'ing into
- //the RAM array, so that read-only flags are honored. otherwise, a program could load
- //data from a disk over BIOS or other ROM code that it shouldn't be able to.
- for (cursect=0; cursect<sectcount; cursect++)
- {
-  //if (fread (sectorbuffer, 1, 512, disk[drivenum].diskfile) < 512) break;
-  //memcpy(sectorbuffer,&gb_dsk_compaq211cat[fileoffset],512);
-  //memcpy(sectorbuffer,&gb_dsk_msdos300gameover[fileoffset],512);  
-  //memcpy(sectorbuffer,&gb_dsk_compaq211lastmission[fileoffset],512);
-  //memcpy(sectorbuffer,&gb_dsk_compaq211madmix[fileoffset],512);
-  //memcpy(sectorbuffer,&gb_dsk_solnegro[fileoffset],512);  
-  //memcpy(sectorbuffer,&gb_dsk_pakupaku[fileoffset],512);
-  // memcpy(sectorbuffer,&gb_list_dsk_data[gb_id_cur_dsk][fileoffset],512);
-	sdcard.Read(drivenum, sectorbuffer, fileoffset, 512);
-  fileoffset+= 512;
-  if (fileoffset >= (368640-1))
-  {
-   //printf("ReadDsk over %d\n",fileoffset);
-   //fflush(stdout);                 
-   break;
-  }
-  for (sectoffset=0; sectoffset<512; sectoffset++) {
-   write86 (memdest++, sectorbuffer[sectoffset]);
-  }
- }
- regs.byteregs[regal] = cursect;
- //cf = 0;
- ExternalSetCF(0);
- regs.byteregs[regah] = 0;
+	uint32_t memdest, lba, fileoffset, cursect, sectoffset;
+	if (!sect)
+		return;
+	lba = ( (uint32_t) cyl * drives[drivenum].heads + (uint32_t) head) * drives[drivenum].sectors + (uint32_t) sect - 1;
+	fileoffset = lba * 512;
+	if (fileoffset>=(drives[drivenum].capacity-1)) 
+		return;
+	memdest = ( (uint32_t) dstseg << 4) + (uint32_t) dstoff;
+	for (cursect=0; cursect<sectcount; cursect++)
+	{
+		sdcard.Read(drivenum, sectorbuffer, fileoffset, 512);
+		fileoffset+= 512;
+		if (fileoffset >= (368640-1))
+			break;
+		for (sectoffset=0; sectoffset<512; sectoffset++)
+			write86 (memdest++, sectorbuffer[sectoffset]);
+	}
+	regs.byteregs[regal] = cursect;
+	ExternalSetCF(0);
+	regs.byteregs[regah] = 0;
 }
 
 void writedisk (uint8_t drivenum, uint16_t dstseg, uint16_t dstoff, uint16_t cyl, uint16_t sect, uint16_t head, uint16_t sectcount) {
@@ -334,14 +326,10 @@ void diskhandler()
 						cf = 0;
 						ExternalSetCF(0);
 						regs.byteregs[regah] = 0;
-						//JJ regs.byteregs[regch] = disk[regs.byteregs[regdl]].cyls - 1;
-						regs.byteregs[regch] = gb_list_dsk_cyls[gb_id_cur_dsk] - 1;
-						//JJ regs.byteregs[regcl] = disk[regs.byteregs[regdl]].sects & 63;
-						regs.byteregs[regcl] = gb_list_dsk_sects[gb_id_cur_dsk] & 63;
-						//JJ regs.byteregs[regcl] = regs.byteregs[regcl] + (disk[regs.byteregs[regdl]].cyls/256) *64;
-						regs.byteregs[regcl] = regs.byteregs[regcl] + (gb_list_dsk_cyls[gb_id_cur_dsk]/256) *64;
-						//JJ regs.byteregs[regdh] = disk[regs.byteregs[regdl]].heads - 1;
-						regs.byteregs[regdh] = gb_list_dsk_heads[gb_id_cur_dsk] - 1;
+						regs.byteregs[regch] = static_cast<uint8_t>(drives[regs.byteregs[regdl]].cylinders) - 1;
+						regs.byteregs[regcl] = static_cast<uint8_t>(drives[regs.byteregs[regdl]].sectors) & 63;
+						regs.byteregs[regcl] = regs.byteregs[regcl] + static_cast<uint8_t>(drives[regs.byteregs[regdl]].sectors / 256) * 63;
+						regs.byteregs[regdh] = static_cast<uint8_t>(drives[regs.byteregs[regdl]].heads) & 63;
 						//segregs[reges] = 0; regs.wordregs[regdi] = 0x7C0B; //floppy parameter table
 						if (regs.byteregs[regdl]<0x80) {
 								regs.byteregs[regbl] = 4; //else regs.byteregs[regbl] = 0;

@@ -13,7 +13,7 @@
 #include "keys.h"
 #include "keyboard.h"
 #include <Esp.h>
-
+#include "sdcard.h"
 
 //#define BLACK   0
 //#define BLUE    4
@@ -121,57 +121,6 @@ const char * gb_timers_poll_menu[max_gb_timers_poll_menu]={
  "6  (166.66)",
  "1  (fast)"
 };
-
-//#define max_gb_machine_menu 3
-//const char * gb_machine_menu[max_gb_machine_menu]={
-// "464",
-// "664",
-// "6128"
-//};
-
-//#define max_gb_speed_sound_menu 7
-//const char * gb_speed_sound_menu[max_gb_speed_sound_menu]={
-// "0",
-// "1",
-// "2",
-// "4",
-// "8",
-// "16",
-// "32"
-//};
-
-//#define max_gb_value_binary_menu 2
-//const char * gb_value_binary_menu[max_gb_value_binary_menu]={
-// "0",
-// "1"
-//};
-
-
-//#define max_gb_speed_videoaudio_options_menu 5
-//const char * gb_speed_videoaudio_options_menu[max_gb_speed_videoaudio_options_menu]={
-// "Audio poll",
-// "Video delay",
-// "Skip Frame",
-// "Keyboard poll",
-// "Mouse poll"
-//};
-
-
-//#define max_gb_speed_menu 5
-//const char * gb_speed_menu[max_gb_speed_menu]={
-// "Normal",
-// "2x",
-// "4x",
-// "8x",
-// "16x"
-//};
-
-
-//#define max_gb_osd_mouse_menu 2
-//const char * gb_osd_mouse_menu[max_gb_osd_mouse_menu]={
-// "right handed",
-// "left handed"
-//};
 
 #define max_gb_reset_menu 2
 const char * gb_reset_menu[max_gb_reset_menu]={
@@ -296,15 +245,29 @@ unsigned char ShowTinyMenu(const char *cadTitle,const char **ptrValue,unsigned c
 //Menu DSK
 void ShowTinyDSKMenu()
 {
- unsigned char aSelNum;     
- aSelNum = ShowTinyMenu("DSK",gb_list_dsk_title,max_list_dsk);
+  extern SdCard sdcard;
+  scandir_t * pResult = sdcard.scandir();
+  if(pResult != nullptr)
+  {
+    static const uint32_t LENGTH = 256;
+    static char * arItems[LENGTH];
+    static uint32_t count = 0;
+    while(pResult[count].name[0] != 0)
+    {
+      arItems[count] = &pResult[count].name[0];
+      count++;
+    }
 
- //gb_cartfilename= (char *)gb_list_rom_title[aSelNum];
- gb_force_load_dsk= 1;
- if (aSelNum > (max_list_dsk-1))
-  aSelNum= max_list_dsk-1;
- gb_id_cur_dsk= aSelNum;
- //running= 0;
+    uint32_t aSelNum = ShowTinyMenu("DSK", (const char **)arItems, count);
+
+    gb_force_load_dsk = 1;
+    if (aSelNum > (count - 1))
+      aSelNum = count - 1;
+    sdcard.OpenImage(0, arItems[aSelNum]);
+    // running= 0;
+
+    free((void *)pResult);
+  }
 }
 
 
