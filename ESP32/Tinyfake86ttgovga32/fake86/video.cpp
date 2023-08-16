@@ -54,58 +54,25 @@
  * 
 */
 #include "gbConfig.h"
-//#include <SDL/SDL.h>
 #include <stdint.h>
 #include <stdio.h>
-//JJ #include "mutex.h"
 #include "video.h"
 #include "cpu.h"
 #include "gbGlobals.h"
 #include "ports.h"
-#include "dataFlash/font/fontasciivga.h"
 #include <string.h>
 
-//JJ extern void set_port_write_redirector (uint16_t startport, uint16_t endport, void *callback);
-//JJ extern void set_port_read_redirector (uint16_t startport, uint16_t endport, void *callback);
-
-//JJ extern SDL_Surface *screen;
-//extern uint8_t verbose;
 extern union _bytewordregs_ regs;
-//JJ extern uint8_t RAM[0x100000]
-//JJ extern uint8_t portram[0x10000];
-//extern uint16_t segregs[4];
-
-//extern uint8_t read86 (uint32_t addr32);
-//extern uint8_t write86 (uint32_t addr32, uint8_t value);
-//extern uint8_t scrmodechange;
-
 uint8_t cgabg, blankattr, vidgfxmode, vidcolor;
-//VRAM[262144],
-//vidmode
 uint16_t cursx, cursy, cols = 80, rows = 25, vgapage, cursorposition, cursorvisible;
 uint8_t clocksafe, port6, portout16;
-//port3da
-//uint16_t VGA_SC[0x100], VGA_CRTC[0x100], VGA_ATTR[0x100], VGA_GC[0x100]; // no necesito VGA
 uint32_t videobase= 0xB8000, textbase = 0xB8000;
-//, x, y;
-//JJ uint8_t fontcga[32768];
-//uint32_t palettecga[16];
-//JJ uint32_t palettevga[256]; //no necesito vga por ahora
 uint32_t usefullscreen = 0;
-//usegrabmode = SDL_GRAB_OFF;
 
 uint8_t latchRGB = 0, latchPal = 0, stateDAC = 0;
 uint8_t latchReadRGB = 0, latchReadPal = 0;
 uint32_t tempRGB;
 uint16_t oldw, oldh; //used when restoring screen mode
-
-uint32_t rgb(uint32_t r, uint32_t g, uint32_t b) {
-//JJ #ifdef __BIG_ENDIAN__
-//JJ 	return ( (r<<24) | (g<<16) | (b<<8) );
-//JJ #else
-	return (r | (g<<8) | (b<<16) );
-//JJ #endif
-}
 
 extern uint32_t nw, nh;
 void vidinterrupt()

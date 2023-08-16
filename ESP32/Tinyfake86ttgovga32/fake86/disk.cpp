@@ -76,6 +76,7 @@ void setResult(uint8_t _result)
 
 void diskInit()
 {
+  lastResult = RESULT_OK;
 }
 
 void readdisk (DISK_ADDR & src, MEM_ADDR & dst)
