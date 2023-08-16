@@ -40,6 +40,7 @@
 #include "cpu.h"
 #include "i8259.h"
 #include "i8253.h"
+#include "disk.h"
 #include "gbGlobals.h"
 #include <Arduino.h>
 
@@ -1877,7 +1878,6 @@ void op_grp5() {
 extern void nethandler();
 #endif
 extern void diskhandler();
-extern void readdisk (uint8_t drivenum, uint16_t dstseg, uint16_t dstoff, uint16_t cyl, uint16_t sect, uint16_t head, uint16_t sectcount);
 
 void intcall86 (unsigned char intnum)
 {
@@ -1899,6 +1899,9 @@ void intcall86 (unsigned char intnum)
 
 	switch (intnum)
     {
+      /************************************/
+      /********** INT10H : Video **********/
+      /************************************/
 			case 0x10:
 				//updatedscreen = 1; //no lo necesito
 				if ( (regs.byteregs[regah]==0x00) || (regs.byteregs[regah]==0x10) ) {
@@ -1917,10 +1920,15 @@ void intcall86 (unsigned char intnum)
 				break;
 
 #ifndef DISK_CONTROLLER_ATA
+      /************************************/
+      /******** INT19H : Bootstrap ********/
+      /************************************/
 			case 0x19: //bootstrap
 				if (bootdrive<255) { //read first sector of boot drive into 07C0:0000 and execute it
 						regs.byteregs[regdl] = bootdrive;
-						readdisk (regs.byteregs[regdl], 0x07C0, 0x0000, 0, 1, 0, 1);
+            DISK_ADDR src = DISK_ADDR(bootdrive, 0, 0, 1, 1);
+            MEM_ADDR dst = MEM_ADDR(0x07C0, 0x0000);
+						readdisk (src, dst);
 						segregs[regcs] = 0x0000;
 						ip = 0x7C00;
 					}
@@ -1929,7 +1937,9 @@ void intcall86 (unsigned char intnum)
 						ip = 0x0000;
 					}
 				return;
-
+      /************************************/
+      /********** INT13H : Disks **********/
+      /************************************/
 			case 0x13:
 			case 0xFD:
 				diskhandler();

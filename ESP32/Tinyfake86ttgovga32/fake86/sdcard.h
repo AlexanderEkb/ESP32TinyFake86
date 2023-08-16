@@ -11,18 +11,18 @@
 #include <esp_vfs_fat.h>
 #include <sys/stat.h>
 
-#define RG_LOGI(...) Serial.printf(__VA_ARGS__)
-#define RG_LOGW(...) Serial.printf(__VA_ARGS__)
-#define RG_LOGE(...) Serial.printf(__VA_ARGS__)
-
 #define RG_STORAGE_SPEED SDMMC_FREQ_DEFAULT // Used by driver 1 and 2
 #define RG_STORAGE_ROOT "/sd"               // Storage mount point
 #define RG_PATH_MAX 255
 
 #ifdef use_lib_log_serial
-#define LOG(...) Serial.printf(__VA_ARGS__)
+#define RG_LOGI(...) Serial.printf(__VA_ARGS__)
+#define RG_LOGW(...) Serial.printf(__VA_ARGS__)
+#define RG_LOGE(...) Serial.printf(__VA_ARGS__)
 #else
-#define LOG(...) (void)
+#define RG_LOGI(...) (void)
+#define RG_LOGW(...) (void)
+#define RG_LOGE(...) (void)
 #endif
 
 enum {
@@ -170,14 +170,27 @@ class SdCard {
     {
         if(floppies[drive].pImage != nullptr)
         {
-            LOG("Reading drive %i off %i length %i\n", drive, offset, size);
             fseek(floppies[drive].pImage, offset, SEEK_SET);
             fread(pDest, size, 1, floppies[drive].pImage);
             return true;
         }
         else
         {
-            LOG("Error reading drive %i off %i length %i\n", drive, offset, size);
+            RG_LOGE("Error reading drive %i off %i length %i\n", drive, offset, size);
+            return false;
+        }
+    }
+    bool Write(uint32_t drive, void * pSrc, uint32_t offset, uint32_t size)
+    {
+        if(floppies[drive].pImage != nullptr)
+        {
+            fseek(floppies[drive].pImage, offset, SEEK_SET);
+            const uint32_t result = fwrite(pSrc, size, 1, floppies[drive].pImage);
+            return (result == 1);
+        }
+        else
+        {
+            RG_LOGE("Error reading drive %i off %i length %i\n", drive, offset, size);
             return false;
         }
     }

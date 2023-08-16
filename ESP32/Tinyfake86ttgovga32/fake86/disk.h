@@ -20,27 +20,49 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/*struct struct_drive {
-	FILE *diskfile;
-	uint32_t filesize;
-	uint16_t cyls;
-	uint16_t sects;
-	uint16_t heads;
-	uint8_t inserted;
-	char *filename;
-};
-*/
-
-//JJ struct struct_drive {
-//JJ	uint32_t filesize;
-//JJ	uint16_t cyls;
-//JJ	uint16_t sects;
-//JJ	uint16_t heads;
-//JJ	uint8_t inserted;
-//JJ};
+#define DRIVE_COUNT (2)
+#define SECTOR_SIZE (512)
 
 
-//JJuint8_t insertdisk (uint8_t drivenum, char *filename);
-void diskInit();
+typedef struct DRIVE_DESC
+{
+    uint32_t cylinders;
+    uint32_t heads;
+		uint32_t sectors;
+		uint32_t capacity;
+} DRIVE_DESC;
+
+extern DRIVE_DESC drives[DRIVE_COUNT];
+
+typedef struct MEM_ADDR
+{
+  uint16_t segment;
+  uint16_t offset;
+  MEM_ADDR(uint16_t seg, uint16_t off) :
+    segment(seg),
+    offset(off) {}
+  uint32_t linear() {return ((uint32_t)segment << 4) + offset;}
+} MEM_ADDR;
+
+typedef struct DISK_ADDR
+{
+  uint32_t drive;
+  uint32_t cylinder;
+  uint32_t sector;
+  uint32_t head;
+  uint32_t sectorCount;
+  DISK_ADDR(uint32_t drv, uint32_t cyl, uint32_t hd, uint32_t sect, uint32_t cnt) :
+    drive(drv),
+    cylinder(cyl),
+    sector(sect),
+    head(hd),
+    sectorCount(cnt)
+    {}
+  uint32_t lba() {return (cylinder * drives[drive].heads + head) * drives[drive].sectors + sector - 1;}
+  bool isValid() {return (sector != 0) && ((lba() * SECTOR_SIZE < (drives[drive].capacity - 1)));};
+} DISK_ADDR;
+
+void diskInit(void);
+bool readdisk (DISK_ADDR & src, MEM_ADDR & dst);
 
 #endif
