@@ -27,6 +27,13 @@
 #include <Arduino.h>
 #include "sdcard.h"
 
+#define RESULT_OK               (0x00)
+#define RESULT_WRONG_PARAM      (0x01)
+#define RESULT_WRITE_PROT       (0x03)
+#define RESULT_SECT_NOT_FOUND   (0x04)
+#define RESULT_GENERAL_FAILURE  (0x20)
+
+
 extern SdCard sdcard;
 extern union _bytewordregs_ regs;
 
@@ -34,7 +41,7 @@ extern uint8_t read86 (uint32_t addr32);
 extern void write86 (uint32_t addr32, uint8_t value);
 
 unsigned char sectorbuffer[SECTOR_SIZE];
-uint8_t * pCache;
+static uint8_t lastResult = 0;
 
 DRIVE_DESC drives[DRIVE_COUNT] = {
     {80, 2, 18, 1474560},			// A:
@@ -60,17 +67,18 @@ typedef struct NODE
   }
 } NODE;
 
-void diskInit()
+void setResult(uint8_t _result)
 {
-	pCache = (uint8_t *)heap_caps_malloc(720 * 1024, MALLOC_CAP_SPIRAM); 
-	if(pCache == nullptr)
-	{
-		Serial.println("Disc cache allocation failed!");
-	}
+  lastResult = _result;
+  regs.byteregs[regah] = _result;
+  ExternalSetCF((_result == 0)?0:1);
 }
 
-// bool readdisk (uint8_t drivenum, uint16_t dstseg, uint16_t dstoff, uint16_t cyl, uint16_t sect, uint16_t head, uint16_t sectcount)
-bool readdisk (DISK_ADDR & src, MEM_ADDR & dst)
+void diskInit()
+{
+}
+
+void readdisk (DISK_ADDR & src, MEM_ADDR & dst)
 {
   const bool isValid = src.isValid();
   if(isValid)
@@ -88,13 +96,15 @@ bool readdisk (DISK_ADDR & src, MEM_ADDR & dst)
         write86 (memdest++, sectorbuffer[sectoffset]);
     }
     regs.byteregs[regal] = sector;
-    ExternalSetCF(0);
-    regs.byteregs[regah] = 0;
+    setResult(0);
   }
-  return isValid;
+  else
+  {
+    setResult(RESULT_WRONG_PARAM);
+  }
 }
 
-bool writedisk (DISK_ADDR & dst, MEM_ADDR & src)
+void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
 {
   const bool isValid = dst.isValid();
   if(isValid)
@@ -112,18 +122,17 @@ bool writedisk (DISK_ADDR & dst, MEM_ADDR & src)
         break;
     }
     regs.byteregs[regal] = sector;
-    ExternalSetCF(0);
-    regs.byteregs[regah] = 0;
+    setResult(RESULT_OK);
   }
-  return isValid;
+  else
+  {
+    setResult(RESULT_WRONG_PARAM);
+  }
 }
 
 void diskhandler()
 { 
-  MEM_ADDR buffer = {segregs[reges], getreg16 (regbx)};
   const uint8_t  drive = regs.byteregs[regdl];
-  const uint16_t dstSeg = segregs[reges];
-  const uint16_t dstOff = getreg16 (regbx);
   const uint16_t cylinder = 
     (static_cast<uint16_t>(regs.byteregs[regcl] & 0xC0) << 2) |
     regs.byteregs[regch];
@@ -131,55 +140,30 @@ void diskhandler()
   const uint16_t head = regs.byteregs[regdh];
   const uint16_t sectorCount = regs.byteregs[regal];
   DISK_ADDR diskAddr = DISK_ADDR(drive, cylinder, head, sector, sectorCount);
-
+  MEM_ADDR buffer = {segregs[reges], getreg16 (regbx)};
+  const uint8_t serviceNum = regs.byteregs[regah];
  //Solo una disquetera
-	switch (regs.byteregs[regah])
+	switch (serviceNum)
   {
     case 0: //reset disk system
-      regs.byteregs[regah] = 0;
-      ExternalSetCF(0);
+      setResult(RESULT_OK);
       break;
-    case 1: //return last status
+    case 1: // return last status
+      setResult(lastResult);
       return;
-    case 2: //read sector(s) into memory
-      {
-        const bool isOk = readdisk(diskAddr, buffer);
-        if(isOk)
-        {
-          ExternalSetCF(0);
-          regs.byteregs[regah] = 0;
-        }
-        else
-        {
-          ExternalSetCF(1);
-          regs.byteregs[regah] = 1;
-        }
-      }
+    case 2: // read sector(s) into memory
+      readdisk(diskAddr, buffer);
       break;
-    case 3: //write sector(s) from memory
-    {
-      const bool isOk = writedisk(diskAddr, buffer);
-      if(isOk)
-      {
-        ExternalSetCF(0);
-        regs.byteregs[regah] = 0;
-      }
-      else
-      {
-        ExternalSetCF(1);
-        regs.byteregs[regah] = 1;
-      }
-    }
+    case 3: // write sector(s) from memory
+      writedisk(diskAddr, buffer);
       break;
-    case 4:
-    case 5: //format track
-      ExternalSetCF(0);
-      regs.byteregs[regah] = 0;
+    case 4: // verify sector(s)
+    case 5: // format track
+      setResult(RESULT_OK);
       break;
     case 8: //get drive parameters
       cf = 0;
-      ExternalSetCF(0);
-      regs.byteregs[regah] = 0;
+      setResult(RESULT_OK);
       regs.byteregs[regch] = static_cast<uint8_t>(drives[drive].cylinders) - 1;
       regs.byteregs[regcl] = static_cast<uint8_t>(drives[drive].sectors) & 63;
       regs.byteregs[regcl] = regs.byteregs[regcl] + static_cast<uint8_t>(drives[drive].sectors / 256) * 63;
@@ -192,7 +176,7 @@ void diskhandler()
       else regs.byteregs[regdl] = hdcount;
     break;
     default:
-      ExternalSetCF(1);
+      setResult(RESULT_GENERAL_FAILURE);
 	}
 
 	if (regs.byteregs[regdl] & 0x80)

@@ -63,6 +63,7 @@ typedef struct DISK_ADDR
 } DISK_ADDR;
 
 void diskInit(void);
-bool readdisk (DISK_ADDR & src, MEM_ADDR & dst);
+void readdisk (DISK_ADDR & src, MEM_ADDR & dst);
+void writedisk (DISK_ADDR & dst, MEM_ADDR & src);
 
 #endif
