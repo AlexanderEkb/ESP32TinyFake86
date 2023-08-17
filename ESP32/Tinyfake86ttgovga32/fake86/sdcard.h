@@ -154,7 +154,7 @@ class SdCard {
         char fullpath[LENGTH];
         snprintf(fullpath, LENGTH, "%s/%s", RG_STORAGE_ROOT, pFilename);
         Serial.printf("Opening image '%s', drive #%i...", fullpath, drive);
-        floppies[drive].pImage = fopen(fullpath, "r");
+        floppies[drive].pImage = fopen(fullpath, "r+");
         const bool result = (floppies[drive].pImage != nullptr);
         if(result)
         {
@@ -186,11 +186,12 @@ class SdCard {
         {
             fseek(floppies[drive].pImage, offset, SEEK_SET);
             const uint32_t result = fwrite(pSrc, size, 1, floppies[drive].pImage);
+            fflush(floppies[drive].pImage);
             return (result == 1);
         }
         else
         {
-            RG_LOGE("Error reading drive %i off %i length %i\n", drive, offset, size);
+            RG_LOGE("Error writing drive %i off %i length %i\n", drive, offset, size);
             return false;
         }
     }

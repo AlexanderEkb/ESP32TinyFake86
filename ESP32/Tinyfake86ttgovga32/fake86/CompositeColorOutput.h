@@ -242,6 +242,7 @@ constexpr unsigned int Screen_HEIGHT = 240;
 
 uint32_t  * _fb;
 uint8_t  ** _lines;
+bool        bColorburstEnabled = true;
 
 void frame_clear(uint8_t color)
 {
@@ -764,17 +765,18 @@ void video_init(VideoStandard standard)
             case 4:
                 // 4 samples per color clock
                 for (i = _hsync; i < _hsync + (4*10); i += 4) {
-                    #if COLORBURST
+                    if (bColorburstEnabled)
+                    {
                         line[i+1] = BLANKING_LEVEL;
                         line[i+0] = BLANKING_LEVEL + BLANKING_LEVEL/2;
                         line[i+3] = BLANKING_LEVEL;
                         line[i+2] = BLANKING_LEVEL - BLANKING_LEVEL/2;
-                    #else
+                    } else {
                         line[i+1] = BLANKING_LEVEL;
                         line[i+0] = BLANKING_LEVEL;
                         line[i+3] = BLANKING_LEVEL;
                         line[i+2] = BLANKING_LEVEL;
-                    #endif
+                    }
                 }
                 break;
             case 3:
@@ -1022,5 +1024,9 @@ class CompositeColorOutput {
         
         void sendFrameHalfResolution(char ***frame) {
             RawCompositeVideoBlitter::_lines = (uint8_t**) *frame;
+        }
+
+        void setColorburstEnabled(bool bEnabled) {
+            RawCompositeVideoBlitter::bColorburstEnabled = bEnabled;
         }
 };

@@ -83,7 +83,7 @@ static unsigned char gb_color_text_cga[16]={
     0x00,   0x84,   0xC4,   0xA4,   0x34,   0x54,   0xF4,   0x07,
     0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
 };
-extern uint8_t cgabg, blankattr, vidgfxmode, vidcolor;
+extern uint8_t cgabg, blankattr, vidgfxmode;
 extern uint16_t cursx, cursy, cols, rows, vgapage, cursorposition, cursorvisible;
 extern uint8_t clocksafe, port6, portout16;
 extern uint32_t videobase, textbase;
@@ -255,14 +255,14 @@ void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char back
 { 
 // unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
  int nBaseOffset = car << 3; //*8
- for (unsigned char j=0;j<8;j++)
+ for (unsigned char row=0;row<8;row++)
  {  
-  uint8_t Line = gb_sdl_font_4x8[nBaseOffset + j];  
+  uint8_t Line = gb_sdl_font_4x8[nBaseOffset + row];  
   for (int i=4;i<8;i++)
   {
    uint8_t Pixel = ((Line>>i) & 0x01);
    //jj_fast_putpixel(x+(7-i),y+j,(bFourPixelsColor==1)?color:backcolor);
-   gb_buffer_vga[(y+j) + VERTICAL_OFFSET][(x+(7-i))]= gb_color_text_cga[((Pixel == 0)?color:backcolor)];
+   gb_buffer_vga[(y+row) + VERTICAL_OFFSET][(x+(7-i))]= gb_color_text_cga[((Pixel == 0)?color:backcolor)];
   }
  }
 }

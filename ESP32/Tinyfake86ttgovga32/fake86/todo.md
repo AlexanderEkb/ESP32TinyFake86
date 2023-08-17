@@ -4,8 +4,10 @@ I. Video
 2. Auto switching palettes
 3. Correct implementation of the background color
 4. The same for the border
-5. Switchable colorburst (a possibility to turn it off for BW modes)
+5. ~~Switchable colorburst (a possibility to turn it off for BW modes)~~
 6. Increase master video frequency to fit 640 pixels to the scanline
+7. Adjust colors (make, say, red more red than now). Especially light ones.
+8. Align different video modes horizontally
 
 II. Disks
 =========

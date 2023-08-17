@@ -106,13 +106,10 @@ void simulateCGARetrace()
 {
   static const uint8_t CGA_HORIZONTAL_RETRACE = 0x01;
   static const uint8_t CGA_VERTICAL_RETRACE   = 0x08;
+
   // Funcion Alleycat y Digger
-  unsigned char i8253chan;
   jj_cur_ms_tick = millis();
   unsigned int auxCurTick = (jj_last_ms_tick - jj_cur_ms_tick);
-  // auxCurTick= (jj_lastscanline_ms_tick - jj_cur_ms_tick);
-  // FIX cerezas digger no es suficiente rapido para retrazo
-  // if (auxCurTick >= 31)
   {
       localscanline++;
       if (localscanline > 479)
@@ -137,7 +134,7 @@ void simulateCGARetrace()
    doirq(0);
   }
 
-  for (i8253chan=0; i8253chan<3; i8253chan++)
+  for (uint32_t i8253chan=0; i8253chan<3; i8253chan++)
   {
    if (i8253.active[i8253chan]) 
    {

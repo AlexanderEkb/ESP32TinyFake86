@@ -5,6 +5,10 @@
  #include <stdio.h>
  #include "keyboard.h" 
 
+#define PENDING_COLORBURST_NO     (0x00)
+#define PENDING_COLORBURST_TRUE   (0x01)
+#define PENDING_COLORBURST_FALSE  (0x02)
+
  #define fast_tiny_port_0x60 11
  #define fast_tiny_port_0x61 12
  #define fast_tiny_port_0x64 14

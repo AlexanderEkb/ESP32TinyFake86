@@ -127,6 +127,7 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
   }
   else
   {
+    RG_LOGE("Error writing drive %i sector %i\n", dst.drive, dst.sector);
     setResult(RESULT_WRONG_PARAM);
   }
 }

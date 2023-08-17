@@ -82,6 +82,7 @@ unsigned char port3da=0;
 char **gb_buffer_vga;
 
 CompositeColorOutput composite(CompositeColorOutput::NTSC);
+uint32_t pendingColorburstValue = PENDING_COLORBURST_NO;
 KeyboardDriver * keyboard = new KeyboardDriverAT(); // stm32keyboard();
 SdCard sdcard;
 
@@ -209,6 +210,10 @@ void PerformSpecialActions()
    auxOffs= 0x0051;       
   LoadCOMFlash(gb_list_com_data[gb_id_cur_com],gb_list_com_size[gb_id_cur_com],auxOffs);
   return;
+ }
+ if (pendingColorburstValue != PENDING_COLORBURST_NO) {
+   composite.setColorburstEnabled(pendingColorburstValue == PENDING_COLORBURST_TRUE);
+   pendingColorburstValue = PENDING_COLORBURST_NO;
  }
 }
 
