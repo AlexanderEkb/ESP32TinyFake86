@@ -62,11 +62,26 @@
 #include "ports.h"
 #include <string.h>
 
+#define PORT_3D8_BLINKING			(0x20)
+#define PORT_3D8_HIRES_GRAPH	(0x10)
+#define PORT_3D8_OE						(0x08)
+#define PORT_3D8_NOCOLOR			(0x04)
+#define PORT_3D8_GRAPHICS			(0x02)
+#define PORT_3D8_80_COL_TEXT	(0x01)
+
+#define VIDEO_MODE_TEXT				(0x00)
+#define VIDEO_MODE_GRAPH			(0x01)
+#define VIDEO_MODE_40_COLS		(0x00)
+#define VIDEO_MODE_80_COLS		(0x02)
+#define VIDEO_MODE_320_PX			(0x00)
+#define VIDEO_MODE_640_PX			(0x02)
+#define VIDEO_MODE_COLOR			(0x04)
+#define VIDEO_MODE_GRAY				(0x00)
+
 extern union _bytewordregs_ regs;
-uint8_t cgabg, blankattr, vidgfxmode;
 uint16_t cursx, cursy, cols = 80, rows = 25, vgapage, cursorposition, cursorvisible;
 uint8_t clocksafe, port6, portout16;
-uint32_t videobase= 0xB8000, textbase = 0xB8000;
+uint32_t videobase= 0xB8000;
 uint32_t usefullscreen = 0;
 
 uint8_t latchRGB = 0, latchPal = 0, stateDAC = 0;
@@ -76,161 +91,119 @@ uint16_t oldw, oldh; //used when restoring screen mode
 
 extern uint32_t nw, nh;
 extern uint32_t pendingColorburstValue;
+
+void setVideoParameters(uint32_t modeDesc, int32_t videoBase)
+{
+    videobase = videoBase;
+		if(modeDesc & VIDEO_MODE_GRAPH)
+		{
+			gb_portramTiny[fast_tiny_port_0x3D8] |= PORT_3D8_GRAPHICS;
+			if(modeDesc & VIDEO_MODE_640_PX)
+			{
+				cols = 80;
+				gb_portramTiny[fast_tiny_port_0x3D8] |= PORT_3D8_HIRES_GRAPH;
+			}
+			else
+			{
+				cols = 40;
+				gb_portramTiny[fast_tiny_port_0x3D8] &= ~PORT_3D8_HIRES_GRAPH;
+			}
+		}
+		else
+		{
+			if (modeDesc & VIDEO_MODE_80_COLS)
+			{
+				cols = 80;
+				gb_portramTiny[fast_tiny_port_0x3D8] |= PORT_3D8_80_COL_TEXT;
+			}
+			else
+			{
+				cols = 40;
+				gb_portramTiny[fast_tiny_port_0x3D8] &= ~PORT_3D8_80_COL_TEXT;
+			}
+		}
+    
+    for (uint32_t i = 0; i < 16384; i += 2) {
+			gb_video_cga[i] = 0;
+			gb_video_cga[i + 1] = 7;
+    }
+		const uint32_t hiresGraphMask = VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX;
+		const bool hiresGraph = ((modeDesc & hiresGraphMask) == hiresGraphMask);
+		const bool colour = (modeDesc & VIDEO_MODE_COLOR);
+		const bool enableColour = hiresGraph || colour;
+		if(enableColour)
+		{
+			pendingColorburstValue = PENDING_COLORBURST_TRUE;
+			gb_portramTiny[fast_tiny_port_0x3D8] &= ~PORT_3D8_NOCOLOR;
+		}
+		else
+		{
+    	pendingColorburstValue = PENDING_COLORBURST_FALSE;
+			gb_portramTiny[fast_tiny_port_0x3D8] |= PORT_3D8_NOCOLOR;
+		}
+}
+
+void setVideoMode(uint8_t mode)
+{
+	switch (mode)
+	{
+	case VIDEO_MODE_40x25_BW: // 40x25 mono text
+		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
+		break;
+	case VIDEO_MODE_40x25_COLOR: // 40x25 color text
+		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
+		break;
+	case VIDEO_MODE_80x25_BW: // 80x25 mono text
+		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
+		break;
+	case VIDEO_MODE_80x25_COLOR: // 80x25 color text
+		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
+		break;
+	case VIDEO_MODE_320x200_COLOR: // 320x200 color
+		setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
+		gb_portramTiny[fast_tiny_port_0x3D9] = 48;
+		break;
+	case VIDEO_MODE_320x200_BW: // 320x200 BW
+		setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
+		gb_portramTiny[fast_tiny_port_0x3D9] = 0;
+		break;
+	case VIDEO_MODE_640x200_COLOR: // 640x200 color
+			setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
+			break;
+	case VIDEO_MODE_0x7F:
+			videobase = CGA_BASE_MEMORY;
+			cols = 90;
+			memset(gb_video_cga, 0, 16384);
+			gb_portramTiny[fast_tiny_port_0x3D8] = gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
+			pendingColorburstValue = PENDING_COLORBURST_TRUE;
+			break;
+	case VIDEO_MODE_0x09: // 320x200 16-color
+			videobase = CGA_BASE_MEMORY;
+			cols = 40;
+			if ((regs.byteregs[regal] & 0x80) == 0) {
+					memset(gb_video_cga, 0, 16384);
+			}
+			gb_portramTiny[fast_tiny_port_0x3D8] = gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
+			pendingColorburstValue = PENDING_COLORBURST_TRUE;
+			break;
+	case VIDEO_MODE_0x0D: // 320x200 16-color
+	case VIDEO_MODE_0x12: // 640x480 16-color
+	case VIDEO_MODE_0x13: // 320x200 256-color
+			videobase = VGA_BASE_MEMORY;
+			cols = 40;
+			gb_portramTiny[fast_tiny_port_0x3D8] = gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
+			pendingColorburstValue = PENDING_COLORBURST_TRUE;
+			break;
+	}
+}
+
 void vidinterrupt()
 {
-	uint32_t tempcalc, memloc, newpal, n;
-	//updatedscreen = 1;
 	switch (regs.byteregs[regah]) 
 	{ //what video interrupt function?
 			case 0: //set video mode
-				switch (regs.byteregs[regal] & 0x7F)
-				{
-						case 0: //40x25 mono text
-							videobase = textbase;
-							cols = 40;
-							rows = 25;
-							vidgfxmode = 0;
-							blankattr = 7;
-							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
-                            {
-                             gb_video_cga[tempcalc]= 0;
-                             gb_video_cga[tempcalc+1]= 7;
-                            }
-							pendingColorburstValue = PENDING_COLORBURST_FALSE;
-							break;
-						case 1: //40x25 color text
-							videobase = textbase;
-							cols = 40;
-							rows = 25;
-							vidgfxmode = 0;
-							blankattr = 7;
-							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
-                            {
-                             gb_video_cga[tempcalc]= 0;
-                             gb_video_cga[tempcalc+1]= 7;
-                            }							
-							gb_portramTiny[fast_tiny_port_0x3D8]= gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
-							pendingColorburstValue = PENDING_COLORBURST_TRUE;
-							break;
-						case 2: //80x25 mono text
-							videobase = textbase;
-							cols = 80;
-							rows = 25;
-							vidgfxmode = 0;
-							blankattr = 7;
-							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
-                            {
-                             gb_video_cga[tempcalc]= 0;
-                             gb_video_cga[tempcalc+1]= 7;
-                            }							
-							//JJ puerto portram[0x3D8] = portram[0x3D8] & 0xFE;
-							gb_portramTiny[fast_tiny_port_0x3D8]= gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
-							pendingColorburstValue = PENDING_COLORBURST_FALSE;
+			setVideoMode(regs.byteregs[regal] & 0x7F);
 
-							break;
-						case 3: //80x25 color text
-							videobase = textbase;
-							cols = 80;
-							rows = 25;
-							vidgfxmode = 0;
-							blankattr = 7;
-							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
-                            {
-                             gb_video_cga[tempcalc]= 0;
-                             gb_video_cga[tempcalc+1]= 7;
-                            }							
-							//JJ puerto portram[0x3D8] = portram[0x3D8] & 0xFE;
-							gb_portramTiny[fast_tiny_port_0x3D8]= gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
-							pendingColorburstValue = PENDING_COLORBURST_TRUE;
-							break;
-						case 4:	// 320x200 color
-							videobase = textbase;
-							cols = 40;
-							rows = 25;
-							vidgfxmode = 1;
-							blankattr = 7;
-							//Optimizado
-							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
-							{
-								gb_video_cga[tempcalc]= 0;
-								gb_video_cga[tempcalc+1]= 7;
-							}							
-							if (regs.byteregs[regal]==4){
-								gb_portramTiny[fast_tiny_port_0x3D9]= 48;
-							}
-							else{
-							 	gb_portramTiny[fast_tiny_port_0x3D9]= 0;
-							}
-							pendingColorburstValue = PENDING_COLORBURST_TRUE;
-							break;
-						case 5: //320x200 BW
-							videobase = textbase;
-							cols = 40;
-							rows = 25;
-							vidgfxmode = 1;
-							blankattr = 7;
-							//Optimizado
-							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
-                            {
-                             gb_video_cga[tempcalc]= 0;
-                             gb_video_cga[tempcalc+1]= 7;
-                            }							
-							if (regs.byteregs[regal]==4){
-								gb_portramTiny[fast_tiny_port_0x3D9]= 48;
-							}
-							else{
-							 	gb_portramTiny[fast_tiny_port_0x3D9]= 0;
-							}
-							pendingColorburstValue = PENDING_COLORBURST_FALSE;
-							break;
-						case 6:	// 640x200 color
-							videobase = textbase;
-							cols = 80;
-							rows = 25;
-							vidgfxmode = 1;
-							blankattr = 7;
-							for(tempcalc=0;tempcalc<16384;tempcalc+=2)
-                            {
-                             gb_video_cga[tempcalc]= 0;
-                             gb_video_cga[tempcalc+1]= 7;
-                            }							
-							gb_portramTiny[fast_tiny_port_0x3D8]= gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
-							pendingColorburstValue = PENDING_COLORBURST_TRUE;
-							break;
-						case 127:
-							videobase = 0xB8000;
-							cols = 90;
-							rows = 25;
-							vidgfxmode = 1;
-							memset(gb_video_cga,0,16384);
-							gb_portramTiny[fast_tiny_port_0x3D8]= gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
-							pendingColorburstValue = PENDING_COLORBURST_TRUE;
-							break;
-						case 0x9: //320x200 16-color
-							videobase = 0xB8000;
-							cols = 40;
-							rows = 25;
-							vidgfxmode = 1;
-							blankattr = 0;
-							if ( (regs.byteregs[regal]&0x80) ==0)
-							{
-							 memset(gb_video_cga,0,16384);
-							}
-							gb_portramTiny[fast_tiny_port_0x3D8]= gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
-							pendingColorburstValue = PENDING_COLORBURST_TRUE;
-							break;
-						case 0xD: //320x200 16-color
-						case 0x12: //640x480 16-color
-						case 0x13: //320x200 256-color
-							videobase = 0xA0000;
-							cols = 40;
-							rows = 25;
-							vidgfxmode = 1;
-							blankattr = 0;
-							gb_portramTiny[fast_tiny_port_0x3D8]= gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
-							pendingColorburstValue = PENDING_COLORBURST_TRUE;
-							break;
-					}
 				vidmode = regs.byteregs[regal] & 0x7F;
 
 				gb_ram_bank[0][0x449]= vidmode;
@@ -262,19 +235,6 @@ void vidinterrupt()
 							nh = oldh = 400;
 							scrmodechange = 1;
 							break;
-					}
-				break;
-			case 0x10: //VGA DAC functions
-				switch (regs.byteregs[regal]) {
-						case 0x10: //set individual DAC register
-							//JJ palettevga[getreg16 (regbx) ] = rgb((regs.byteregs[regdh] & 63) << 2, (regs.byteregs[regch] & 63) << 2, (regs.byteregs[regcl] & 63) << 2);
-							break;
-						case 0x12: //set block of DAC registers
-							memloc = segregs[reges]*16+getreg16 (regdx);
-							for (n=getreg16 (regbx); n< (uint32_t) (getreg16 (regbx) +getreg16 (regcx) ); n++) {
-									//JJ palettevga[n] = rgb(read86(memloc) << 2, read86(memloc + 1) << 2, read86(memloc + 2) << 2);
-									memloc += 3;
-								}
 					}
 				break;
 			case 0x1A: //get display combination code (ps, vga/mcga)

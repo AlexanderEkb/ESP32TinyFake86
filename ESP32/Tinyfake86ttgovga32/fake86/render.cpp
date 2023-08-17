@@ -83,7 +83,6 @@ static unsigned char gb_color_text_cga[16]={
     0x00,   0x84,   0xC4,   0xA4,   0x34,   0x54,   0xF4,   0x07,
     0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
 };
-extern uint8_t cgabg, blankattr, vidgfxmode;
 extern uint16_t cursx, cursy, cols, rows, vgapage, cursorposition, cursorvisible;
 extern uint8_t clocksafe, port6, portout16;
 extern uint32_t videobase, textbase;
@@ -96,14 +95,6 @@ int gb_cont_rgb=0;
 void PreparaPaleta()
 {
  InitPaletaCGA();
- //InitPaletaVGA();
- //InitPaletaPCJR();
- //InitPaletaCGAbw();
- //InitPaletaCGAgray();
-}
-
-void setwindowtitle (uint8_t *extra) {
-	
 }
 
 //uint8_t initscreen (uint8_t *ver) 
@@ -156,7 +147,7 @@ void SDLprintChar(char car,int x,int y,unsigned char color,unsigned char backcol
      unsigned char bLine = gb_sdl_font_8x8[nBaseOffset + j];
      for (int i = 0; i < 8; i++) {
          unsigned char Pixel = ((bLine >> i) & 0x01);
-         gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + (7 - i)) ] = gb_color_text_cga[(Pixel != 0) ? color : backcolor];
+         gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + (7 - i)) + 8] = gb_color_text_cga[(Pixel != 0) ? color : backcolor];
   }
  }
 }
@@ -211,25 +202,24 @@ void SDLdump160x100_font4x8()
 
 //*****************************************
 void SDLdump80x25_font4x8()
-{//Muestro 80 columnas
- unsigned char aColor,aBgColor,aChar,swapColor;;
- unsigned int bFourPixelsOffset=0;
+{
+  unsigned char aColor,aBgColor,aChar,swapColor;;
+  unsigned int bFourPixelsOffset=0;
 
- if ( (gb_portramTiny[fast_tiny_port_0x3D8]==9) && (gb_portramTiny[fast_tiny_port_0x3D4]==9) )
- {
-  SDLdump160x100_font4x8();
-  return;
- }
+  if ( (gb_portramTiny[fast_tiny_port_0x3D8]==9) && (gb_portramTiny[fast_tiny_port_0x3D4]==9) )
+  {
+    SDLdump160x100_font4x8();
+    return;
+  }
   
  for (int y=0;y<25;y++)
  {  
-  for (int x=0;x<80;x++) //Modo 80x25
-  {
-   aChar= gb_video_cga[bFourPixelsOffset];
-   bFourPixelsOffset++;
-
-   aColor = gb_video_cga[bFourPixelsOffset]&0x0F;
-   aBgColor = ((gb_video_cga[bFourPixelsOffset]>>4)&0x07);
+    for (int x=0;x<80;x++) //Modo 80x25
+    {
+      aChar= gb_video_cga[bFourPixelsOffset];
+      bFourPixelsOffset++;
+      aColor = gb_video_cga[bFourPixelsOffset]&0x0F;
+      aBgColor = ((gb_video_cga[bFourPixelsOffset]>>4)&0x07);
 
    if (gb_invert_color == 1)
    {
@@ -238,14 +228,8 @@ void SDLdump80x25_font4x8()
     aBgColor= swapColor;
    }   
 
-   #ifdef use_lib_capture_usb
-    if (x<79){//Para verlo en capturadora
-     SDLprintChar4x8(aChar,((x+1)<<2),(y<<3),aColor,aBgColor);  //80x25	
-    }
-   #else
     SDLprintChar4x8(aChar,(x<<2),(y<<3),aColor,aBgColor);//Sin capturadora
-   #endif   
-   bFourPixelsOffset++;
+    bFourPixelsOffset++;    
   }
  }
 }
@@ -262,7 +246,7 @@ void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char back
   {
    uint8_t Pixel = ((Line>>i) & 0x01);
    //jj_fast_putpixel(x+(7-i),y+j,(bFourPixelsColor==1)?color:backcolor);
-   gb_buffer_vga[(y+row) + VERTICAL_OFFSET][(x+(7-i))]= gb_color_text_cga[((Pixel == 0)?color:backcolor)];
+   gb_buffer_vga[(y+row) + VERTICAL_OFFSET][(x+(7-i)) + 8]= gb_color_text_cga[((Pixel == 0)?color:backcolor)];
   }
  }
 }
@@ -353,13 +337,9 @@ void SDLdump80x25_font8x8()
 
 static unsigned int gb_local_scanline[80];
 
-//cga5 rapido
 void jj_sdl_dump_cga_320x200()
 {
-	//Bajado de 4000 micros a 3495
-	//Puntero 32 bits 2310 
- 	//Puntero 32 bits scanline 2435 es mas lento
-	unsigned short int cont=0;
+    unsigned short int cont=0;
   for (uint32_t y=0; y<100; y++)
   {        
 		uint32_t yDest= (y<<1);
@@ -440,7 +420,7 @@ void jj_sdl_dump_640x200()
 
     cont++;
    }
-   memcpy(ptr32,gb_local_scanline,320);
+   memcpy(ptr32 + 2,gb_local_scanline,320);
   } 
 
   cont = 0x2000;   
@@ -467,7 +447,7 @@ void jj_sdl_dump_640x200()
 
     cont++;
    }
-   memcpy(ptr32,gb_local_scanline,320);
+   memcpy(ptr32 + 2,gb_local_scanline,320);
   } 
 }
 
