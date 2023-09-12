@@ -175,7 +175,7 @@ void diskhandler()
           regs.byteregs[regbl] = 4; //else regs.byteregs[regbl] = 0;
           regs.byteregs[regdl] = 2;
         }
-      else regs.byteregs[regdl] = hdcount;
+      else regs.byteregs[regdl] = 0; // hdcount (???)
     break;
     default:
       setResult(RESULT_GENERAL_FAILURE);

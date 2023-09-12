@@ -1,10 +1,8 @@
-// Port Fake86 to TTGO VGA32 by ackerman
-// Load COM, DSK
+// ~~Port Fake86 to TTGO VGA32 by ackerman~~
+// Port Fake86 to ESP32-WROVER by Ochlamonster ;)
+
 //  MODE320x200
 //  Single core and dual core
-//  Only SRAM
-//  Tiny mod VGA library bitluni
-//  gbConfig options configuration compile
 
 #include <Arduino.h>
 #ifndef use_lib_speaker_cpu
@@ -31,6 +29,7 @@
 #include "video.h"
 #include "stats.h"
 
+///////////////////////////////////////////////////////////////////////////////////////// Local macros
 #define SUPPORT_NTSC 1
 #include "CompositeColorOutput.h"
 
@@ -40,7 +39,6 @@ void videoTask(void *unused);
 QueueHandle_t vidQueue;
 TaskHandle_t videoTaskHandle;
 volatile bool videoTaskIsRunning = false;
-uint16_t *param;
 // Video Task Core END
 #endif
 
@@ -52,7 +50,6 @@ unsigned char gb_invert_color = 0;
 unsigned char gb_silence = 0;
 
 unsigned char gb_delay_tick_cpu_milis = use_lib_delay_tick_cpu_milis;
-unsigned char gb_auto_delay_cpu = use_lib_delay_tick_cpu_auto;
 unsigned char gb_vga_poll_milis = use_lib_vga_poll_milis;
 unsigned char gb_keyboard_poll_milis = use_lib_keyboard_poll_milis;
 unsigned char gb_timers_poll_milis = use_lib_timers_poll_milis;
@@ -63,19 +60,10 @@ unsigned char gb_cont_frec_speaker = 0;
 volatile int gb_frecuencia01 = 0;
 volatile int gb_volumen01 = 0;
 
-unsigned char gb_use_remap_cartdridge = 0;
-unsigned char gb_use_snarare_madmix = 0;
-
 unsigned char gb_font_8x8 = 1;
 
-unsigned int lasttick; // 16 bits timer
 unsigned char gb_reset = 0;
 unsigned char gb_id_cur_com = 0;
-
-unsigned char tiempo_vga = 0;
-unsigned int gb_cpu_timer_before, gb_cpu_timer_cur;
-unsigned long tickgap = 0;
-unsigned char port3da = 0;
 
 char **gb_buffer_vga;
 
@@ -87,15 +75,8 @@ Stats stats;
 
 unsigned char *gb_ram_bank[PAGE_COUNT];
 unsigned char gb_video_cga[16384];
-// unsigned char gb_video_hercules[16384];
-unsigned char slowsystem = 0;
-unsigned short int constantw = 0, constanth = 0;
 unsigned char bootdrive = 0;
 unsigned char speakerenabled = 0;
-unsigned char renderbenchmark = 0;
-unsigned int gb_keyboard_time_before, gb_keyboard_time_cur;
-unsigned int gb_ini_vga;
-unsigned int gb_cur_vga;
 unsigned char scrmodechange = 0;
 
 // unsigned char updatedscreen=0;
@@ -110,20 +91,20 @@ unsigned char gbKeepAlive = 0;
 #define uint8_t unsigned char
 
 unsigned char vidmode = 5;
-unsigned char gb_force_set_cga = 0; // fuerzo modo cga Digger
 unsigned char gb_force_load_com = 0;
-unsigned char gb_force_boot = 0;
-unsigned char gb_force_load_dsk = 0;
-unsigned char gb_id_cur_dsk = 0;
 
 unsigned char gb_portramTiny[51];    // Solo 51 puertos
 void *gb_portTiny_write_callback[5]; // Solo 5
 void *gb_portTiny_read_callback[5];
 
 unsigned char cf;
-unsigned char hdcount = 0;
 unsigned char running = 0;
 
+//////////////////////////////////////////////////////////////////////////// Local function prototypes
+void setup(void);
+void SDL_DumpVGA(void);
+
+///////////////////////////////////////////////////////////////////////// External function prototypes
 extern void VideoThreadPoll(void);
 extern void draw(void);
 extern void doscrmodechange();
@@ -222,9 +203,6 @@ void CreateRAM() {
     }
 }
 
-// Funciones
-void setup(void);
-void SDL_DumpVGA(void);
 // Setup principal
 void setup() {
     pinMode(SPEAKER_PIN, OUTPUT);
@@ -257,10 +235,7 @@ void setup() {
 
     inithardware();
 
-    lasttick = starttick = 0; // JJ millis();
-    gb_ini_vga = lasttick;
-    // Serial.printf("Memoria:0x%02X 0x%02X\n",read86(0x413),read86(0x414));
-    gb_keyboard_time_before = gb_keyboard_time_cur = gb_cpu_timer_before = gb_cpu_timer_cur = millis();
+    starttick = 0; // JJ millis();
 
 #ifndef use_lib_singlecore
     // BEGIN TASK video
@@ -310,7 +285,10 @@ unsigned int tiene_que_tardar = 0;
 
 // Loop main
 void loop() {
-   stats.StartIteration();
+    static uint32_t gb_cpu_timer_before, gb_cpu_timer_cur;
+    static uint32_t gb_keyboard_time_before, gb_keyboard_time_cur;
+
+    stats.StartIteration();
 #ifdef use_lib_singlecore
     if (gb_cpunoexe == 0) {
         exec86(10000);
@@ -340,17 +318,15 @@ void loop() {
     }
 
 #ifdef use_lib_singlecore
-    // Un solo CORE BEGIN
+    static uint32_t gb_ini_vga, gb_cur_vga;
     gb_cur_vga = millis();
-    // if ((gb_cur_vga - gb_ini_vga)>=41)
     if ((gb_cur_vga - gb_ini_vga) >= gb_vga_poll_milis) {
         draw();
         composite.sendFrameHalfResolution(&gb_buffer_vga);
         gb_ini_vga = gb_cur_vga;
     }
-#endif
-
-#ifndef use_lib_singlecore
+#else
+    static uint16_t *param;
     xQueueSend(vidQueue, &param, portMAX_DELAY);
 #endif
     if (gb_cpunoexe == 0) {
@@ -364,7 +340,7 @@ void loop() {
     gb_cpu_timer_cur = millis();
     if ((gb_cpu_timer_cur - gb_cpu_timer_before) > 1000) {
         gb_cpu_timer_before = gb_cpu_timer_cur;
-        stats.PrintAndReset(tiempo_vga == 1);
+        stats.PrintAndReset();
     }
 
 #ifndef use_lib_singlecore
@@ -373,8 +349,5 @@ void loop() {
     TIMERG0.wdt_feed = 1;
     TIMERG0.wdt_wprotect = 0;
     vTaskDelay(0); // important to avoid task watchdog timeouts - change this to slow down emu
-// TASK video END
 #endif
-
-    // }//fin if running
 }

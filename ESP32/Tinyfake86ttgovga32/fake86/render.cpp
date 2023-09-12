@@ -39,10 +39,8 @@ static const uint32_t VERTICAL_OFFSET = 20;
 //cga 1
 const unsigned char gb_color_cga[16]={ 
 //  Black   Green   Red     Yellow - others don't matter
-    0x00,   0xD6,   0x36,   0xFA,   0x34,   0x54,   0xF4,   0x07,
+    0x00,   0xD6,   0x45,   0xFA,   0x34,   0x54,   0xF4,   0x07,
     0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
-//  0x00,0x28,0x22,0x2A,0x21,0x19,0x10,0x1E,
-//  0x05,0x01,0x16,0x15,0x15,0x2E,0x25,0x2A 
 };
 
 //cga 2
@@ -50,8 +48,6 @@ const unsigned char gb_color_cga2[16] = {
 //  Black   Cyan    Magenta White - others don't matter
     0x00,   0xB6,   0x64,   0x06, 0x34, 0x54, 0xF4, 0x07, 0x03,
     0x8C,   0xCC,   0xAC,   0x3C, 0x5C, 0xFC, 0x0F
-    //  0x00,0x08,0x02,0x0A,0x21,0x19,0x10,0x1E,
-    //  0x05,0x01,0x16,0x15,0x15,0x2E,0x25,0x2A
 };
 
 //PCJR
@@ -71,15 +67,11 @@ const unsigned char gb_color_cgagray[16]={
 static unsigned char gb_color_vga[16]={
     0x00,   0x84,   0xC4,   0xA4,   0x34,   0x54,   0xF4,   0x07,
     0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
-//  0x00,0x15,0x2A,0x3F,0x21,0x19,0x10,0x1E,
-//  0x05,0x01,0x16,0x15,0x15,0x2E,0x25,0x2A 
 };
 
 //Color Modo Texto Rapido
 static unsigned char gb_color_text_cga[16]={ 
 // BLACK    BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
-    // 0,      32,     8,      40,     2,      34,     6,      42,
-    // 21,     53,     29,     61,     23,     55,     31,     63
     0x00,   0x84,   0xC4,   0xA4,   0x34,   0x54,   0xF4,   0x07,
     0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
 };
@@ -389,7 +381,6 @@ void jj_sdl_dump_cga_320x200()
 void jj_sdl_dump_640x200()
 {//640x200 1 bit Escalado a la mitad
  unsigned short int cont=0;
- unsigned char a0,a2,a4,a6;
  unsigned int yDest; 
  unsigned int x;
  unsigned char y;
@@ -402,19 +393,19 @@ void jj_sdl_dump_640x200()
    yDest= (y<<1);
    ptr32= (unsigned int *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
    for (x=0;x<80;x++)   
-   {//Lineas impares
-    unsigned char bOneByte = gb_video_cga[cont];   
-    a6= ((bOneByte>>1)& 0x01); //empieza izquierda derecha pixel
-    a4= ((bOneByte>>3)& 0x01);
-    a2= ((bOneByte>>5)& 0x01);
-    a0= ((bOneByte>>7)& 0x01);
+   {
+    unsigned char bOneByte = gb_video_cga[cont];
+    uint8_t a6 = ((bOneByte >> 1) & 0x01); // empieza izquierda derecha pixel
+    uint8_t a4 = ((bOneByte >> 3) & 0x01);
+    uint8_t a2 = ((bOneByte >> 5) & 0x01);
+    uint8_t a0= ((bOneByte>>7)& 0x01);
 
     a0= (a0==0?0:3); //Deberia ser 15, por ahora 3 de 4 colores
     a2= (a2==0?0:3);
     a4= (a4==0?0:3);
     a6= (a6==0?0:3);
 
-	a32= (gb_color_vga[a4]) | (gb_color_vga[a6]<<8) | (gb_color_vga[a0]<<16) | (gb_color_vga[a2]<<24);
+	a32= (gb_color_vga[a0]) | (gb_color_vga[a2]<<8) | (gb_color_vga[a4]<<16) | (gb_color_vga[a6]<<24);
 	//ptr32[x]= a32;
 	gb_local_scanline[x]= a32;
 
@@ -430,18 +421,18 @@ void jj_sdl_dump_640x200()
    ptr32= (unsigned int *)gb_buffer_vga[yDest + VERTICAL_OFFSET];  
    for (x=0;x<80;x++)
    {//Lineas impares
-    unsigned char bOneByte = gb_video_cga[cont];   
-    a6= ((bOneByte>>1)& 0x01); //empieza izquierda derecha pixel
-    a4= ((bOneByte>>3)& 0x01);
-    a2= ((bOneByte>>5)& 0x01);
-    a0= ((bOneByte>>7)& 0x01);
+    unsigned char bOneByte = gb_video_cga[cont];
+    uint8_t a6 = ((bOneByte >> 1) & 0x01); // empieza izquierda derecha pixel
+    uint8_t a4 = ((bOneByte >> 3) & 0x01);
+    uint8_t a2 = ((bOneByte >> 5) & 0x01);
+    uint8_t a0 = ((bOneByte >> 7) & 0x01);
 
     a0= (a0==0?0:3);//Deberia ser 15, por ahora 3 de 4 colores
     a2= (a2==0?0:3);
     a4= (a4==0?0:3);
     a6= (a6==0?0:3);
    	
-	a32= (gb_color_vga[a4]) | (gb_color_vga[a6]<<8) | (gb_color_vga[a0]<<16) | (gb_color_vga[a2]<<24);
+	a32= (gb_color_vga[a0]) | (gb_color_vga[a6]<<2) | (gb_color_vga[a4]<<16) | (gb_color_vga[a6]<<24);
 	//ptr32[x]= a32;
 	gb_local_scanline[x]= a32;
 

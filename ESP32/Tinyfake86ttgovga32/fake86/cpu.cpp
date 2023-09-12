@@ -123,9 +123,6 @@ void my_callback_speaker_func()
 
 
 static unsigned char opcode, segoverride, reptype;
-//JJ bootdrive = 0;
-//unsigned char hdcount = 0;
-//uint16_t segregs[4], 
 static unsigned short int savecs, saveip, ip, useseg, oldsp;
 static unsigned char tempcf, oldcf, pf, af, zf, sf, tf, ifl, df, of, mode, reg, rm;
 //unsigned char cf;
@@ -139,15 +136,7 @@ uint64_t totalexec;
 //extern uint16_t VGA_SC[0x100], VGA_CRTC[0x100], VGA_ATTR[0x100], VGA_GC[0x100]; //no necesito VGA
 //extern uint8_t updatedscreen;
 union _bytewordregs_ regs;
-
-//JJuint8_t	portram[0x10000];
-//JJ uint8_t	running = 0
-//unsigned char verbose,showcsip,debugmode,mouseemu;
 unsigned char didbootstrap = 0;
-//uint8_t	ethif;
-
-//extern uint8_t	vidmode;
-//JJ extern uint8_t verbose;
 
 extern void vidinterrupt();
 
@@ -287,74 +276,6 @@ void updateBIOSDataArea()
  }
 }
 
-#ifdef use_lib_sna_rare
-unsigned char jj_read86_remap(unsigned int addr32)
-{
- unsigned int idRAM;
- unsigned int auxOffs;
- unsigned int addrDest;
- //idRAM= (addr32/1024); 
- idRAM= (addr32>>10); 
- if (idRAM>=140)
- {
-  return 0;
- }
- if (gb_use_snarare_madmix == 1)
- {
-  if (gb_madmix_memory_rare_1KB[idRAM] == 0)
-  {
-   return gb_madmix_flash_rare_sna_rare[addr32];                           
-  }
-  else
-  {
-   auxOffs = (addr32 & 1023);      
-   addrDest = (unsigned int)((gb_madmix_memory_rare_remap_1KB[idRAM]<<10));   
-   addrDest = addrDest+ auxOffs;   
-   //if (addrDest>64000)
-   if (addrDest>32000)
-   {
-    return 0;
-   }
-   //return gb_use_minimal_ram[addrDest];
-   return gb_ram_bank[0][addrDest];
-  }
- }
-}
-#endif
-
-#ifdef use_lib_sna_rare
-//********************************************************
-void jj_write86_remap(unsigned int addr32, unsigned char value)
-{
- unsigned int idRAM;
- unsigned int auxOffs;
- unsigned int addrDest;
- //idRAM= (addr32/1024);
- idRAM= (addr32>>10);
- if (idRAM>=140)
- {
-  return;
- }
- if (gb_use_snarare_madmix == 1)
- {
-  if (gb_madmix_memory_rare_1KB[idRAM]==0){
-   return;
-  }
-  else
-  {
-   auxOffs = (addr32 & 1023);      
-   addrDest = (unsigned int)((gb_madmix_memory_rare_remap_1KB[idRAM]<<10));
-   addrDest = addrDest + auxOffs;   
-   //if (addrDest>64000)
-   if (addrDest>32000)
-    return;
-   //gb_use_minimal_ram[addrDest]= value; 
-   gb_ram_bank[0][addrDest]= value;
-  }
- }
-}
-#endif
-
 //********************************************************
 void write86 (unsigned int addr32, unsigned char value)
 {
@@ -374,16 +295,6 @@ void write86 (unsigned int addr32, unsigned char value)
  //Segundo memoria
  if ((addr32>=0) && (addr32<gb_max_ram))
  {
-  //JJ RAM[addr32] = value;
-  //JJ return;
-  #ifdef use_lib_sna_rare  
-   if (gb_use_remap_cartdridge==1)
-   {
-    jj_write86_remap(addr32,value);
-    return;
-   }
-  #endif
-
   idRAM= (addr32>>15);
   auxOffs = (addr32 & 32767);
   gb_ram_bank[idRAM][auxOffs]= value;
@@ -396,23 +307,6 @@ void write86 (unsigned int addr32, unsigned char value)
   // default: return;   
   //}     
  }
- 
- //if (!didbootstrap)
- //{
- // gb_check_memory_before= value;  
- //}
- //printf("write86 over 0x%08X\n",addr32);
- //fflush(stdout);
- 
-
- //if ( (addr32 >= 0xA0000) && (addr32 <= 0xBFFFF) )
- //{
- // //RAM[addr32] = value;
- // //updatedscreen = 1;  
- //}
-  
-
-
  //BIOS ADDR NOT WRITE
  //if ((addr32 >= 0xFE000) && (addr32 < (0xFE000 + gb_size_rom_bios_pcxt)))
  if ((addr32 >= 0xFE000) && (addr32 < 0x100000))
@@ -445,14 +339,6 @@ void write86 (unsigned int addr32, unsigned char value)
   //printf("WRITE86 FIX EXPAND 0x%08X\n",addr32);
   //fflush(stdout);
   addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
-
-  #ifdef use_lib_sna_rare
-   if (gb_use_remap_cartdridge==1)
-   {
-    jj_write86_remap(addr32,value);
-    return;
-   }
-  #endif
 
   idRAM= (addr32>>15);
   auxOffs = (addr32 & 32767);
@@ -561,13 +447,6 @@ unsigned char read86 (unsigned int addr32)
  //Segundo memoria RAM
  if ((addr32>=0) && (addr32<gb_max_ram))
  {
-  #ifdef use_lib_sna_rare
-   if (gb_use_remap_cartdridge==1)
-   {
-    return (jj_read86_remap(addr32));
-   }  
-  #endif 
-
   idRAM= (addr32>>15);
   auxOffs = (addr32 & 32767);
   return (gb_ram_bank[idRAM][auxOffs]);
@@ -625,49 +504,6 @@ unsigned char read86 (unsigned int addr32)
  }
 
 
-// if (!didbootstrap)
-// {
-//  //JJ RAM[0x410] = 0x41; //ugly hack to make BIOS always believe we have an EGA/VGA card installed
-//  //JJ RAM[0x475] = hdcount; //the BIOS doesn't have any concept of hard drives, so here's another hack
-//  gb_ram_00[0x410]= 0x41;
-//  gb_ram_00[0x475]= 0x41;
-//			
-//  //RAM[0x413]= 0xFF;//Hack MEMSIZE RAM 0xFF 256 KB RAM
-//  //RAM[0x413]= 0xA0;//Hack 95 KB 0x5F    0xA0 160 KB
-//  //RAM[0x414]= 0x00;
-//  
-//  //JJ RAM[0x413]= 0x5F;//Hack 95 KB 0x5F    0xA0 160 KB
-//  //JJ RAM[0x414]= 0x00;
-//  //gb_ram_00[0x413]= 0x5F;  gb_ram_00[0x414]= 0x00;
-//  //gb_ram_00[0x413]= 0x60; gb_ram_00[0x414]= 0x00; //96 KB
-//  gb_ram_00[0x413]= 0x80; gb_ram_00[0x414]= 0x00; //128 KB
-// }
- 
- ////extended BIOS data area (EBDA) No se usa
- //if ((addr32>=0x9FC00) && (addr32<=0x9FFFF))
- //{
- // //printf("extended BIOS 0x%08X\n",addr32);
- // //fflush(stdout);  
- // return 0;
- //}
-  
- //Motherboard bios
- //if ((addr32>=0xF0000) && (addr32<=0xFFFFF))
- //{
- // //printf("motherboard 0x%08X\n",addr32);
- // //fflush(stdout);  
- // return 0;                       
- //}
-  
- //reserved memory no se usa
- //if ((addr32>=0xFFFF0) && (addr32<=0xFFFFF))
- //{
- // //printf("reserved 0x%08X\n",addr32);
- // //fflush(stdout);  
- // return gb_reserved_memory[(addr32-0xFFFF0)];
- //}
-
-
  //Ultimo Hercules B0000
  //if ((addr32 >= 0xB0000) && (addr32 < (0xB0000+16384)))
  if ((addr32 >= 0xB0000) && (addr32 < 0xB4000))
@@ -683,13 +519,6 @@ unsigned char read86 (unsigned int addr32)
   //fflush(stdout);
   addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME  
 
-  #ifdef use_lib_sna_rare
-   if (gb_use_remap_cartdridge==1)
-   {
-    return (jj_read86_remap(addr32));
-   }  
-  #endif 
-
   idRAM= (addr32>>15);
   auxOffs = (addr32 & 32767);  
   return (gb_ram_bank[idRAM][auxOffs]);  
@@ -703,60 +532,6 @@ unsigned char read86 (unsigned int addr32)
  //fflush(stdout);                
  return 0; 
 }
-
-/*
-//read86 original
-uint8_t read86 (uint32_t addr32) 
-{
-	addr32 &= 0xFFFFF;
-
- //BIOS ADDR
- if ((addr32 >= 0xFE000) && (addr32 < (0xFE000 + gb_size_rom_bios_pcxt)))
- {
-  return gb_bios_pcxt[(addr32-0xFE000)];
- }
- if ((addr32 >= 0xF6000) && (addr32 < (0xF6000 + gb_size_rom_basic)))
- {
-  return gb_rom_basic[(addr32-0xF6000)];
- }
- if ((addr32 >= 0xC0000) && (addr32 < (0xC0000 + gb_size_rom_videorom)))
- {
-  return gb_rom_videorom[(addr32-0xC0000)];
- }
-
-    #ifdef use_lib_limit_256KB
-//     if ((addr32 >= 128000) && (addr32 <= 260000))
-//     {
-//      printf("R %d %d\n",addr32,RAM[addr32]);
-//      fflush(stdout);                 
-//      return gb_check_memory_before;
-//     }
-    #endif	
-		
-	
-	if ( (addr32 >= 0xA0000) && (addr32 <= 0xBFFFF) ) {
-			if ( (vidmode == 0xD) || (vidmode == 0xE) || (vidmode == 0x10) ) return (readVGA (addr32 - 0xA0000) );
-			if ( (vidmode != 0x13) && (vidmode != 0x12) && (vidmode != 0xD) ) return (RAM[addr32]);			
-			if ( (VGA_SC[4] & 6) == 0)
-			 	return (RAM[addr32]);
-			 else
-			 	return (readVGA (addr32 - 0xA0000) );
-		}
-
-	if (!didbootstrap)
-    {
-	 RAM[0x410] = 0x41; //ugly hack to make BIOS always believe we have an EGA/VGA card installed
-	 RAM[0x475] = hdcount; //the BIOS doesn't have any concept of hard drives, so here's another hack
-			
-   	 //RAM[0x413]= 0xFF;//Hack MEMSIZE RAM 0xFF 256 KB RAM
-   	 RAM[0x413]= 0xA0;//Hack 95 KB 0x5F    0xA0 160 KB
-	 RAM[0x414]= 0x00;
-	}
-
-	return (RAM[addr32]);
-}
-*/
-
 
 #ifdef use_lib_fast_readw86
  static inline unsigned short int readw86 (unsigned int addr32)

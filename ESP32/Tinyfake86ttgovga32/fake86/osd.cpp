@@ -256,12 +256,11 @@ void ShowTinyDSKMenu()
       count++;
     }
 
-    uint32_t aSelNum = ShowTinyMenu("DSK", (const char **)arItems, count);
+    uint32_t selection = ShowTinyMenu("DSK", (const char **)arItems, count);
 
-    gb_force_load_dsk = 1;
-    if (aSelNum > (count - 1))
-      aSelNum = count - 1;
-    sdcard.OpenImage(0, arItems[aSelNum]);
+    if (selection > (count - 1))
+      selection = count - 1;
+    sdcard.OpenImage(0, arItems[selection]);
     // running= 0;
 
     free((void *)pResult);
@@ -275,7 +274,6 @@ void ShowTinyCPUDelayMenu()
  aSelNum = ShowTinyMenu("Delay CPU ms",gb_delay_cpu_menu,max_gb_delay_cpu_menu);
  if (aSelNum == 255)
   return;
- gb_auto_delay_cpu=1;
  gb_delay_tick_cpu_milis = aSelNum;  
 }
 

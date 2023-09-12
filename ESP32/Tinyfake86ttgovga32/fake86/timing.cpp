@@ -50,53 +50,16 @@ extern struct i8253_s i8253;
 //JJ extern void tickBlaster(); //no audio
 
 unsigned long hostfreq = 1000000;
-//lasttick = 0, curtick = 0, scanlinetiming, lastscanlinetick, curscanline = 0;
-//lasti8253tick,i8253tickgap, 
-//uint64_t lastsampletick, gensamplerate;
-//ssourceticks, sampleticks, lastssourcetick, adlibticks, lastadlibtick, lastblastertick
-//unsigned long int gb_jj_cont_timer=0;
 
 unsigned int jj_cur_ms_tick, jj_last_ms_tick;
-//,jj_lastscanline_ms_tick,jj_lasti8253_ms_tick;
+unsigned char port3da = 0;
 
 //uint16_t pit0counter = 65535; //No lo necesito
 extern uint64_t totalexec;
 extern uint32_t speed;
-extern uint8_t slowsystem;
-//port3da
-//doaudio, 
 
 void inittiming() {
-//#ifdef _WIN32
-	//QueryPerformanceFrequency (&queryperf);
-	//hostfreq = queryperf.QuadPart;
-	//QueryPerformanceCounter (&queryperf);
-	//curtick = queryperf.QuadPart;	
-//#else
-	//hostfreq = 1000000;
-	//gettimeofday (&tv, NULL);
-	//curtick = (uint64_t) tv.tv_sec * (uint64_t) 1000000 + (uint64_t) tv.tv_usec;
-//#endif
-
-
- //JJ curtick = gb_jj_cont_timer;    
-   //curtick = micros(); //No lo necesito
-   //lasttick= curtick; //No lo necesito
-
-
-	//lasti8253tick = 
-  //lastscanlinetick = lasttick = curtick; //No lo necesito
-	//lastsampletick = lastblastertick = lastadlibtick = lastssourcetick
-	//scanlinetiming = hostfreq / 31500; // No lo necesito
-	//ssourceticks = hostfreq / 8000;
-	//adlibticks = hostfreq / 48000;
-	//JJif (doaudio) sampleticks = hostfreq / gensamplerate;
-//JJ	else sampleticks = -1;
-    //sampleticks = 0; // Sin audio
-	// i8253tickgap = hostfreq / 119318;	 //Ya no lo necesito Fuerzo 54 ms
-
   jj_last_ms_tick= jj_cur_ms_tick= millis();
-  //jj_lastscanline_ms_tick= jj_lasti8253_ms_tick
 }
 
 

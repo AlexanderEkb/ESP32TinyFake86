@@ -36,20 +36,13 @@
 #define VIDEO_MODE_0x13           (0x13)
 #define VIDEO_MODE_0x7F           (0x7F)
 
-// extern unsigned char verbose; //No lo necesito
-extern unsigned int lasttick;
-// extern unsigned long tickgap; //no lo necesito fuerzo 54 ms
 // JJ extern CRITICAL_SECTION screenmutex;
 // extern SDL_Surface *screen;
-extern unsigned char bootdrive, renderbenchmark;
+extern unsigned char bootdrive;
 // noscale, usessource, useconsole,doaudio,cgaonly,nosmooth,ethif
 
-extern unsigned char gb_force_set_cga;
 extern unsigned char gb_force_load_com;
 extern unsigned char gb_id_cur_com;
-extern unsigned char gb_force_boot;
-extern unsigned char gb_force_load_dsk;
-extern unsigned char gb_id_cur_dsk;
 #ifdef use_lib_snapshot
 // extern unsigned char gb_memory_write[1048576];
 extern unsigned char gb_force_snapshot_begin;
@@ -65,7 +58,6 @@ extern unsigned char gb_check_memory_before;
 // JJ extern unsigned char VRAM[262144]; //quito vga por ahora
 // extern unsigned char cf; //Lo dejo static optimizado
 extern unsigned char cf;
-extern unsigned char hdcount;
 
 // #ifdef use_lib_limit_portram
 //  extern unsigned char portram[gb_max_portram]; //limito a 1023 bytes de puertos
@@ -87,17 +79,7 @@ extern unsigned char gb_interrupt_before;
 
 extern unsigned char didbootstrap;
 
-// Parte parsecl
-extern unsigned char slowsystem;
-extern unsigned short int constantw;
-extern unsigned short int constanth;
-
 extern unsigned char speakerenabled;
-
-// JJ extern void *port_write_callback[gb_max_portram];
-// JJ extern void *port_read_callback[gb_max_portram];
-// JJ extern void *port_write_callback16[gb_max_portram];
-// JJ extern void *port_read_callback16[gb_max_portram];
 
 extern const unsigned char fontcga[];
 extern unsigned long int gb_jj_cont_timer;
@@ -156,16 +138,11 @@ extern unsigned char scrmodechange;
  
 
  //Medicion tiempos
- extern unsigned char tiempo_vga;
 
  extern unsigned char keyboardwaitack;
 
  extern unsigned char gb_ram_truco_low;
  extern unsigned char gb_ram_truco_high;
-
- extern unsigned char gb_use_snarare_madmix;
- extern unsigned char gb_use_remap_cartdridge;
-
 
  extern unsigned char gb_frec_speaker_low;
  extern unsigned char gb_frec_speaker_high;
@@ -177,7 +154,6 @@ extern unsigned char scrmodechange;
  extern volatile unsigned char speaker_pin_estado;
 
  extern unsigned char gb_delay_tick_cpu_milis;
- extern unsigned char gb_auto_delay_cpu;
  extern unsigned char gb_vga_poll_milis;
  extern unsigned char gb_keyboard_poll_milis;
  extern unsigned char gb_timers_poll_milis;
