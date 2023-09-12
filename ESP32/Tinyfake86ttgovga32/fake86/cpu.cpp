@@ -263,34 +263,27 @@ extern void	portout16 (uint16_t portnum, uint16_t value);
 extern uint8_t	portin (uint16_t portnum);
 extern uint16_t portin16 (uint16_t portnum);
 
-unsigned char gb_ram_truco_low=0x80; //128 KB
-unsigned char gb_ram_truco_high=0x20;
-
-//Fuerzo RAM
-void SetRAMTruco()
-{
- switch (gb_max_ram)
- {
-  case 131072: gb_ram_truco_low= 0x80; gb_ram_truco_high= 0x00; break; //128 KB
-  case 163840: gb_ram_truco_low= 0xA0; gb_ram_truco_high= 0x00; break; //160 KB
-  case 196608: gb_ram_truco_low= 0xC0; gb_ram_truco_high= 0x00; break; //192 KB
-  case 229376: gb_ram_truco_low= 0xE0; gb_ram_truco_high= 0x00; break; //224 KB
-  case 262144: gb_ram_truco_low= 0x00; gb_ram_truco_high= 0x01; break; //256 KB
-  case 655360: gb_ram_truco_low= 0x80; gb_ram_truco_high= 0x02; break; //640 KB
- } 
-}
-
 //Lo saco fuera de Read86. Se ejecuta al inicio y en timer 54 ms.
 void updateBIOSDataArea()
 { 
- if (!didbootstrap)
- {
-   gb_ram_bank[0][0x410]= 0x41;	// Equipment word: no FPU, no mouse, two floppies, EGA or better
-   gb_ram_bank[0][0x475]= 0;		// Number of HDDs intalled
+	if (!didbootstrap)
+	{
+		gb_ram_bank[0][0x410]= 0x61;	// Equipment word: no FPU, no mouse, two floppies, EGA or better
+		gb_ram_bank[0][0x475]= 0;			// Number of HDDs intalled
 
-   //gb_ram_00[0x413]= 0x80; gb_ram_00[0x414]= 0x00; //128 KB
-   gb_ram_bank[0][0x413]= gb_ram_truco_low;	// Amount of RAM, in Kbytes
-   gb_ram_bank[0][0x414]= gb_ram_truco_high;    
+		unsigned char gb_ram_truco_low = 0x80; // 128 KB
+		unsigned char gb_ram_truco_high = 0x20;
+		switch (gb_max_ram)
+		{
+			case 131072: gb_ram_truco_low= 0x80; gb_ram_truco_high= 0x00; break; //128 KB
+			case 163840: gb_ram_truco_low= 0xA0; gb_ram_truco_high= 0x00; break; //160 KB
+			case 196608: gb_ram_truco_low= 0xC0; gb_ram_truco_high= 0x00; break; //192 KB
+			case 229376: gb_ram_truco_low= 0xE0; gb_ram_truco_high= 0x00; break; //224 KB
+			case 262144: gb_ram_truco_low= 0x00; gb_ram_truco_high= 0x01; break; //256 KB
+			case 655360: gb_ram_truco_low= 0x80; gb_ram_truco_high= 0x02; break; //640 KB
+		}
+		gb_ram_bank[0][0x413]= gb_ram_truco_low;	// Amount of RAM, in Kbytes
+		gb_ram_bank[0][0x414]= gb_ram_truco_high;    
  }
 }
 

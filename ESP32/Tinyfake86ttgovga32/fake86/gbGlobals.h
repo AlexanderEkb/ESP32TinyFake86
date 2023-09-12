@@ -156,9 +156,6 @@ extern unsigned char scrmodechange;
  
 
  //Medicion tiempos
- extern unsigned int jj_ini_cpu,jj_end_cpu,jj_ini_vga,jj_end_vga;
- extern unsigned int gb_max_cpu_ticks,gb_min_cpu_ticks,gb_cur_cpu_ticks;
- extern unsigned int gb_max_vga_ticks,gb_min_vga_ticks,gb_cur_vga_ticks;
  extern unsigned char tiempo_vga;
 
  extern unsigned char keyboardwaitack;

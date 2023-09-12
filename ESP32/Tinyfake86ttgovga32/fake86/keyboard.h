@@ -16,20 +16,18 @@ class KeyboardDriver {
   public:
     virtual void Init() = 0;
     virtual void Reset() = 0;
-    virtual uint8_t Exec() = 0;
+    virtual uint8_t Poll() = 0;
     virtual uint8_t getLastKey() = 0;
 };
 
 class KeyboardDriverAT : public KeyboardDriver
 {
   public:
-    KeyboardDriverAT()
-    {
-      incoming = 0;
-      bitcount = 0;
-      lastScanCode = 0;
-    }
     static const uint32_t KEY_COUNT = 53;
+    KeyboardDriverAT() {
+      incoming = 0;
+      lastKey  = 0;
+    }
     virtual void Init() {
       pinMode(KEYBOARD_DATA, INPUT_PULLUP);
       pinMode(KEYBOARD_CLK, INPUT_PULLUP);
@@ -39,31 +37,29 @@ class KeyboardDriverAT : public KeyboardDriver
     }
 
     virtual void Reset() {}
-    virtual uint8_t Exec()
-    {
-      uint8_t scancode = getScancode();
-      return scancode;
-    }
 
     virtual uint8_t getLastKey() {
-      uint8_t result = lastScanCode;
-      lastScanCode = 0;
+      uint8_t result = lastKey;
+      lastKey = 0;
       return result;
     }
 
-    uint8_t getScancode(void) {
-      uint8_t _incoming = 0;
-      if (bitcount == 0) {
-        _incoming = incoming;
-        incoming = 0;
-      }
-      return _incoming;
+    uint8_t Poll() {
+      uint8_t result = incoming;
+      incoming = 0;
+      return result;
     }
 
   private:
-    volatile static uint8_t incoming;
-    volatile static uint8_t bitcount;
-    volatile static uint8_t lastScanCode;
+    static uint8_t incoming;
+    static uint8_t lastKey;
+    static void OnKey(uint8_t scancode) { 
+      incoming = scancode;
+      if(!(scancode & 0x80))
+      {
+        lastKey = scancode;
+      }
+    }
     friend void IRAM_ATTR kb_interruptHandler(void);
     /*
     // https://homepages.cwi.nl/~aeb/linux/kbd/scancodes-1.html

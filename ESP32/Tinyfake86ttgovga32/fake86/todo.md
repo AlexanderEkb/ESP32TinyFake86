@@ -1,5 +1,6 @@
 I. Video
 ========
+0. Align pixels in #2 video mode. Now hey are messed up.
 1. Blinking cursor
 2. Auto switching palettes
 3. Correct implementation of the background color
@@ -16,12 +17,16 @@ II. Disks
 3. HDD (at least one)
 4. Activity LED
 
-III. Others
+III. Hardware
+=============
+1. Possibility of attaching gamepads (NES-style or so)
+2. DB-9 connector instead of present pair of RCAs
+3. Reset button on the rear side
+4. Implement keyboard "typematic" feature
+
+IV. Others
 ===========
-1. RTC (?)
-2. Correct implementation of system timer (and other timings significant for playing games)
-3. Nice looking on-screen menus.
-4. Possibility of attaching gamepads (NES-style or so)
-5. DB-9 connector instead of present pair of RCAs
-6. Reset button on the rear side
-7. 
+1. ~~Make keyboard possible to use~~
+2. RTC (?)
+3. Correct implementation of system timer (and other timings significant for playing games)
+4. Nice looking on-screen menus.

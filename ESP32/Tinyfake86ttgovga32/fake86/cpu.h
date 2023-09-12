@@ -18,11 +18,7 @@
 #ifndef _CPU_H
  #define _CPU_H
 
-#ifdef _WIN32
-#include <windows.h>
-#else
 #include <time.h>
-#endif
 
 #define regax 0
 #define regcx 1
@@ -133,7 +129,6 @@ void exec86 (uint32_t execloops);
 void FuerzoParityRAM(void);
 
 void updateBIOSDataArea(void);
-void SetRAMTruco(void);
 void ExternalSetCF(unsigned char valor);
 
 void my_callback_speaker_func(void);
@@ -228,7 +223,7 @@ void my_callback_speaker_func(void);
 #endif
 
 #ifndef use_lib_fast_op_sbb8
- void op_sbb8(void)
+ void op_sbb8(void);
 #endif
 
 #ifndef use_lib_fast_op_sbb16
