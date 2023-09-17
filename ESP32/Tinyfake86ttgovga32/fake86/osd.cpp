@@ -61,16 +61,16 @@ const char * gb_sound_menu[max_gb_sound_menu]={
  ,"Sound OFF"
 };
 
-#define max_gb_main_menu 7
-const char * gb_main_menu[max_gb_main_menu]={
- "Load COM",
- "Select DSK",
- "Reset",
- "Speed",
- "Video",
- "Sound",
- "Return"
-};
+#define max_gb_main_menu 8
+const char *gb_main_menu[max_gb_main_menu] = {
+    "Load COM",
+    "Drive A:",
+    "Drive B:",
+    "Reset",
+    "Speed",
+    "Video",
+    "Sound",
+    "Return"};
 
 #define max_gb_video_menu 7
 const char * gb_video_menu[max_gb_video_menu]={
@@ -241,7 +241,7 @@ unsigned char ShowTinyMenu(const char *cadTitle,const char **ptrValue,unsigned c
 }
 
 //Menu DSK
-void ShowTinyDSKMenu()
+void ShowTinyDSKMenu(uint32_t drive)
 {
   extern SdCard sdcard;
   scandir_t * pResult = sdcard.scandir();
@@ -260,7 +260,7 @@ void ShowTinyDSKMenu()
 
     if (selection > (count - 1))
       selection = count - 1;
-    sdcard.OpenImage(0, arItems[selection]);
+    sdcard.OpenImage(drive, arItems[selection]);
     // running= 0;
 
     free((void *)pResult);
@@ -419,20 +419,25 @@ void do_tinyOSD()
     gb_show_osd_main_menu=0;
     break;
    case 1:
-    ShowTinyDSKMenu();
+    ShowTinyDSKMenu(0);
     gb_show_osd_main_menu=0;
     break;
-   case 2:     
+   case 2:
+    ShowTinyDSKMenu(1);
+    gb_show_osd_main_menu = 0;
+    break;
+   case 3:
     ShowTinyResetMenu();
     gb_show_osd_main_menu=0;    
     break;
-   case 3: ShowTinySpeedMenu(); 
+   case 4:
+    ShowTinySpeedMenu(); 
     gb_show_osd_main_menu=0;   
     break;
-   case 4: ShowTinyVideoMenu(); 
+   case 5: ShowTinyVideoMenu(); 
     gb_show_osd_main_menu=0;
     break;   
-   case 5:
+   case 6:
     ShowTinySoundMenu();        
     gb_show_osd_main_menu=0; 
     break;
