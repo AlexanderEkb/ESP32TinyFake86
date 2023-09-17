@@ -33,6 +33,16 @@
 #define regss 2
 #define regds 3
 
+//JJ #ifdef __BIG_ENDIAN__
+//JJ #define regal 1
+//JJ #define regah 0
+//JJ #define regcl 3
+//JJ #define regch 2
+//JJ #define regdl 5
+//JJ #define regdh 4
+//JJ #define regbl 7
+//JJ #define regbh 6
+//JJ #else
 #define regal 0
 #define regah 1
 #define regcl 2
@@ -63,7 +73,6 @@ union _bytewordregs_ {
 #define putsegreg(regid, writeval)	segregs[regid] = writeval
 #define segbase(x)	((uint32_t) x << 4)
 
-extern union _bytewordregs_ regs;
 
 unsigned char GetRegAL(void);
 unsigned char GetRegAH(void);

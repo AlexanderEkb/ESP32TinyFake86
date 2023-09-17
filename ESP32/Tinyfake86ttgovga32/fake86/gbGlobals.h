@@ -83,12 +83,17 @@ extern unsigned char speakerenabled;
 
 extern const unsigned char fontcga[];
 extern unsigned long int gb_jj_cont_timer;
+// JJVGA extern unsigned short int VGA_SC[0x100], VGA_CRTC[0x100], VGA_ATTR[0x100], VGA_GC[0x100]; //no necesito VGA
+extern unsigned char scrmodechange; 
  
 // extern unsigned int prestretch[1024][1024];
 
 
  //extern SDL_Event event;
  
+ 
+ //extern const unsigned int palettecga[16];
+ extern const unsigned char palettecga[16];
  
  extern unsigned short int segregs[4];
  //extern unsigned char VGA_latch[4]; //Solo CGA

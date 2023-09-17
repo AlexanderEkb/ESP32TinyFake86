@@ -1,6 +1,6 @@
 I. Video
 ========
-0. ~~Align pixels in #2 video mode. Now hey are messed up.~~
+0. Align pixels in #2 video mode. Now hey are messed up.
 1. Blinking cursor
 2. Auto switching palettes
 3. Correct implementation of the background color

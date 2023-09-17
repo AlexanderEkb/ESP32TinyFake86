@@ -35,6 +35,7 @@
 
 
 extern SdCard sdcard;
+extern union _bytewordregs_ regs;
 
 extern uint8_t read86 (uint32_t addr32);
 extern void write86 (uint32_t addr32, uint8_t value);

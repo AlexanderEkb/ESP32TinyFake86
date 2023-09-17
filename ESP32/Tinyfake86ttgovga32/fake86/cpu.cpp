@@ -136,11 +136,11 @@ uint64_t totalexec;
 //extern uint16_t VGA_SC[0x100], VGA_CRTC[0x100], VGA_ATTR[0x100], VGA_GC[0x100]; //no necesito VGA
 //extern uint8_t updatedscreen;
 union _bytewordregs_ regs;
-unsigned short int segregs[4];
-
 unsigned char didbootstrap = 0;
 
 extern void vidinterrupt();
+
+extern uint8_t readVGA (uint32_t addr32);
 
 void ExternalSetCF(unsigned char valor)
 {
@@ -246,6 +246,7 @@ unsigned char gb_check_memory_before;
 
 
 
+extern void	writeVGA (uint32_t addr32, uint8_t value);
 extern void	portout (uint16_t portnum, uint8_t value);
 extern void	portout16 (uint16_t portnum, uint16_t value);
 extern uint8_t	portin (uint16_t portnum);
@@ -1730,6 +1731,13 @@ void intcall86 (unsigned char intnum)
 	tf = 0;
 }
 
+//JJ #if defined(NETWORKING_ENABLED)
+//JJ extern struct netstruct {
+//JJ 	uint8_t	enabled;
+//JJ 	uint8_t	canrecv;
+//JJ 	uint16_t	pktlen;
+//JJ } net;
+//JJ #endif
 uint64_t	frametimer = 0, didwhen = 0, didticks = 0;
 uint32_t	makeupticks = 0;
 extern float	timercomp;
