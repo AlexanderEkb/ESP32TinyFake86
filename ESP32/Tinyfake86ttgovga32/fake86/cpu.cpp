@@ -50,6 +50,7 @@ extern struct structpic i8259;
 uint64_t curtimer, lasttimer, timerfreq;
 
 static unsigned char byteregtable[8] = { regal, regcl, regdl, regbl, regah, regch, regdh, regbh };
+unsigned short int segregs[4];
 
 //static const uint8_t parity[0x100] = {
 //	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
@@ -1677,7 +1678,6 @@ void intcall86 (unsigned char intnum)
 						vidinterrupt();
 						regs.wordregs[regax] = oldregax;
 						if (regs.byteregs[regah]==0x10) return;
-						if (vidmode==9) return;
 					}
 				if ( (regs.byteregs[regah]==0x1A) && (lastint10ax!=0x0100) ) { //the 0x0100 is a cheap hack to make it not do this if DOS EDIT/QBASIC
 						regs.byteregs[regal] = 0x1A;

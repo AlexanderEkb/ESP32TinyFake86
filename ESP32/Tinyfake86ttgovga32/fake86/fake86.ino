@@ -77,20 +77,6 @@ unsigned char *gb_ram_bank[PAGE_COUNT];
 unsigned char gb_video_cga[16384];
 unsigned char bootdrive = 0;
 unsigned char speakerenabled = 0;
-unsigned char scrmodechange = 0;
-
-// unsigned char updatedscreen=0;
-unsigned int x, y;
-unsigned short int segregs[4];
-
-const unsigned char palettecga[16] = {0x00, 0xAA, 0x00, 0xAA, 0x00, 0xAA, 0x00, 0xAA,
-                                      0x55, 0xFF, 0x55, 0xFF, 0x55, 0xFF, 0x55, 0xFF};
-
-unsigned char gbKeepAlive = 0;
-
-#define uint8_t unsigned char
-
-unsigned char vidmode = 5;
 unsigned char gb_force_load_com = 0;
 
 unsigned char gb_portramTiny[51];    // Solo 51 puertos
@@ -107,10 +93,6 @@ void SDL_DumpVGA(void);
 ///////////////////////////////////////////////////////////////////////// External function prototypes
 extern void VideoThreadPoll(void);
 extern void draw(void);
-extern void doscrmodechange();
-
-extern uint64_t totalexec, totalframes;
-uint64_t starttick, endtick;
 
 uint32_t speed = 0;
 
@@ -226,7 +208,6 @@ void setup() {
     }
 
     LOG("VGA %d\n", ESP.getFreeHeap());
-    PreparaColorVGA();
     keyboard->Init();
 
     running = 1;
@@ -234,8 +215,6 @@ void setup() {
     LOG("OK!\n");
 
     inithardware();
-
-    starttick = 0; // JJ millis();
 
 #ifndef use_lib_singlecore
     // BEGIN TASK video
@@ -284,61 +263,20 @@ unsigned int tiempo_ini_cpu, tiempo_fin_cpu;
 unsigned int tiene_que_tardar = 0;
 
 // Loop main
-void loop() {
-    static uint32_t gb_cpu_timer_before, gb_cpu_timer_cur;
-    static uint32_t gb_keyboard_time_before, gb_keyboard_time_cur;
+void loop()
+{
+    static uint32_t gb_cpu_timer_before;
 
     stats.StartIteration();
-#ifdef use_lib_singlecore
-    if (gb_cpunoexe == 0) {
-        exec86(10000);
-    }
-#else
-    exec86(10000); // Tarda 22 milis usar 2 cores
-#endif
-  stats.CountCPUTime();
-  gb_keyboard_time_cur = millis();
-  if ((gb_keyboard_time_cur - gb_keyboard_time_before) > gb_keyboard_poll_milis) {
-        gb_keyboard_time_before = gb_keyboard_time_cur;
-        const uint8_t scancode = keyboard->Poll();
-        if (scancode != 0) {
-            gb_portramTiny[fast_tiny_port_0x60] = scancode;
-            gb_portramTiny[fast_tiny_port_0x64] |= 2;
-            doirq(1);
-            Serial.printf("key: 0x%02x\n", scancode);
-        }
+    execCPU();
+    stats.CountCPUTime();
+    execKeyboard();
+    execMisc();
+    execVideo();
 
-        PerformSpecialActions();
-        do_tinyOSD();
-    }
-
-    if (scrmodechange) {
-        // ClearSDL(); //Para borra modo texto grande
-        doscrmodechange();
-    }
-
-#ifdef use_lib_singlecore
-    static uint32_t gb_ini_vga, gb_cur_vga;
-    gb_cur_vga = millis();
-    if ((gb_cur_vga - gb_ini_vga) >= gb_vga_poll_milis) {
-        draw();
-        composite.sendFrameHalfResolution(&gb_buffer_vga);
-        gb_ini_vga = gb_cur_vga;
-    }
-#else
-    static uint16_t *param;
-    xQueueSend(vidQueue, &param, portMAX_DELAY);
-#endif
-    if (gb_cpunoexe == 0) {
-        gb_cpunoexe = 1;
-        gb_cpunoexe_timer_ini = millis();
-        tiene_que_tardar = gb_delay_tick_cpu_milis;
-    } else if ((millis() - gb_cpunoexe_timer_ini) >= tiene_que_tardar) {
-        gb_cpunoexe = 0;
-    }
-
-    gb_cpu_timer_cur = millis();
-    if ((gb_cpu_timer_cur - gb_cpu_timer_before) > 1000) {
+    const uint32_t gb_cpu_timer_cur = millis();
+    if ((gb_cpu_timer_cur - gb_cpu_timer_before) > 1000)
+    {
         gb_cpu_timer_before = gb_cpu_timer_cur;
         stats.PrintAndReset();
     }
@@ -350,4 +288,74 @@ void loop() {
     TIMERG0.wdt_wprotect = 0;
     vTaskDelay(0); // important to avoid task watchdog timeouts - change this to slow down emu
 #endif
+}
+
+void execCPU()
+{
+#ifdef use_lib_singlecore
+    static bool gb_cpunoexe = false;
+    static uint32_t gb_cpunoexe_timer_ini;
+    static uint32_t tiene_que_tardar = 0;
+
+    if (!gb_cpunoexe)
+    {
+        exec86(10000);
+        gb_cpunoexe = 1;
+        gb_cpunoexe_timer_ini = millis();
+        tiene_que_tardar = gb_delay_tick_cpu_milis;
+    }
+    else if ((millis() - gb_cpunoexe_timer_ini) >= tiene_que_tardar)
+    {
+        gb_cpunoexe = 0;
+    }
+
+#else
+    exec86(10000); // Tarda 22 milis usar 2 cores
+#endif
+}
+
+void execKeyboard()
+{
+    static uint32_t before;
+    const uint32_t now = millis();
+    if ((now - before) > gb_keyboard_poll_milis)
+    {
+        before = now;
+        const uint8_t scancode = keyboard->Poll();
+        if (scancode != 0)
+        {
+            gb_portramTiny[fast_tiny_port_0x60] = scancode;
+            gb_portramTiny[fast_tiny_port_0x64] |= 2;
+            doirq(1);
+            Serial.printf("key: 0x%02x\n", scancode);
+        }
+    }
+}
+
+void execVideo()
+{
+#ifdef use_lib_singlecore
+    static uint32_t gb_ini_vga, gb_cur_vga;
+    gb_cur_vga = millis();
+    if ((gb_cur_vga - gb_ini_vga) >= gb_vga_poll_milis)
+    {
+        draw();
+        composite.sendFrameHalfResolution(&gb_buffer_vga);
+        gb_ini_vga = gb_cur_vga;
+    }
+#else
+    static uint16_t *param;
+    xQueueSend(vidQueue, &param, portMAX_DELAY);
+#endif
+}
+
+void execMisc()
+{
+    static uint32_t before;
+    const uint32_t now = millis();
+    if ((now - before) > gb_keyboard_poll_milis)
+    {
+        PerformSpecialActions();
+        do_tinyOSD();
+    }
 }

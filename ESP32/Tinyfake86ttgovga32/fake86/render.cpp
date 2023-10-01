@@ -75,12 +75,18 @@ static unsigned char gb_color_text_cga[16]={
     0x00,   0x84,   0xC4,   0xA4,   0x34,   0x54,   0xF4,   0x07,
     0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
 };
+
+static const unsigned char palettecga[16] = {
+    0x00, 0xAA, 0x00, 0xAA, 0x00, 0xAA, 0x00, 0xAA,
+    0x55, 0xFF, 0x55, 0xFF, 0x55, 0xFF, 0x55, 0xFF};
+
 extern uint16_t cursx, cursy, cols, rows, vgapage, cursorposition, cursorvisible;
 extern uint8_t clocksafe, port6, portout16;
 extern uint32_t videobase, textbase;
 extern uint32_t usefullscreen;
 uint64_t totalframes = 0;
 char windowtitle[128];
+unsigned char vidmode = 5;
 
 int gb_cont_rgb=0;
 //**************************
@@ -115,12 +121,6 @@ void VideoThreadPoll()
 {
  draw();
 }
-
-void doscrmodechange() 
-{
-	scrmodechange = 0;
-}
-
 
 inline void jj_fast_putpixel(int x,int y,unsigned char c)
 {

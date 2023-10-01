@@ -202,7 +202,7 @@ void vidinterrupt()
 	switch (regs.byteregs[regah]) 
 	{ //what video interrupt function?
 			case 0: //set video mode
-			setVideoMode(regs.byteregs[regal] & 0x7F);
+			  setVideoMode(regs.byteregs[regal] & 0x7F);
 
 				vidmode = regs.byteregs[regal] & 0x7F;
 
@@ -216,24 +216,20 @@ void vidinterrupt()
 						case 127: //hercules
 							nw = oldw = 720;
 							nh = oldh = 348;
-							scrmodechange = 1;
 							break;
 						case 0x12:
 							nw = oldw = 640;
 							nh = oldh = 480;
-							scrmodechange = 1;
 							break;
 						case 0x13:
 							oldw = 640;
 							oldh = 400;
 							nw = 320;
 							nh = 200;
-							scrmodechange = 1;
 							break;
 						default:
 							nw = oldw = 640;
 							nh = oldh = 400;
-							scrmodechange = 1;
 							break;
 					}
 				break;

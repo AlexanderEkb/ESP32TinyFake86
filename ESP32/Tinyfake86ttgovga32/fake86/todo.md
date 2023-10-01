@@ -12,7 +12,7 @@ I. Video
 
 II. Disks
 =========
-1. B: as independent drive
+1. ~~B: as independent drive~~
 2. Possibility to use disk images of different capacity, as it's possible on physical drives
 3. HDD (at least one)
 4. Activity LED
