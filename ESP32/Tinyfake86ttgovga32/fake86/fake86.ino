@@ -30,8 +30,6 @@
 #include "stats.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////// Local macros
-#define SUPPORT_NTSC 1
-#include "CompositeColorOutput.h"
 
 #ifndef use_lib_singlecore
 // Video Task Core BEGIN
@@ -65,10 +63,6 @@ unsigned char gb_font_8x8 = 1;
 unsigned char gb_reset = 0;
 unsigned char gb_id_cur_com = 0;
 
-char **gb_buffer_vga;
-
-CompositeColorOutput composite(CompositeColorOutput::NTSC);
-uint32_t pendingColorburstValue = PENDING_COLORBURST_NO;
 KeyboardDriver *keyboard = new KeyboardDriverAT(); // stm32keyboard();
 SdCard sdcard;
 Stats stats;
@@ -162,10 +156,7 @@ void PerformSpecialActions() {
         LoadCOMFlash(gb_list_com_data[gb_id_cur_com], gb_list_com_size[gb_id_cur_com], auxOffs);
         return;
     }
-    if (pendingColorburstValue != PENDING_COLORBURST_NO) {
-        composite.setColorburstEnabled(pendingColorburstValue == PENDING_COLORBURST_TRUE);
-        pendingColorburstValue = PENDING_COLORBURST_NO;
-    }
+    renderExec();
 }
 
 //****************************
@@ -200,13 +191,7 @@ void setup() {
     updateBIOSDataArea(); // Al inicio
     FuerzoParityRAM();    // Fuerzo que Parity sea en RAM
 
-    composite.init();
-    gb_buffer_vga = (char **)malloc(CompositeColorOutput::YRES * sizeof(char *));
-    for (int y = 0; y < CompositeColorOutput::YRES; y++) {
-        gb_buffer_vga[y] = (char *)malloc(CompositeColorOutput::XRES);
-        memset(gb_buffer_vga[y], 0, CompositeColorOutput::XRES);
-    }
-
+    renderInit();
     LOG("VGA %d\n", ESP.getFreeHeap());
     keyboard->Init();
 
@@ -244,7 +229,7 @@ void videoTask(void *unused) {
             break;
 
         draw();
-        composite.sendFrameHalfResolution(&gb_buffer_vga);
+        // composite.sendFrameHalfResolution(&gb_buffer_vga);
 
         xQueueReceive(vidQueue, &param, portMAX_DELAY);
         videoTaskIsRunning = false;
@@ -340,7 +325,7 @@ void execVideo()
     if ((gb_cur_vga - gb_ini_vga) >= gb_vga_poll_milis)
     {
         draw();
-        composite.sendFrameHalfResolution(&gb_buffer_vga);
+        // composite.sendFrameHalfResolution(&gb_buffer_vga);
         gb_ini_vga = gb_cur_vga;
     }
 #else

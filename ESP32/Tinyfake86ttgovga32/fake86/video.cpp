@@ -61,6 +61,7 @@
 #include "gbGlobals.h"
 #include "ports.h"
 #include <string.h>
+#include "render.h"
 
 #define PORT_3D8_BLINKING			(0x20)
 #define PORT_3D8_HIRES_GRAPH	(0x10)
@@ -149,27 +150,34 @@ void setVideoMode(uint8_t mode)
 	{
 	case VIDEO_MODE_40x25_BW: // 40x25 mono text
 		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
+    renderSetBlitter(1);
 		break;
 	case VIDEO_MODE_40x25_COLOR: // 40x25 color text
 		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-		break;
-	case VIDEO_MODE_80x25_BW: // 80x25 mono text
+    renderSetBlitter(1);
+    break;
+  case VIDEO_MODE_80x25_BW: // 80x25 mono text
 		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-		break;
-	case VIDEO_MODE_80x25_COLOR: // 80x25 color text
+    renderSetBlitter(0);
+    break;
+  case VIDEO_MODE_80x25_COLOR: // 80x25 color text
 		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-		break;
-	case VIDEO_MODE_320x200_COLOR: // 320x200 color
+    renderSetBlitter(0);
+    break;
+  case VIDEO_MODE_320x200_COLOR: // 320x200 color
 		setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
 		gb_portramTiny[fast_tiny_port_0x3D9] = 48;
-		break;
-	case VIDEO_MODE_320x200_BW: // 320x200 BW
+    renderSetBlitter(1);
+    break;
+  case VIDEO_MODE_320x200_BW: // 320x200 BW
 		setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
 		gb_portramTiny[fast_tiny_port_0x3D9] = 0;
+    renderSetBlitter(1);
+    break;
+  case VIDEO_MODE_640x200_COLOR: // 640x200 color
+	  setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
+    renderSetBlitter(1);
 		break;
-	case VIDEO_MODE_640x200_COLOR: // 640x200 color
-			setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-			break;
 	case VIDEO_MODE_0x7F:
 			videobase = CGA_BASE_MEMORY;
 			cols = 90;

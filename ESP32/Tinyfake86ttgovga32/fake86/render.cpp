@@ -32,6 +32,9 @@
 #include "gb_sdl_font4x8.h"
 #include "render.h"
 
+#define SUPPORT_NTSC 1
+#include "CompositeColorOutput.h"
+
 #define uint32_t int
 
 static const uint32_t VERTICAL_OFFSET = 20;
@@ -86,10 +89,37 @@ extern uint32_t videobase, textbase;
 extern uint32_t usefullscreen;
 uint64_t totalframes = 0;
 char windowtitle[128];
-unsigned char vidmode = 5;
+unsigned char vidmode = 0;
 
 int gb_cont_rgb=0;
+
+CompositeColorOutput composite(CompositeColorOutput::NTSC);
+uint32_t pendingColorburstValue = PENDING_COLORBURST_NO;
+char **gb_buffer_vga;
+
 //**************************
+
+void renderInit() {
+  gb_buffer_vga = (char **)malloc(CompositeColorOutput::YRES * sizeof(char *));
+  for (int y = 0; y < CompositeColorOutput::YRES; y++)
+  {
+    gb_buffer_vga[y] = (char *)malloc(CompositeColorOutput::XRES * 2);
+    memset(gb_buffer_vga[y], 0, CompositeColorOutput::XRES * 2);
+  }
+
+  void IRAM_ATTR blitter_0(uint8_t * src, uint16_t * dst);
+  composite.init(&gb_buffer_vga, &blitter_0);
+}
+
+void renderExec()
+{
+  if (pendingColorburstValue != PENDING_COLORBURST_NO)
+  {
+    composite.setColorburstEnabled(pendingColorburstValue == PENDING_COLORBURST_TRUE);
+    pendingColorburstValue = PENDING_COLORBURST_NO;
+  }
+}
+
 void PreparaPaleta()
 {
  InitPaletaCGA();
@@ -130,11 +160,11 @@ inline void jj_fast_putpixel(int x,int y,unsigned char c)
 extern uint16_t vtotal;
 
 //*************************************************************************************
-void SDLprintChar(char car,int x,int y,unsigned char color,unsigned char backcolor)
+void SDLprintChar(char code,int x,int y,unsigned char color,unsigned char backcolor)
 { 
 // unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
- int nBaseOffset = car << 3; //*8
- for (unsigned char j=0;j<8;j++)
+ int nBaseOffset = code << 3; //*8
+ for (unsigned int j=0;j<8;j++)
  {
      unsigned char bLine = gb_sdl_font_8x8[nBaseOffset + j];
      for (int i = 0; i < 8; i++) {
@@ -196,7 +226,7 @@ void SDLdump160x100_font4x8()
 void SDLdump80x25_font4x8()
 {
   unsigned char aColor,aBgColor,aChar,swapColor;;
-  unsigned int bFourPixelsOffset=0;
+  unsigned int nOffset=0;
 
   if ( (gb_portramTiny[fast_tiny_port_0x3D8]==9) && (gb_portramTiny[fast_tiny_port_0x3D4]==9) )
   {
@@ -208,10 +238,10 @@ void SDLdump80x25_font4x8()
  {  
     for (int x=0;x<80;x++) //Modo 80x25
     {
-      aChar= gb_video_cga[bFourPixelsOffset];
-      bFourPixelsOffset++;
-      aColor = gb_video_cga[bFourPixelsOffset]&0x0F;
-      aBgColor = ((gb_video_cga[bFourPixelsOffset]>>4)&0x07);
+      aChar= gb_video_cga[nOffset];
+      nOffset++;
+      aColor = gb_video_cga[nOffset]&0x0F;
+      aBgColor = ((gb_video_cga[nOffset]>>4)&0x07);
 
    if (gb_invert_color == 1)
    {
@@ -221,7 +251,7 @@ void SDLdump80x25_font4x8()
    }   
 
     SDLprintChar4x8(aChar,(x<<2),(y<<3),aColor,aBgColor);//Sin capturadora
-    bFourPixelsOffset++;    
+    nOffset++;    
   }
  }
 }
@@ -279,7 +309,7 @@ void SDLdump160x100_font8x8()
  unsigned int bFourPixelsOffset=0;     
  for (int y=0;y<100;y++)
  {  
-  for (unsigned char x=0;x<40;x++) //Modo 40x25
+  for (unsigned char x=0;x<80;x++) //Modo 40x25
   {
    aChar= gb_video_cga[bFourPixelsOffset];
    bFourPixelsOffset++;
@@ -294,37 +324,44 @@ void SDLdump160x100_font8x8()
 
 //*****************************************
 void SDLdump80x25_font8x8()
-{//Muestro solo 40 columnas
- unsigned char aColor,aBgColor,aChar;
- unsigned int bOffset=0;
+{
  if ( (gb_portramTiny[fast_tiny_port_0x3D8]==9) && (gb_portramTiny[fast_tiny_port_0x3D4]==9) ) 
  {
-  //printf("Modo PAKUPAKU\n");
-  //fflush(stdout);
   SDLdump160x100_font8x8();
   return;
  }
 
- for (unsigned char y=0;y<25;y++)
+ unsigned char aColor, aBgColor, aChar;
+ uint32_t bOffset = 0;
+ for (uint32_t y = 0; y < 25; y++)
  {
-  //for (unsigned char x=0;x<80;x++)
-  for (unsigned char x=0;x<40;x++)
+  for (uint32_t x=0;x<80;x++)
   {
-   aChar= gb_video_cga[bOffset];
-   bOffset++;
-   aColor = gb_video_cga[bOffset]&0x0F;
-   aBgColor = ((gb_video_cga[bOffset]>>4)&0x07);
-   #ifdef use_lib_capture_usb
-    if (x<79){//Para verlo en capturadora    
-     SDLprintChar(aChar,((x+1)<<3),(y<<3),aColor,aBgColor);  //Capturadora usb
-    }
-   #else
+    aChar= gb_video_cga[bOffset];
+    bOffset++;
+    aColor = gb_video_cga[bOffset]&0x0F;
+    aBgColor = ((gb_video_cga[bOffset]>>4)&0x07);
     SDLprintChar(aChar,(x<<3),(y<<3),aColor,aBgColor); //Sin capturadora
-   #endif
-   bOffset++;
+    bOffset++;
   }
-  bOffset+= 80;
- } 
+ }
+}
+
+void SDLdump40x25_font8x8()
+{
+ uint32_t bOffset = 0;
+ for (uint32_t y = 0; y < 25; y++)
+ {
+  for (uint32_t x = 0; x < 40; x++)
+  {
+    uint8_t aChar = gb_video_cga[bOffset];
+    bOffset++;
+    uint8_t aColor = gb_video_cga[bOffset] & 0x0F;
+    uint8_t aBgColor = ((gb_video_cga[bOffset] >> 4) & 0x07);
+    SDLprintChar(aChar, (x << 3), (y << 3), aColor, aBgColor); // Sin capturadora
+    bOffset++;
+  }
+ }
 }
 
 static unsigned int gb_local_scanline[80];
@@ -452,6 +489,8 @@ void draw ()
     {
         case 0:
         case 1:
+          SDLdump40x25_font8x8();
+          break;
         case 2: //text modes
         case 3:
         case 7:
@@ -591,4 +630,49 @@ void InitPaletaPCJR()
 {
  memcpy(gb_color_vga,gb_color_pcjr,16);
  PreparaColorVGA();
+}
+
+void IRAM_ATTR blitter_0(uint8_t * src, uint16_t *dst)
+{
+ const unsigned int *p = RawCompositeVideoBlitter::_palette;
+
+ uint16_t *d = dst + 32;
+ for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH << 2; i += 4)
+ {
+   uint16_t c = *((uint16_t *)src); // screen may be in 32 bit mem
+   d[0] = (uint16_t)(p[(uint8_t)c] >> 16);
+   d[1] = (uint16_t)(p[(uint8_t)(c >> 8)] << 0);
+   d += 2;
+   src += 2;
+  }
+}
+
+void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
+{
+  const unsigned int *p = RawCompositeVideoBlitter::_palette;
+
+  uint32_t *d = (uint32_t *)dst + 16;
+  for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += 4)
+  {
+   uint32_t c = *((uint32_t *)src); // screen may be in 32 bit mem
+   d[0] = p[(uint8_t)c];
+   d[1] = p[(uint8_t)(c >> 8)] << 8;
+   d[2] = p[(uint8_t)(c >> 16)];
+   d[3] = p[(uint8_t)(c >> 24)] << 8;
+   d += 4;
+   src += 4;
+  }
+}
+
+void renderSetBlitter(unsigned int blitter)
+{
+  switch(blitter)
+  {
+    case 0:
+      composite.setBlitter(blitter_0);
+      break;
+    case 1:
+      composite.setBlitter(blitter_1);
+      break;
+  }
 }

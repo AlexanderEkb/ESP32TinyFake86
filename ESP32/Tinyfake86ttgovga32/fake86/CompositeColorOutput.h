@@ -25,8 +25,9 @@
  *            some implementation details in the esp_8_bit repo.
  */
 
-#define VIDEO_PIN   26
-#define AUDIO_PIN   18  // can be any pin
+#define VIDEO_PIN         26
+#define AUDIO_PIN         18  // can be any pin
+#define DOUBLE_PIXEL_RATE 1
 
 //#define IR_PIN      0   // TSOP4838 or equivalent on any pin if desired
 
@@ -60,12 +61,14 @@
 #endif
 
 #define COLORBURST 1
+typedef void (*blitter_t)(uint8_t * src, uint16_t * dst);
 
 namespace RawCompositeVideoBlitter {
 
 enum VideoStandard {NTSC, PAL};
 
 int _pal_ = 0;
+blitter_t _blitter;
 
 //====================================================================================================
 //====================================================================================================
@@ -225,32 +228,24 @@ const uint32_t* pal_palette() {return atari_4_phase_pal;}
 // (The following code isn't actually used when combined with bitluni's CompositeGraphics code)
 
 void* fb_malloc(size_t size, const char* label, uint32_t caps) {
-    printf("fb_malloc %d free, %d biggest, allocating %s:%d\n",
+    printf("fb_malloc %d free, %d biggest, allocating %s:%d : ",
       heap_caps_get_free_size(caps), heap_caps_get_largest_free_block(caps), label, size);
     void *r = heap_caps_malloc(size, caps);
     if (!r) {
-        printf("fb_malloc failed allocation of %s:%d!\n", label, size);
+        printf("failed\n");
         esp_restart();
     }
     else
-        printf("fb_malloc allocation of %s:%d %08X\n", label, size, r);
+        printf("ok (0x%08X)\n", r);
     return r;
 }
 
-constexpr unsigned int Screen_WIDTH = 336;
+constexpr unsigned int NTSC_DEFAULT_WIDTH = 336;
+constexpr unsigned int Screen_WIDTH = NTSC_DEFAULT_WIDTH;
 constexpr unsigned int Screen_HEIGHT = 240;
 
-uint32_t  * _fb;
 uint8_t  ** _lines;
 bool        bColorburstEnabled = true;
-
-void frame_clear(uint8_t color)
-{
-    uint32_t color_x4 = (color << 24) | (color << 16) | (color << 8) | (color << 0);
-    int i = Screen_WIDTH*Screen_HEIGHT/4;
-    while (i--)
-        _fb[i] = color_x4;
-}
 
 /**
  * Creates a framebuffer. The caps argument can be one of the following:
@@ -262,15 +257,11 @@ void frame_clear(uint8_t color)
  * but makes access to individual bytes more difficult.
  */
 void frame_init(uint32_t caps = MALLOC_CAP_8BIT) {
-    _fb    = (uint32_t*) fb_malloc(Screen_WIDTH * Screen_HEIGHT,     "_fb",    caps);
-    _lines = (uint8_t**) fb_malloc(Screen_HEIGHT * sizeof(uint8_t*), "_lines", MALLOC_CAP_32BIT);
-
-    uint8_t* s = (uint8_t*)_fb;
-    for (int y = 0; y < Screen_HEIGHT; y++) {
-        _lines[y] = s;
-        s += Screen_WIDTH;
-    }
-    frame_clear(0x00);
+  #if DOUBLE_PIXEL_RATE != 0
+    const int multiplier = 2;
+  #else
+    const int multiplier = 1;
+  #endif
 }
 
 //====================================================================================================
@@ -736,17 +727,26 @@ void video_init(VideoStandard standard)
     // draw a line of game in NTSC
     void IRAM_ATTR blit_ntsc(uint8_t* src, uint16_t* dst)
     {
-        uint32_t* d = (uint32_t*)dst;
         const uint32_t* p = _palette;
-        uint32_t c;
-        int i;
 
         // 2 pixels per color clock, 4 samples per cc, used by atari
         // AA AA
         // 192 color clocks wide
         // only show 336 pixels
-        d += 16;
-        for (i = 0; i < 336; i += 4) {
+#if DOUBLE_PIXEL_RATE
+        uint16_t *d = dst + 32;
+        for (int i = 0; i < NTSC_DEFAULT_WIDTH << 2; i += 4)
+        {
+            uint16_t c = *((uint16_t *)src); // screen may be in 32 bit mem
+            d[0] = (uint16_t)(p[(uint8_t)c] >> 16);
+            d[1] = (uint16_t)(p[(uint8_t)(c >> 8)] << 0);
+            d += 2;
+            src += 2;
+        }
+#else
+        uint32_t *d = (uint32_t *)dst + 16;
+        for (int i = 0; i < NTSC_DEFAULT_WIDTH; i += 4)
+        {
             uint32_t c = *((uint32_t*)src); // screen may be in 32 bit mem
             d[0] = p[(uint8_t)c];
             d[1] = p[(uint8_t)(c>>8)] << 8;
@@ -755,6 +755,7 @@ void video_init(VideoStandard standard)
             d += 4;
             src += 4;
         }
+#endif
         END_TIMING();
     }
     
@@ -791,7 +792,7 @@ void video_init(VideoStandard standard)
                     line[i+4] = BLANKING_LEVEL - phase;
                 }
                 break;
-        }
+            }
     }
 #endif
 
@@ -802,7 +803,7 @@ void IRAM_ATTR blit(uint8_t* src, uint16_t* dst)
     if (_pal_) blit_pal(src,dst);
     #endif
     #if SUPPORT_NTSC
-    if (!_pal_) blit_ntsc(src,dst);
+    if (!_pal_) /*blit_ntsc*/_blitter(src,dst);
     #endif
     END_TIMING();
 }
@@ -1017,7 +1018,9 @@ class CompositeColorOutput {
         CompositeColorOutput(Mode mode) : mode(mode == NTSC ? RawCompositeVideoBlitter::NTSC : RawCompositeVideoBlitter::PAL) {
         }
         
-        void init() {
+        void init(char ***frame, blitter_t blitter) {
+            RawCompositeVideoBlitter::_lines = (uint8_t**) *frame;
+            RawCompositeVideoBlitter::_blitter = blitter;
             RawCompositeVideoBlitter::frame_init(); // The CompositeGraphics lib will do this for us
             RawCompositeVideoBlitter::video_init(mode);
         }
@@ -1028,5 +1031,9 @@ class CompositeColorOutput {
 
         void setColorburstEnabled(bool bEnabled) {
             RawCompositeVideoBlitter::bColorburstEnabled = bEnabled;
+        }
+
+        void setBlitter(blitter_t blitter) {
+          RawCompositeVideoBlitter::_blitter = blitter;
         }
 };
