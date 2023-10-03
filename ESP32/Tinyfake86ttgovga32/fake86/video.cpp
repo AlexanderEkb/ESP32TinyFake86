@@ -98,16 +98,16 @@ void setVideoParameters(uint32_t modeDesc, int32_t videoBase)
     videobase = videoBase;
 		if(modeDesc & VIDEO_MODE_GRAPH)
 		{
-			gb_portramTiny[fast_tiny_port_0x3D8] |= PORT_3D8_GRAPHICS;
+			portSet(0x3D8, PORT_3D8_GRAPHICS);
 			if(modeDesc & VIDEO_MODE_640_PX)
 			{
 				cols = 80;
-				gb_portramTiny[fast_tiny_port_0x3D8] |= PORT_3D8_HIRES_GRAPH;
+				portSet(0x3D8, PORT_3D8_HIRES_GRAPH);
 			}
 			else
 			{
 				cols = 40;
-				gb_portramTiny[fast_tiny_port_0x3D8] &= ~PORT_3D8_HIRES_GRAPH;
+				portReset(0x3D8, PORT_3D8_HIRES_GRAPH);
 			}
 		}
 		else
@@ -115,12 +115,12 @@ void setVideoParameters(uint32_t modeDesc, int32_t videoBase)
 			if (modeDesc & VIDEO_MODE_80_COLS)
 			{
 				cols = 80;
-				gb_portramTiny[fast_tiny_port_0x3D8] |= PORT_3D8_80_COL_TEXT;
+				portSet(0x3D8, PORT_3D8_80_COL_TEXT);
 			}
 			else
 			{
 				cols = 40;
-				gb_portramTiny[fast_tiny_port_0x3D8] &= ~PORT_3D8_80_COL_TEXT;
+				portSet(0x3D8, PORT_3D8_80_COL_TEXT);
 			}
 		}
     
@@ -135,12 +135,12 @@ void setVideoParameters(uint32_t modeDesc, int32_t videoBase)
 		if(enableColour)
 		{
 			pendingColorburstValue = PENDING_COLORBURST_TRUE;
-			gb_portramTiny[fast_tiny_port_0x3D8] &= ~PORT_3D8_NOCOLOR;
+			portReset(0x3D8, PORT_3D8_NOCOLOR);
 		}
 		else
 		{
     	pendingColorburstValue = PENDING_COLORBURST_FALSE;
-			gb_portramTiny[fast_tiny_port_0x3D8] |= PORT_3D8_NOCOLOR;
+			portSet(0x3D8, PORT_3D8_NOCOLOR);
 		}
 }
 
@@ -182,8 +182,8 @@ void setVideoMode(uint8_t mode)
 			videobase = CGA_BASE_MEMORY;
 			cols = 90;
 			memset(gb_video_cga, 0, 16384);
-			gb_portramTiny[fast_tiny_port_0x3D8] = gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
-			pendingColorburstValue = PENDING_COLORBURST_TRUE;
+      portReset(0x3D8, PORT_3D8_80_COL_TEXT);
+      pendingColorburstValue = PENDING_COLORBURST_TRUE;
 			break;
 	case VIDEO_MODE_0x09: // 320x200 16-color
 			videobase = CGA_BASE_MEMORY;
@@ -191,16 +191,16 @@ void setVideoMode(uint8_t mode)
 			if ((regs.byteregs[regal] & 0x80) == 0) {
 					memset(gb_video_cga, 0, 16384);
 			}
-			gb_portramTiny[fast_tiny_port_0x3D8] = gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
-			pendingColorburstValue = PENDING_COLORBURST_TRUE;
+      portReset(0x3D8, PORT_3D8_80_COL_TEXT);
+      pendingColorburstValue = PENDING_COLORBURST_TRUE;
 			break;
 	case VIDEO_MODE_0x0D: // 320x200 16-color
 	case VIDEO_MODE_0x12: // 640x480 16-color
 	case VIDEO_MODE_0x13: // 320x200 256-color
 			videobase = VGA_BASE_MEMORY;
 			cols = 40;
-			gb_portramTiny[fast_tiny_port_0x3D8] = gb_portramTiny[fast_tiny_port_0x3D8] & 0xFE;
-			pendingColorburstValue = PENDING_COLORBURST_TRUE;
+      portReset(0x3D8, PORT_3D8_80_COL_TEXT);
+      pendingColorburstValue = PENDING_COLORBURST_TRUE;
 			break;
 	}
 }
@@ -369,7 +369,7 @@ void outVGA (unsigned short int portnum, unsigned char value)
 				break;
 			default:
 				//JJ puerto portram[portnum] = value;
-				WriteTinyPortRAM(portnum,value);
+				portWriteTiny(portnum,value);
 		}
 }
 
@@ -417,7 +417,7 @@ uint8_t inVGA (uint16_t portnum) {
 				return (port3da);
 		}
 	//JJ puerto return (portram[portnum]); //this won't be reached, but without it the compiler gives a warning
-	return (ReadTinyPortRAM(portnum)); //this won't be reached, but without it the compiler gives a warning
+	return (portReadTiny(portnum)); //this won't be reached, but without it the compiler gives a warning
 }
 
 #define shiftVGA(value) {\

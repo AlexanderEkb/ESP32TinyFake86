@@ -42,6 +42,7 @@
 #include "i8253.h"
 #include "disk.h"
 #include "gbGlobals.h"
+#include "ports.h"
 #include <Arduino.h>
 
 extern struct i8253_s i8253;
@@ -78,50 +79,6 @@ void FuerzoParityRAM()
 {
  parity[0]=1; //Fuerzo a que se cree en RAM
 }
-
-
-volatile unsigned int gb_pulsos_onda=0;
-volatile unsigned int gb_cont_my_callbackfunc=0;
-volatile unsigned char gb_estado_sonido=0;
-volatile unsigned char speaker_pin_estado=LOW;
-
-void my_callback_speaker_func()
-{ 
- gb_cont_my_callbackfunc++;
- if (gb_cont_my_callbackfunc>=gb_pulsos_onda)
- {
-  gb_cont_my_callbackfunc=0;
-  gb_estado_sonido = (~gb_estado_sonido)& 0x1;
-  if ((gb_volumen01 == 0)||(gb_frecuencia01==0)||(gb_silence==1))
-  {     
-   //  digitalWrite(SPEAKER_PIN, LOW);
-   digitalWrite(SPEAKER_PIN, LOW);
-  }  
-  else
-  {
-   if (speaker_pin_estado != gb_estado_sonido){
-     //digitalWrite(SPEAKER_PIN,gb_estado_sonido);
-	 //digitalWrite(25,gb_estado_sonido);
-	 if (gb_estado_sonido==LOW)
-	 {
-	  //REG_WRITE(GPIO_OUT_W1TC_REG , BIT25); //LOW clear
-	  digitalWrite(SPEAKER_PIN,LOW);
-	 }
-	 else
-	 {
-	  //REG_WRITE(GPIO_OUT_W1TS_REG , BIT25); //High Set
-	  digitalWrite(SPEAKER_PIN,HIGH);
-	 }
-     speaker_pin_estado= gb_estado_sonido;
-   }
-  }
- } 
-   
- //if ((gb_volumen01 == 0)||(gb_frecuencia01==0))
- // digitalWrite(SPEAKER_PIN, LOW);
-}
-
-
 
 static unsigned char opcode, segoverride, reptype;
 static unsigned short int savecs, saveip, ip, useseg, oldsp;
@@ -248,9 +205,8 @@ unsigned char gb_check_memory_before;
 
 
 extern void	writeVGA (uint32_t addr32, uint8_t value);
-extern void	portout (uint16_t portnum, uint8_t value);
-extern void	portout16 (uint16_t portnum, uint16_t value);
-extern uint8_t	portin (uint16_t portnum);
+extern void	portout16 (uint32_t portnum, uint16_t value);
+extern uint8_t	portRead (uint16_t portnum);
 extern uint16_t portin16 (uint16_t portnum);
 
 //Lo saco fuera de Read86. Se ejecuta al inicio y en timer 54 ms.
@@ -2639,7 +2595,7 @@ void exec86 (uint32_t execloops) {
 								break;
 							}
 
-						putmem8 (useseg, getreg16 (regsi) , portin (regs.wordregs[regdx]) );
+						putmem8 (useseg, getreg16 (regsi) , portRead (regs.wordregs[regdx]) );
 						if (df) {
 								putreg16 (regsi, getreg16 (regsi) - 1);
 								putreg16 (regdi, getreg16 (regdi) - 1);
@@ -2695,7 +2651,7 @@ void exec86 (uint32_t execloops) {
 								break;
 							}
 
-						portout (regs.wordregs[regdx], getmem8 (useseg, getreg16 (regsi) ) );
+						portWrite (regs.wordregs[regdx], getmem8 (useseg, getreg16 (regsi) ) );
 						if (df) {
 								putreg16 (regsi, getreg16 (regsi) - 1);
 								putreg16 (regdi, getreg16 (regdi) - 1);
@@ -3762,7 +3718,7 @@ void exec86 (uint32_t execloops) {
 					case 0xE4:	/* E4 IN regs.byteregs[regal] Ib */
 						oper1b = getmem8 (segregs[regcs], ip);
 						StepIP (1);
-						regs.byteregs[regal] = (uint8_t) portin (oper1b);
+						regs.byteregs[regal] = (uint8_t) portRead (oper1b);
 						break;
 
 					case 0xE5:	/* E5 IN eAX Ib */
@@ -3774,7 +3730,7 @@ void exec86 (uint32_t execloops) {
 					case 0xE6:	/* E6 OUT Ib regs.byteregs[regal] */
 						oper1b = getmem8 (segregs[regcs], ip);
 						StepIP (1);
-						portout (oper1b, regs.byteregs[regal]);
+						portWrite (oper1b, regs.byteregs[regal]);
 						break;
 
 					case 0xE7:	/* E7 OUT Ib eAX */
@@ -3812,7 +3768,7 @@ void exec86 (uint32_t execloops) {
 
 					case 0xEC:	/* EC IN regs.byteregs[regal] regdx */
 						oper1 = (getreg16 (regdx) );
-						regs.byteregs[regal] = (uint8_t) portin (oper1);
+						regs.byteregs[regal] = (uint8_t) portRead (oper1);
 						break;
 
 					case 0xED:	/* ED IN eAX regdx */
@@ -3822,7 +3778,7 @@ void exec86 (uint32_t execloops) {
 
 					case 0xEE:	/* EE OUT regdx regs.byteregs[regal] */
 						oper1 = (getreg16 (regdx) );
-						portout (oper1, regs.byteregs[regal]);
+						portWrite (oper1, regs.byteregs[regal]);
 						break;
 
 					case 0xEF:	/* EF OUT regdx eAX */

@@ -5,6 +5,12 @@
  #include <stdio.h>
  #include "keyboard.h" 
 
+#ifdef use_lib_log_serial
+#define LOG(...) Serial.printf(__VA_ARGS__)
+#else
+#define LOG(...) (void)
+#endif
+
 #define PENDING_COLORBURST_NO     (0x00)
 #define PENDING_COLORBURST_TRUE   (0x01)
 #define PENDING_COLORBURST_FALSE  (0x02)
@@ -157,12 +163,8 @@ extern unsigned long int gb_jj_cont_timer;
 
 
 
- #ifdef use_lib_speaker_cpu
-  #define SAMPLE_RATE 10000
- #else
-  #define SAMPLE_RATE 16000
-  //#define SAMPLE_RATE 11025
- #endif 
+ void portWrite(uint32_t, uint8_t);
+ void portSet(uint32_t, uint8_t);
+ void portReset(uint32_t, uint8_t);
 
 #endif
- 

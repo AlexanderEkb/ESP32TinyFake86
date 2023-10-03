@@ -479,116 +479,120 @@ void jj_sdl_dump_640x200()
   } 
 }
 
-void draw () 
+void draw()
 {
- int x,y;
- 
-	uint32_t planemode, vgapage, color, chary, charx, vidptr, divx, divy, curchar, curpixel, usepal, intensity, blockw, curheight, x1, y1;
+  int x, y;
 
-	switch (vidmode) 
+  uint32_t planemode, vgapage, color, chary, charx, vidptr, divx, divy, curchar, curpixel, usepal, intensity, blockw, curheight, x1, y1;
+
+  switch (vidmode)
+  {
+  case 0:
+  case 1:
+   SDLdump40x25_font8x8();
+   break;
+  case 2: // text modes
+  case 3:
+  case 7:
+  case 0x82:
+   if (gb_font_8x8 == 1)
+    SDLdump80x25_font8x8();
+   else
+    SDLdump80x25_font4x8();
+   break;
+  case 4:
+  case 5:
+   jj_sdl_dump_cga_320x200();
+   break;
+  case 6:
+   jj_sdl_dump_640x200();
+   break;
+  case 127:
+   nw = 720;
+   nh = 348;
+   for (y = 0; y < 348; y++)
+   {
+    for (x = 0; x < 720; x++)
     {
-        case 0:
-        case 1:
-          SDLdump40x25_font8x8();
-          break;
-        case 2: //text modes
-        case 3:
-        case 7:
-   	    case 0x82:
-			 if (gb_font_8x8 == 1)
-			  SDLdump80x25_font8x8();
-			 else 
-			  SDLdump80x25_font4x8();
-             break;
-        case 4:
-        case 5:
-            jj_sdl_dump_cga_320x200();
-            break;
-        case 6:
-            jj_sdl_dump_640x200();
-            break;
-        case 127:
-            nw = 720;
-            nh = 348;
-            for (y = 0; y < 348; y++) {
-                for (x = 0; x < 720; x++) {
-                    charx = x;
-                    chary = y >> 1;
-                    vidptr = videobase + ((y & 3) << 13) + (y >> 2) * 90 + (x >> 3);
-                    curpixel = (read86(vidptr) >> (7 - (charx & 7))) & 1;
-                    color = curpixel ? 0x00FFFFFF : 0x00000000;
-                    jj_fast_putpixel((x >> 2), (y >> 1), color);
-                }
-            }
-            break;
-        case 0x8: //160x200 16-color (PCjr)
-            nw = 640; // fix this
-            nh = 400; //part later
-            for (y=0; y<400; y++)
-                for (x=0; x<640; x++) {
-                    vidptr = 0xB8000 + (y>>2) *80 + (x>>3) + ( (y>>1) &1) *8192;
-                    if ( ( (x>>1) &1) ==0)
-                    {
-                        //color = palettecga[RAM[vidptr] >> 4];
-                        color = palettecga[read86(vidptr) >> 4];
-                    }
-                    else
-                    {
-                        //color = palettecga[RAM[vidptr] & 15];
-                        color = palettecga[read86(vidptr) & 15];
-                    }
-                    //JJ prestretch[y][x] = color; //no necesito escalar
-                    jj_fast_putpixel((x>>1),(y>>1),color);
-                }
-            break;
-        case 0x9: //320x200 16-color (Tandy/PCjr)
-            nw = 640; // fix this
-            nh = 400; //part later
-            for (y=0; y<400; y++)
-                for (x=0; x<640; x++) {
-                    vidptr = 0xB8000 + (y>>3) *160 + (x>>2) + ( (y>>1) &3) *8192;
-                    if ( ( (x>>1) &1) ==0)
-                    {
-                        //color = palettecga[RAM[vidptr] >> 4];
-                        color = palettecga[read86(vidptr) >> 4];
-                    }
-                    else
-                    {
-                        //color = palettecga[RAM[vidptr] & 15];
-                        color = palettecga[read86(vidptr) & 15];
-                    }
-                    jj_fast_putpixel((x>>1),(y>>1),color);
-                }
-				break;
-			case 0xD:
-			case 0xE:
-                nw = 640; // fix this
-                nh = 400; //part later
-				for (y=0; y<400; y++)
-					for (x=0; x<640; x++) {
-							divx = x>>1;
-							divy = y>>1;
-							vidptr = divy*40 + (divx>>3);
-							x1 = 7 - (divx & 7);
-							jj_fast_putpixel((x>>1),(y>>1),color);
-						}
-				break;
-			case 0x10:
-				nw = 640;
-				nh = 350;
-				for (y=0; y<350; y++)
-					for (x=0; x<640; x++) {
-							vidptr = y*80 + (x>>3);
-							x1 = 7 - (x & 7);
-							jj_fast_putpixel((x>>1),(y>>1),color);
-						}
-				break;
-      default:
-       break;
-	} //Fin switch vidmode
+    charx = x;
+    chary = y >> 1;
+    vidptr = videobase + ((y & 3) << 13) + (y >> 2) * 90 + (x >> 3);
+    curpixel = (read86(vidptr) >> (7 - (charx & 7))) & 1;
+    color = curpixel ? 0x00FFFFFF : 0x00000000;
+    jj_fast_putpixel((x >> 2), (y >> 1), color);
+    }
+   }
+   break;
+  case 0x8:  // 160x200 16-color (PCjr)
+   nw = 640; // fix this
+   nh = 400; // part later
+   for (y = 0; y < 400; y++)
+    for (x = 0; x < 640; x++)
+    {
+    vidptr = 0xB8000 + (y >> 2) * 80 + (x >> 3) + ((y >> 1) & 1) * 8192;
+    if (((x >> 1) & 1) == 0)
+    {
+      // color = palettecga[RAM[vidptr] >> 4];
+      color = palettecga[read86(vidptr) >> 4];
+    }
+    else
+    {
+      // color = palettecga[RAM[vidptr] & 15];
+      color = palettecga[read86(vidptr) & 15];
+    }
+    // JJ prestretch[y][x] = color; //no necesito escalar
+    jj_fast_putpixel((x >> 1), (y >> 1), color);
+    }
+   break;
+  case 0x9:  // 320x200 16-color (Tandy/PCjr)
+   nw = 640; // fix this
+   nh = 400; // part later
+   for (y = 0; y < 400; y++)
+    for (x = 0; x < 640; x++)
+    {
+    vidptr = 0xB8000 + (y >> 3) * 160 + (x >> 2) + ((y >> 1) & 3) * 8192;
+    if (((x >> 1) & 1) == 0)
+    {
+      // color = palettecga[RAM[vidptr] >> 4];
+      color = palettecga[read86(vidptr) >> 4];
+    }
+    else
+    {
+      // color = palettecga[RAM[vidptr] & 15];
+      color = palettecga[read86(vidptr) & 15];
+    }
+    jj_fast_putpixel((x >> 1), (y >> 1), color);
+    }
+   break;
+  case 0xD:
+  case 0xE:
+   nw = 640; // fix this
+   nh = 400; // part later
+   for (y = 0; y < 400; y++)
+    for (x = 0; x < 640; x++)
+    {
+    divx = x >> 1;
+    divy = y >> 1;
+    vidptr = divy * 40 + (divx >> 3);
+    x1 = 7 - (divx & 7);
+    jj_fast_putpixel((x >> 1), (y >> 1), color);
+    }
+   break;
+  case 0x10:
+   nw = 640;
+   nh = 350;
+   for (y = 0; y < 350; y++)
+    for (x = 0; x < 640; x++)
+    {
+    vidptr = y * 80 + (x >> 3);
+    x1 = 7 - (x & 7);
+    jj_fast_putpixel((x >> 1), (y >> 1), color);
+    }
+   break;
+  default:
+   break;
+  } // Fin switch vidmode
 }
-
-
 
 //******************************************
 void PreparaColorVGA()

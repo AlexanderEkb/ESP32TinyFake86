@@ -28,6 +28,7 @@
 #include "timing.h"
 #include "video.h"
 #include "stats.h"
+#include "speaker.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////// Local macros
 
@@ -45,18 +46,11 @@ Ticker gb_ticker_callback;
 #endif
 
 unsigned char gb_invert_color = 0;
-unsigned char gb_silence = 0;
 
 unsigned char gb_delay_tick_cpu_milis = use_lib_delay_tick_cpu_milis;
 unsigned char gb_vga_poll_milis = use_lib_vga_poll_milis;
 unsigned char gb_keyboard_poll_milis = use_lib_keyboard_poll_milis;
 unsigned char gb_timers_poll_milis = use_lib_timers_poll_milis;
-
-unsigned char gb_frec_speaker_low = 0;
-unsigned char gb_frec_speaker_high = 0;
-unsigned char gb_cont_frec_speaker = 0;
-volatile int gb_frecuencia01 = 0;
-volatile int gb_volumen01 = 0;
 
 unsigned char gb_font_8x8 = 1;
 
@@ -70,10 +64,9 @@ Stats stats;
 unsigned char *gb_ram_bank[PAGE_COUNT];
 unsigned char gb_video_cga[16384];
 unsigned char bootdrive = 0;
-unsigned char speakerenabled = 0;
 unsigned char gb_force_load_com = 0;
 
-unsigned char gb_portramTiny[51];    // Solo 51 puertos
+unsigned char gb_portramTiny[51];
 void *gb_portTiny_write_callback[5]; // Solo 5
 void *gb_portTiny_read_callback[5];
 
@@ -107,12 +100,6 @@ void LoadCOMFlash(const unsigned char *ptr, int auxSize, int seg_load) {
     SetRegDI(0);
     SetCF(0);
 }
-
-#ifdef use_lib_log_serial
-#define LOG(...) Serial.printf(__VA_ARGS__)
-#else
-#define LOG(...) (void)
-#endif
 
 void inithardware() {
     LOG("Initializing emulated hardware:\n");
