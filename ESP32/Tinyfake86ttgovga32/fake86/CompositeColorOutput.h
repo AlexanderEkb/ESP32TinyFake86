@@ -481,7 +481,7 @@ int _line_count;
 
 int _line_width;
 int _samples_per_cc = 4; // 3 or 4
-const uint32_t* _palette;
+const uint32_t* _palette = ntsc_palette();
 
 float _sample_rate;
 

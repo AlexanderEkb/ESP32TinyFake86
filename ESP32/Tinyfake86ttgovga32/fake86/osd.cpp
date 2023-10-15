@@ -72,8 +72,9 @@ const char *gb_main_menu[max_gb_main_menu] = {
     "Sound",
     "Return"};
 
-#define max_gb_video_menu 7
+#define max_gb_video_menu 8
 const char * gb_video_menu[max_gb_video_menu]={
+ "Colors",
  "Font 4x8",
  "Font 8x8",  
  "Invert Color",
@@ -131,15 +132,13 @@ const char * gb_reset_menu[max_gb_reset_menu]={
 #define gb_pos_y_menu 20
 #define gb_osd_max_rows 10
 
+static void ShowColorTable();
+
 void SDLClear()
 {
- //for (int y=0; y<(auxSurface->w); y++)
- // for (int x=0; x<(auxSurface->h); x++)
- //  SDLputpixel(auxSurface,x,y,1);
  for (int y=0; y<200; y++)
   for (int x=0; x<320; x++)
    jj_fast_putpixel(x,y,0);
-   //SDLputpixel(auxSurface,x,y,3); 
 }
 
 //*************************************************************************************
@@ -147,12 +146,11 @@ void SDLprintCharOSD(char car,int x,int y,unsigned char color,unsigned char back
 { 
 // unsigned char aux = gb_sdl_font_6x8[(car-64)];
  int auxId = car << 3; //*8
- unsigned char aux;
  unsigned char auxBit,auxColor;
- for (unsigned char j=0;j<8;j++)
+ for (uint32_t j=0; j<8; j++)
  {
-  aux = gb_sdl_font_8x8[auxId + j];
-  for (int i=0;i<8;i++)
+  uint8_t aux = gb_sdl_font_8x8[auxId + j];
+  for (uint32_t i=0; i<8; i++)
   {
    auxColor= ((aux>>i) & 0x01);
    //SDLputpixel(surface,x+(6-i),y+j,(auxColor==1)?color:backcolor);
@@ -188,6 +186,32 @@ void OSDMenuRowsDisplayScroll(const char **ptrValue,unsigned char currentId,unsi
   SDLprintText(ptrValue[currentId],gb_pos_x_menu,gb_pos_y_menu+8+(i<<3),((i==0)?0:WHITE),((i==0)?WHITE:0));  
   currentId++;
  }     
+}
+
+static void ShowColorTable()
+{
+ uint8_t color = 0;
+ for (uint8_t hue = 0; hue < 16; hue++)
+ {
+  for (uint8_t brightness = 0; brightness < 16; brightness++)
+  {
+   const uint32_t x = brightness * 16;
+   const uint32_t y = gb_pos_y_menu - 8 + (hue << 3);
+   for (uint32_t i = 0; i < 2; i++)
+   {
+     SDLprintCharOSD(0xDB, x + i * 8, y, color, 0);
+   }
+   color++;
+  }
+}
+
+  bool bExit = false;
+  while (!bExit)
+  {
+    extern KeyboardDriver *keyboard;
+    uint8_t scancode = keyboard->getLastKey();
+    bExit = (scancode == KEY_ESC);
+  }
 }
 
 //Maximo 256 elementos
@@ -374,13 +398,14 @@ void ShowTinyVideoMenu()
  aSelNum = ShowTinyMenu("Video",gb_video_menu,max_gb_video_menu);
  switch (aSelNum)
  {
-   case 0: gb_font_8x8= 0; break; //font 4x8
-   case 1: gb_font_8x8= 1; break; //font 8x8 
-   case 2: gb_invert_color= ((~gb_invert_color)&0x01); break; //Invertir color
-   case 3: InitPaletaCGA(); break;
-   case 4: InitPaletaCGA2(); break;    
-   case 5: InitPaletaCGAgray(); break;    
-   case 6: InitPaletaPCJR(); break;   
+   case 0: ShowColorTable(); break;
+   case 1: gb_font_8x8= 0; break; //font 4x8
+   case 2: gb_font_8x8= 1; break; //font 8x8 
+   case 3: gb_invert_color= ((~gb_invert_color)&0x01); break; //Invertir color
+   case 4: InitPaletaCGA(); break;
+   case 5: InitPaletaCGA2(); break;    
+   case 6: InitPaletaCGAgray(); break;    
+   case 7: InitPaletaPCJR(); break;   
  }
 }
 
@@ -446,7 +471,7 @@ void do_tinyOSD()
 
   gb_volumen01= auxVol;
   gb_frecuencia01= auxFrec;
-  
+  keyboard->Reset();
  }
  #ifdef use_lib_sound_ay8912
   gb_silence_all_channels = 0;

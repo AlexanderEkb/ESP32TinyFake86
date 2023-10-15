@@ -36,7 +36,10 @@ class KeyboardDriverAT : public KeyboardDriver
       attachInterrupt(digitalPinToInterrupt(KEYBOARD_CLK), kb_interruptHandler, FALLING);
     }
 
-    virtual void Reset() {}
+    virtual void Reset() {
+      incoming = 0;
+      lastKey = 0;
+    }
 
     virtual uint8_t getLastKey() {
       uint8_t result = lastKey;

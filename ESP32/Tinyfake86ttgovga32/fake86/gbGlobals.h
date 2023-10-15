@@ -122,9 +122,6 @@ extern unsigned long int gb_jj_cont_timer;
  extern unsigned char gb_show_osd_main_menu;*/
 
 
- extern char **gb_buffer_vga; 
- //extern unsigned char gb_color_vga[16];
-
  extern unsigned char gb_font_8x8;
 
  //retrazo

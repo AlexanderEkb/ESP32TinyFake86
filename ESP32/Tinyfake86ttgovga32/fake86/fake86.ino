@@ -214,10 +214,7 @@ void videoTask(void *unused) {
         xQueuePeek(vidQueue, &param, portMAX_DELAY);
         if ((int)param == 1)
             break;
-
         draw();
-        // composite.sendFrameHalfResolution(&gb_buffer_vga);
-
         xQueueReceive(vidQueue, &param, portMAX_DELAY);
         videoTaskIsRunning = false;
     }
@@ -312,7 +309,6 @@ void execVideo()
     if ((gb_cur_vga - gb_ini_vga) >= gb_vga_poll_milis)
     {
         draw();
-        // composite.sendFrameHalfResolution(&gb_buffer_vga);
         gb_ini_vga = gb_cur_vga;
     }
 #else

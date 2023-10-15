@@ -83,6 +83,8 @@ static const unsigned char palettecga[16] = {
     0x00, 0xAA, 0x00, 0xAA, 0x00, 0xAA, 0x00, 0xAA,
     0x55, 0xFF, 0x55, 0xFF, 0x55, 0xFF, 0x55, 0xFF};
 
+char cursor[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x0F};
+
 extern uint16_t cursx, cursy, cols, rows, vgapage, cursorposition, cursorvisible;
 extern uint8_t clocksafe, port6, portout16;
 extern uint32_t videobase, textbase;
@@ -104,7 +106,7 @@ void renderInit() {
   for (int y = 0; y < CompositeColorOutput::YRES; y++)
   {
     gb_buffer_vga[y] = (char *)malloc(CompositeColorOutput::XRES * 2);
-    memset(gb_buffer_vga[y], 0, CompositeColorOutput::XRES * 2);
+    memset(gb_buffer_vga[y], 0x77, CompositeColorOutput::XRES * 2);
   }
 
   void IRAM_ATTR blitter_0(uint8_t * src, uint16_t * dst);
@@ -160,20 +162,46 @@ inline void jj_fast_putpixel(int x,int y,unsigned char c)
 extern uint16_t vtotal;
 
 //*************************************************************************************
-void SDLprintChar(char code,int x,int y,unsigned char color,unsigned char backcolor)
+void SDLprintChar_c(char code,int x,int y,unsigned char color,unsigned char backcolor)
 { 
-// unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
- int nBaseOffset = code << 3; //*8
- for (unsigned int j=0;j<8;j++)
+ int nBaseOffset = code << 3;
+ const bool cbTime = totalframes & 0x04;
+ for (unsigned int row=0; row<8; row++)
  {
-     unsigned char bLine = gb_sdl_font_8x8[nBaseOffset + j];
-     for (int i = 0; i < 8; i++) {
-         unsigned char Pixel = ((bLine >> i) & 0x01);
-         gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + (7 - i)) + 8] = gb_color_text_cga[(Pixel != 0) ? color : backcolor];
+     unsigned char bLine = ((row >= 6) && (cbTime))?0xFF:gb_sdl_font_8x8[nBaseOffset + row];
+     for (int col = 0; col < 8; col++) {
+      unsigned char Pixel = ((bLine >> col) & 0x01);
+      const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
+      const uint32_t vgaCol = x - col + 15;
+      gb_buffer_vga[vgaLine][vgaCol] = gb_color_text_cga[(Pixel != 0) ? color : backcolor];
   }
  }
 }
 
+//*************************************************************************************
+void SDLprintChar(char code, int x, int y, unsigned char color, unsigned char backcolor)
+{
+  if((x == (cursx << 3)) && (y == (cursy << 3)))
+  {
+    SDLprintChar_c(code, x, y, color, backcolor);
+  }
+  else
+  {
+    // unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
+    int nBaseOffset = code << 3; //*8
+    for (unsigned int row = 0; row < 8; row++)
+    {
+      unsigned char bLine = gb_sdl_font_8x8[nBaseOffset + row];
+      for (int col = 0; col < 8; col++)
+      {
+          unsigned char Pixel = ((bLine >> col) & 0x01);
+          const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
+          const uint32_t vgaCol = x - col + 15;
+          gb_buffer_vga[vgaLine][vgaCol] = gb_color_text_cga[(Pixel != 0) ? color : backcolor];
+      }
+    }
+  }
+}
 
 //*****************************************
 void SDLprintChar160x100_font4x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
@@ -325,7 +353,7 @@ void SDLdump160x100_font8x8()
 //*****************************************
 void SDLdump80x25_font8x8()
 {
- if ( (gb_portramTiny[fast_tiny_port_0x3D8]==9) && (gb_portramTiny[fast_tiny_port_0x3D4]==9) ) 
+ if ((gb_portramTiny[fast_tiny_port_0x3D8] == 9) && (gb_portramTiny[fast_tiny_port_0x3D4] == 9))
  {
   SDLdump160x100_font8x8();
   return;
@@ -335,16 +363,34 @@ void SDLdump80x25_font8x8()
  uint32_t bOffset = 0;
  for (uint32_t y = 0; y < 25; y++)
  {
-  for (uint32_t x=0;x<80;x++)
+  for (uint32_t x = 0; x < 80; x++)
   {
-    aChar= gb_video_cga[bOffset];
-    bOffset++;
-    aColor = gb_video_cga[bOffset]&0x0F;
-    aBgColor = ((gb_video_cga[bOffset]>>4)&0x07);
-    SDLprintChar(aChar,(x<<3),(y<<3),aColor,aBgColor); //Sin capturadora
-    bOffset++;
+   aChar = gb_video_cga[bOffset];
+   bOffset++;
+   aColor = gb_video_cga[bOffset] & 0x0F;
+   aBgColor = ((gb_video_cga[bOffset] >> 4) & 0x07);
+   SDLprintChar(aChar, (x << 3), (y << 3), aColor, aBgColor); // Sin capturadora
+   bOffset++;
   }
  }
+
+//  const bool cbShowCursor = ((totalframes & 0x02) != 0);
+//  if (cbShowCursor)
+//  {
+//   uint32_t attrByte = (cursy * 80 + cursx) << 1 + 1;
+//   aColor = gb_video_cga[attrByte] & 0x0F;
+//   const int posX = cursx << 3;
+//   const int posY = cursy << 3;
+//   for (int row = 5; row < 8; row++)
+//   {
+//    for (int col = 0; col < 8; col++)
+//    {
+//     const int vgaLine = posY + row + VERTICAL_OFFSET;
+//     const int vgaCol = posX - col + 15;
+//     gb_buffer_vga[vgaLine][vgaCol] = aColor;
+//    }
+//   }
+//  }
 }
 
 void SDLdump40x25_font8x8()
@@ -481,6 +527,7 @@ void jj_sdl_dump_640x200()
 
 void draw()
 {
+  totalframes++;
   int x, y;
 
   uint32_t planemode, vgapage, color, chary, charx, vidptr, divx, divy, curchar, curpixel, usepal, intensity, blockw, curheight, x1, y1;
@@ -636,35 +683,38 @@ void InitPaletaPCJR()
  PreparaColorVGA();
 }
 
-void IRAM_ATTR blitter_0(uint8_t * src, uint16_t *dst)
+void IRAM_ATTR blitter_0(uint8_t *src, uint16_t *dst)
 {
- const unsigned int *p = RawCompositeVideoBlitter::_palette;
+  const unsigned int *p = RawCompositeVideoBlitter::_palette;
+  static const uint32_t STEP = 2;
 
- uint16_t *d = dst + 32;
- for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH << 2; i += 4)
- {
-   uint16_t c = *((uint16_t *)src); // screen may be in 32 bit mem
-   d[0] = (uint16_t)(p[(uint8_t)c] >> 16);
-   d[1] = (uint16_t)(p[(uint8_t)(c >> 8)] << 0);
-   d += 2;
-   src += 2;
+  uint16_t *d = dst + 32;
+  for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH << 1; i += STEP)
+  {
+   uint16_t *src16 = (uint16_t *)src;
+   uint16_t c = *src16; // screen may be in 32 bit mem
+   d[0] = (uint16_t)(p[(uint8_t)(c >> 0)] >> 16);
+   d[1] = (uint16_t)(p[(uint8_t)(c >> 8)]);
+   d += STEP;
+   src += STEP;
   }
 }
 
 void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
 {
   const unsigned int *p = RawCompositeVideoBlitter::_palette;
+  static const uint32_t STEP = 4;
 
   uint32_t *d = (uint32_t *)dst + 16;
-  for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += 4)
+  for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP)  // 84 steps, 4 pixels per step
   {
    uint32_t c = *((uint32_t *)src); // screen may be in 32 bit mem
-   d[0] = p[(uint8_t)c];
-   d[1] = p[(uint8_t)(c >> 8)] << 8;
+   d[0] = p[(uint8_t)(c >>  0)];
+   d[1] = p[(uint8_t)(c >>  8)] << 8;
    d[2] = p[(uint8_t)(c >> 16)];
    d[3] = p[(uint8_t)(c >> 24)] << 8;
-   d += 4;
-   src += 4;
+   d += STEP;
+   src += STEP;
   }
 }
 

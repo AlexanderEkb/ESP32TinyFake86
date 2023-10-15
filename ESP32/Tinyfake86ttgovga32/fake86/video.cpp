@@ -80,7 +80,7 @@
 #define VIDEO_MODE_GRAY				(0x00)
 
 extern union _bytewordregs_ regs;
-uint16_t cursx, cursy, cols = 80, rows = 25, vgapage, cursorposition, cursorvisible;
+uint16_t cursx, cursy, cursorPosition, cols = 80, rows = 25, vgapage, cursorposition, cursorvisible;
 uint8_t clocksafe, port6, portout16;
 uint32_t videobase= 0xB8000;
 uint32_t usefullscreen = 0;
@@ -157,7 +157,7 @@ void setVideoMode(uint8_t mode)
     renderSetBlitter(1);
     break;
   case VIDEO_MODE_80x25_BW: // 80x25 mono text
-		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
+		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
     renderSetBlitter(0);
     break;
   case VIDEO_MODE_80x25_COLOR: // 80x25 color text
@@ -220,6 +220,7 @@ void vidinterrupt()
 				gb_ram_bank[0][0x484]= (rows - 1);				
 				cursx = 0;
 				cursy = 0;
+        cursorPosition = 0;
 				switch (vidmode) {
 						case 127: //hercules
 							nw = oldw = 720;
@@ -358,6 +359,7 @@ void outVGA (unsigned short int portnum, unsigned char value)
 				}
 				cursy = cursorposition/cols;
 				cursx = cursorposition%cols;
+        cursorPosition = (cursy << 8) | cursx;
 				//JJ if (portram[0x3D4] == 6) 
 				//JJ {
 				 //JJVGA vtotal = value | ( ( (uint16_t) VGA_GC[7] & 1) << 8) | ( ( (VGA_GC[7] & 32) ? 1 : 0) << 9);
