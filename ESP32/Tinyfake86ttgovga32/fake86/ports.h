@@ -98,10 +98,10 @@ class IOPort
       uint32_t addr = address & MAX_PORT;
       IOPort * port = get(addr);
       if(port == nullptr) {
-        // LOG("Error reading port %xh\n", address);
+        LOG("Error reading port %xh\n", addr);
         return 0x00;
       } else if(port->reader == nullptr) {
-        return port->value;
+        return 0xFF; //port->value;
       } else {
         return port->reader(addr);
       }
@@ -109,15 +109,16 @@ class IOPort
 
     void write(uint32_t address, uint8_t value)
     {
-      IOPort *port = get(address);
+      uint32_t addr = address & MAX_PORT;
+      IOPort *port = get(addr);
       if (port == nullptr)
       {
-        // LOG("Error writing port %xh\n", address);
+        LOG("Error writing port %xh\n", addr);
         return;
       }
       port->value = value;
       if (port->writer != nullptr)
-        port->writer(address, value);
+        port->writer(addr, value);
     }
 
     uint16_t read16(uint32_t address)

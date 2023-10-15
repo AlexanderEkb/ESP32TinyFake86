@@ -82,35 +82,56 @@ uint8_t defaultReader_00(uint32_t address)
   return 0x00;
 }
 
-uint8_t defaultReader_FF(uint32_t address)
+uint8_t defaultReader_Stub(uint32_t address)
 {
-  (void)address;
-  return 0;
+  // LOG("Reading stub port %03xh\n", address & 0x3FF);
+  return 0x00; //IOPortSpace::getInstance().get(address)->value;
 }
 
-IOPort port_062 = IOPort(0x200, 0x00, defaultReader_00, nullptr);
+void defaultWriter(uint32_t address, uint8_t value)
+{
+  (void)value;
+  // LOG("Writing stub port %03xh\n", address & 0x3FF);
+}
 
-IOPort port_200 = IOPort(0x200, 0x00, defaultReader_FF, nullptr);
-IOPort port_201 = IOPort(0x201, 0x00, defaultReader_FF, nullptr);
-IOPort port_3F2 = IOPort(0x3F2, 0x00, defaultReader_FF, nullptr);
+IOPort port_062h = IOPort(0x62, 0x00, defaultReader_00, defaultWriter);
 
-IOPort port_3B4 = IOPort(0x3B4, 0x00, defaultReader_FF, nullptr);
-IOPort port_3B5 = IOPort(0x3B5, 0x00, defaultReader_FF, nullptr);
-IOPort port_3B8 = IOPort(0x3B8, 0x00, defaultReader_FF, nullptr);
-IOPort port_3B9 = IOPort(0x3B9, 0x00, defaultReader_FF, nullptr);
-IOPort port_3BA = IOPort(0x3BA, 0x00, defaultReader_FF, nullptr);
-IOPort port_3BC = IOPort(0x3BC, 0x00, defaultReader_FF, nullptr);
-IOPort port_3BD = IOPort(0x3BD, 0x00, defaultReader_FF, nullptr);
-IOPort port_3BE = IOPort(0x3BE, 0x00, defaultReader_FF, nullptr);
-IOPort port_3BF = IOPort(0x3BF, 0x00, defaultReader_FF, nullptr);
+IOPort port_200h = IOPort(0x200, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_201h = IOPort(0x201, 0x00, defaultReader_Stub, defaultWriter);
 
-IOPort port_3C0 = IOPort(0x3C0, 0x00, defaultReader_FF, nullptr);
-IOPort port_3C2 = IOPort(0x3C2, 0x00, defaultReader_FF, nullptr);
-IOPort port_3C3 = IOPort(0x3C3, 0x00, defaultReader_FF, nullptr);
-IOPort port_3C4 = IOPort(0x3C4, 0x00, defaultReader_FF, nullptr);
-IOPort port_3C5 = IOPort(0x3C5, 0x00, defaultReader_FF, nullptr);
-IOPort port_3CB = IOPort(0x3CB, 0x00, defaultReader_FF, nullptr);
-IOPort port_3CC = IOPort(0x3CC, 0x00, defaultReader_FF, nullptr);
+IOPort port_213h = IOPort(0x213, 0x00, defaultReader_Stub, defaultWriter);
+
+IOPort port_278h = IOPort(0x278, 0x00, defaultReader_00, defaultWriter);
+IOPort port_378h = IOPort(0x378, 0x00, defaultReader_00, defaultWriter);
+
+IOPort port_2E8h = IOPort(0x2E8, 0x00, defaultReader_00, defaultWriter);
+IOPort port_2EBh = IOPort(0x2EB, 0x00, defaultReader_00, defaultWriter);
+IOPort port_2F8h = IOPort(0x2F8, 0x00, defaultReader_00, defaultWriter);
+IOPort port_2FBh = IOPort(0x2FB, 0x00, defaultReader_00, defaultWriter);
+IOPort port_3E8h = IOPort(0x3E8, 0x00, defaultReader_00, defaultWriter);
+IOPort port_3EBh = IOPort(0x3EB, 0x00, defaultReader_00, defaultWriter);
+IOPort port_3F8h = IOPort(0x3F8, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3FBh = IOPort(0x3FB, 0x00, defaultReader_Stub, defaultWriter);
+
+IOPort port_3B4h = IOPort(0x3B4, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3B5h = IOPort(0x3B5, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3B8h = IOPort(0x3B8, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3B9h = IOPort(0x3B9, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3BAh = IOPort(0x3BA, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3BCh = IOPort(0x3BC, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3BDh = IOPort(0x3BD, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3BEh = IOPort(0x3BE, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3BFh = IOPort(0x3BF, 0x00, defaultReader_Stub, defaultWriter);
+
+IOPort port_3C0h = IOPort(0x3C0, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3C2h = IOPort(0x3C2, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3C3h = IOPort(0x3C3, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3C4h = IOPort(0x3C4, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3C5h = IOPort(0x3C5, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3CBh = IOPort(0x3CB, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3CCh = IOPort(0x3CC, 0x00, defaultReader_Stub, defaultWriter);
+
+IOPort port_3F2h = IOPort(0x3F2, 0x00, defaultReader_Stub, nullptr);
 
 //////////////////////////////////////////////////////////////////////////// Local function prototypes
 void setup(void);
