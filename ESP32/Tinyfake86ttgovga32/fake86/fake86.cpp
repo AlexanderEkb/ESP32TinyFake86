@@ -70,6 +70,12 @@ unsigned char gb_force_load_com = 0;
 unsigned char cf;
 unsigned char running = 0;
 
+static void ClearRAM();
+static void execCPU();
+static void execKeyboard();
+static void execVideo();
+static void execMisc();
+
 uint8_t defaultReader_00(uint32_t address)
 {
   (void)address;
