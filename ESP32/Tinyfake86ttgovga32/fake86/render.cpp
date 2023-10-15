@@ -79,11 +79,25 @@ static unsigned char gb_color_text_cga[16]={
     0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
 };
 
-static const unsigned char palettecga[16] = {
-    0x00, 0xAA, 0x00, 0xAA, 0x00, 0xAA, 0x00, 0xAA,
-    0x55, 0xFF, 0x55, 0xFF, 0x55, 0xFF, 0x55, 0xFF};
-
-char cursor[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x0F};
+uint32_t mixer[256] = {
+/*        0x00       0x01       0x02       0x03       0x04       0x05       0x06       0x07       0x08       0x09    */  
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
+};
 
 extern uint16_t cursx, cursy, cols, rows, vgapage, cursorposition, cursorvisible;
 extern uint8_t clocksafe, port6, portout16;
@@ -110,7 +124,8 @@ void renderInit() {
   }
 
   void IRAM_ATTR blitter_0(uint8_t * src, uint16_t * dst);
-  composite.init(&gb_buffer_vga, &blitter_0);
+  void IRAM_ATTR blitter_1(uint8_t * src, uint16_t * dst);
+  composite.init(&gb_buffer_vga, &blitter_1);
 }
 
 void renderExec()
@@ -156,7 +171,8 @@ void VideoThreadPoll()
 
 inline void jj_fast_putpixel(int x,int y,unsigned char c)
 {
- gb_buffer_vga[y + VERTICAL_OFFSET][x]= gb_color_vga[c];
+//  gb_buffer_vga[y + VERTICAL_OFFSET][x] = gb_color_vga[c];
+ gb_buffer_vga[y + VERTICAL_OFFSET][x] = c;
 }
 
 extern uint16_t vtotal;
@@ -554,166 +570,161 @@ void draw()
   case 6:
    jj_sdl_dump_640x200();
    break;
-  case 127:
-   nw = 720;
-   nh = 348;
-   for (y = 0; y < 348; y++)
-   {
-    for (x = 0; x < 720; x++)
-    {
-    charx = x;
-    chary = y >> 1;
-    vidptr = videobase + ((y & 3) << 13) + (y >> 2) * 90 + (x >> 3);
-    curpixel = (read86(vidptr) >> (7 - (charx & 7))) & 1;
-    color = curpixel ? 0x00FFFFFF : 0x00000000;
-    jj_fast_putpixel((x >> 2), (y >> 1), color);
-    }
-   }
-   break;
-  case 0x8:  // 160x200 16-color (PCjr)
-   nw = 640; // fix this
-   nh = 400; // part later
-   for (y = 0; y < 400; y++)
-    for (x = 0; x < 640; x++)
-    {
-    vidptr = 0xB8000 + (y >> 2) * 80 + (x >> 3) + ((y >> 1) & 1) * 8192;
-    if (((x >> 1) & 1) == 0)
-    {
-      // color = palettecga[RAM[vidptr] >> 4];
-      color = palettecga[read86(vidptr) >> 4];
-    }
-    else
-    {
-      // color = palettecga[RAM[vidptr] & 15];
-      color = palettecga[read86(vidptr) & 15];
-    }
-    // JJ prestretch[y][x] = color; //no necesito escalar
-    jj_fast_putpixel((x >> 1), (y >> 1), color);
-    }
-   break;
-  case 0x9:  // 320x200 16-color (Tandy/PCjr)
-   nw = 640; // fix this
-   nh = 400; // part later
-   for (y = 0; y < 400; y++)
-    for (x = 0; x < 640; x++)
-    {
-    vidptr = 0xB8000 + (y >> 3) * 160 + (x >> 2) + ((y >> 1) & 3) * 8192;
-    if (((x >> 1) & 1) == 0)
-    {
-      // color = palettecga[RAM[vidptr] >> 4];
-      color = palettecga[read86(vidptr) >> 4];
-    }
-    else
-    {
-      // color = palettecga[RAM[vidptr] & 15];
-      color = palettecga[read86(vidptr) & 15];
-    }
-    jj_fast_putpixel((x >> 1), (y >> 1), color);
-    }
-   break;
-  case 0xD:
-  case 0xE:
-   nw = 640; // fix this
-   nh = 400; // part later
-   for (y = 0; y < 400; y++)
-    for (x = 0; x < 640; x++)
-    {
-    divx = x >> 1;
-    divy = y >> 1;
-    vidptr = divy * 40 + (divx >> 3);
-    x1 = 7 - (divx & 7);
-    jj_fast_putpixel((x >> 1), (y >> 1), color);
-    }
-   break;
-  case 0x10:
-   nw = 640;
-   nh = 350;
-   for (y = 0; y < 350; y++)
-    for (x = 0; x < 640; x++)
-    {
-    vidptr = y * 80 + (x >> 3);
-    x1 = 7 - (x & 7);
-    jj_fast_putpixel((x >> 1), (y >> 1), color);
-    }
-   break;
+  
+  // case 127:
+  //  nw = 720;
+  //  nh = 348;
+  //  for (y = 0; y < 348; y++)
+  //  {
+  //   for (x = 0; x < 720; x++)
+  //   {
+  //   charx = x;
+  //   chary = y >> 1;
+  //   vidptr = videobase + ((y & 3) << 13) + (y >> 2) * 90 + (x >> 3);
+  //   curpixel = (read86(vidptr) >> (7 - (charx & 7))) & 1;
+  //   color = curpixel ? 0x00FFFFFF : 0x00000000;
+  //   jj_fast_putpixel((x >> 2), (y >> 1), color);
+  //   }
+  //  }
+  //  break;
+  // case 0x8:  // 160x200 16-color (PCjr)
+  //  nw = 640; // fix this
+  //  nh = 400; // part later
+  //  for (y = 0; y < 400; y++)
+  //   for (x = 0; x < 640; x++)
+  //   {
+  //   vidptr = 0xB8000 + (y >> 2) * 80 + (x >> 3) + ((y >> 1) & 1) * 8192;
+  //   if (((x >> 1) & 1) == 0)
+  //   {
+  //     // color = palettecga[RAM[vidptr] >> 4];
+  //     color = palettecga[read86(vidptr) >> 4];
+  //   }
+  //   else
+  //   {
+  //     // color = palettecga[RAM[vidptr] & 15];
+  //     color = palettecga[read86(vidptr) & 15];
+  //   }
+  //   // JJ prestretch[y][x] = color; //no necesito escalar
+  //   jj_fast_putpixel((x >> 1), (y >> 1), color);
+  //   }
+  //  break;
+  // case 0x9:  // 320x200 16-color (Tandy/PCjr)
+  //  nw = 640; // fix this
+  //  nh = 400; // part later
+  //  for (y = 0; y < 400; y++)
+  //   for (x = 0; x < 640; x++)
+  //   {
+  //   vidptr = 0xB8000 + (y >> 3) * 160 + (x >> 2) + ((y >> 1) & 3) * 8192;
+  //   if (((x >> 1) & 1) == 0)
+  //   {
+  //     // color = palettecga[RAM[vidptr] >> 4];
+  //     color = palettecga[read86(vidptr) >> 4];
+  //   }
+  //   else
+  //   {
+  //     // color = palettecga[RAM[vidptr] & 15];
+  //     color = palettecga[read86(vidptr) & 15];
+  //   }
+  //   jj_fast_putpixel((x >> 1), (y >> 1), color);
+  //   }
+  //  break;
+  // case 0xD:
+  // case 0xE:
+  //  nw = 640; // fix this
+  //  nh = 400; // part later
+  //  for (y = 0; y < 400; y++)
+  //   for (x = 0; x < 640; x++)
+  //   {
+  //   divx = x >> 1;
+  //   divy = y >> 1;
+  //   vidptr = divy * 40 + (divx >> 3);
+  //   x1 = 7 - (divx & 7);
+  //   jj_fast_putpixel((x >> 1), (y >> 1), color);
+  //   }
+  //  break;
+  // case 0x10:
+  //  nw = 640;
+  //  nh = 350;
+  //  for (y = 0; y < 350; y++)
+  //   for (x = 0; x < 640; x++)
+  //   {
+  //   vidptr = y * 80 + (x >> 3);
+  //   x1 = 7 - (x & 7);
+  //   jj_fast_putpixel((x >> 1), (y >> 1), color);
+  //   }
+  //  break;
   default:
    break;
   } // Fin switch vidmode
 }
 
 //******************************************
-void PreparaColorVGA()
-{
- #ifdef use_lib_bitluni_fast
-  //Modo grafico CGA
-  for (unsigned char i=0;i<16;i++)
-  {
-   gb_color_vga[i] = gb_color_vga[i] | gb_sync_bits;
-  }
-
-  //Modo texto cga
-  for (unsigned char i=0;i<16;i++)
-  {
-   gb_color_text_cga[i] = gb_color_text_cga[i] | gb_sync_bits; 
-  } 
- #endif 
-}
-
 void InitPaletaCGA()
 {
  memcpy(gb_color_vga,gb_color_cga,16);
- PreparaColorVGA();
 }
 
 void InitPaletaCGA2()
 {
  memcpy(gb_color_vga,gb_color_cga2,16);
- PreparaColorVGA();
 }
 
 void InitPaletaCGAgray()
 {
  memcpy(gb_color_vga,gb_color_cgagray,16);
- PreparaColorVGA();
 }
 
 void InitPaletaPCJR()
 {
  memcpy(gb_color_vga,gb_color_pcjr,16);
- PreparaColorVGA();
 }
 
 void IRAM_ATTR blitter_0(uint8_t *src, uint16_t *dst)
 {
-  const unsigned int *p = RawCompositeVideoBlitter::_palette;
+  const unsigned int *palette = RawCompositeVideoBlitter::_palette;
   static const uint32_t STEP = 2;
 
-  uint16_t *d = dst + 32;
+  uint16_t *dest_16 = dst + 32;
   for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH << 1; i += STEP)
   {
-   uint16_t *src16 = (uint16_t *)src;
-   uint16_t c = *src16; // screen may be in 32 bit mem
-   d[0] = (uint16_t)(p[(uint8_t)(c >> 0)] >> 16);
-   d[1] = (uint16_t)(p[(uint8_t)(c >> 8)]);
-   d += STEP;
-   src += STEP;
+    dest_16[0] = (uint16_t)(palette[src[0]]);
+    dest_16[1] = (uint16_t)(palette[src[1]] << 8);
+    dest_16 += STEP;
+    src += STEP;
   }
 }
 
 void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
 {
-  const unsigned int *p = RawCompositeVideoBlitter::_palette;
+  const unsigned int *palette = RawCompositeVideoBlitter::_palette;
   static const uint32_t STEP = 4;
 
   uint32_t *d = (uint32_t *)dst + 16;
   for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP)  // 84 steps, 4 pixels per step
   {
-   uint32_t c = *((uint32_t *)src); // screen may be in 32 bit mem
-   d[0] = p[(uint8_t)(c >>  0)];
-   d[1] = p[(uint8_t)(c >>  8)] << 8;
-   d[2] = p[(uint8_t)(c >> 16)];
-   d[3] = p[(uint8_t)(c >> 24)] << 8;
+   d[0] = palette[src[0]];
+   d[1] = palette[src[1]] << 8;
+   d[2] = palette[src[2]];
+   d[3] = palette[src[3]] << 8;
    d += STEP;
+   src += STEP;
+  }
+}
+
+void IRAM_ATTR blitter_2(uint8_t *src, uint16_t *dst)
+{
+  const unsigned int *palette = RawCompositeVideoBlitter::_palette;
+  static const uint32_t STEP = 4;
+
+  uint32_t *dest_32 = (uint32_t *)dst + 16;
+  for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP) // 84 steps, 4 pixels per step
+  {
+    uint32_t c = *((uint32_t *)src); // screen may be in 32 bit mem
+    dest_32[0] = palette[(uint8_t)(c >>  0)];
+    dest_32[1] = palette[(uint8_t)(c >>  8)] << 8;
+    dest_32[2] = palette[(uint8_t)(c >> 16)];
+    dest_32[3] = palette[(uint8_t)(c >> 24)] << 8;
+   dest_32 += STEP;
    src += STEP;
   }
 }
@@ -728,5 +739,59 @@ void renderSetBlitter(unsigned int blitter)
     case 1:
       composite.setBlitter(blitter_1);
       break;
+    case 2:
+      composite.setBlitter(blitter_2);
+      break;
+  }
+}
+
+static void bar(int orgX, int orgY, int height, int width, uint8_t color)
+{
+  for (int y = 0; y < height; y++)
+  {
+    int scanline = orgY + y + VERTICAL_OFFSET;
+    for (int x = 0; x < width; x++)
+    {
+      int col = orgX + x;
+      gb_buffer_vga[scanline][col] = color;
+    }
+  }
+}
+
+void ShowColorTable()
+{
+  static const int WIDTH = 20;
+  static const int HEIGHT = 10;
+  for (int hue = 0; hue < 16; hue++)
+  {
+    for (int luma = 0; luma < 16; luma++)
+    {
+      int orgX = luma * WIDTH;
+      int orgY = hue * HEIGHT;
+      uint8_t color = ((uint8_t)hue << 4) | ((uint8_t)luma & 0x0F);
+      bar(orgX, orgY, HEIGHT, WIDTH, color);
+    }
+  }
+
+  bool bExit = false;
+  while (!bExit)
+  {
+      extern KeyboardDriver *keyboard;
+      uint8_t scancode = keyboard->getLastKey();
+      switch(scancode)
+      {
+        case KEY_ESC:
+          bExit = true;
+          break;
+        case KEY_1:
+          renderSetBlitter(0);
+          break;
+        case KEY_2:
+          renderSetBlitter(1);
+          break;
+        case KEY_3:
+          renderSetBlitter(2);
+          break;
+      }
   }
 }

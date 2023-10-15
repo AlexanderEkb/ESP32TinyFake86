@@ -158,11 +158,11 @@ void setVideoMode(uint8_t mode)
     break;
   case VIDEO_MODE_80x25_BW: // 80x25 mono text
 		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
-    renderSetBlitter(0);
+    renderSetBlitter(1 /*0*/);
     break;
   case VIDEO_MODE_80x25_COLOR: // 80x25 color text
 		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-    renderSetBlitter(0);
+    renderSetBlitter(1 /*0*/);
     break;
   case VIDEO_MODE_320x200_COLOR: // 320x200 color
 		setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);

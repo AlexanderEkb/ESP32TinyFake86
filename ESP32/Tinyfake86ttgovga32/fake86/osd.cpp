@@ -142,19 +142,19 @@ void SDLClear()
 }
 
 //*************************************************************************************
-void SDLprintCharOSD(char car,int x,int y,unsigned char color,unsigned char backcolor)
+void SDLprintCharOSD(char car,int col,int row,unsigned char color,unsigned char backcolor)
 { 
 // unsigned char aux = gb_sdl_font_6x8[(car-64)];
  int auxId = car << 3; //*8
- unsigned char auxBit,auxColor;
- for (uint32_t j=0; j<8; j++)
+ unsigned char pixel;
+ for (uint32_t y=0; y<8; y++)
  {
-  uint8_t aux = gb_sdl_font_8x8[auxId + j];
-  for (uint32_t i=0; i<8; i++)
+  uint8_t aux = gb_sdl_font_8x8[auxId + y];
+  for (uint32_t x=0; x<8; x++)
   {
-   auxColor= ((aux>>i) & 0x01);
+   pixel= ((aux>>x) & 0x01);
    //SDLputpixel(surface,x+(6-i),y+j,(auxColor==1)?color:backcolor);
-   jj_fast_putpixel(x+(8-i),y+j,(auxColor==1)?color:backcolor);
+   jj_fast_putpixel(col+(8-x),row+y,(pixel==1)?color:backcolor);
   }
  }
 }
@@ -186,32 +186,6 @@ void OSDMenuRowsDisplayScroll(const char **ptrValue,unsigned char currentId,unsi
   SDLprintText(ptrValue[currentId],gb_pos_x_menu,gb_pos_y_menu+8+(i<<3),((i==0)?0:WHITE),((i==0)?WHITE:0));  
   currentId++;
  }     
-}
-
-static void ShowColorTable()
-{
- uint8_t color = 0;
- for (uint8_t hue = 0; hue < 16; hue++)
- {
-  for (uint8_t brightness = 0; brightness < 16; brightness++)
-  {
-   const uint32_t x = brightness * 16;
-   const uint32_t y = gb_pos_y_menu - 8 + (hue << 3);
-   for (uint32_t i = 0; i < 2; i++)
-   {
-     SDLprintCharOSD(0xDB, x + i * 8, y, color, 0);
-   }
-   color++;
-  }
-}
-
-  bool bExit = false;
-  while (!bExit)
-  {
-    extern KeyboardDriver *keyboard;
-    uint8_t scancode = keyboard->getLastKey();
-    bExit = (scancode == KEY_ESC);
-  }
 }
 
 //Maximo 256 elementos
@@ -392,6 +366,7 @@ void ShowTinyCOMMenu()
  //running= 0;
 }
 
+void ShowColorTable();
 void ShowTinyVideoMenu()
 {
  unsigned char aSelNum;

@@ -14,6 +14,10 @@
 #define KEY_F11 0xFE
 #define KEY_F12 0x58
 #define KEY_ESC 0x01
+#define KEY_1   0x02
+#define KEY_2   0x03
+#define KEY_3   0x04
+#define KEY_4   0x05
 #define KEY_CURSOR_LEFT 0x4B
 #define KEY_CURSOR_DOWN 0x50
 #define KEY_CURSOR_RIGHT 0x4D
