@@ -96,6 +96,8 @@ uint64_t totalexec;
 union _bytewordregs_ regs;
 unsigned char didbootstrap = 0;
 
+static IOPortSpace & ports = IOPortSpace::getInstance();
+
 extern void vidinterrupt();
 
 extern uint8_t readVGA (uint32_t addr32);
@@ -203,11 +205,6 @@ unsigned char gb_check_memory_before;
 #endif
 
 
-
-extern void	writeVGA (uint32_t addr32, uint8_t value);
-extern void	portout16 (uint32_t portnum, uint16_t value);
-extern uint8_t	portRead (uint16_t portnum);
-extern uint16_t portin16 (uint16_t portnum);
 
 //Lo saco fuera de Read86. Se ejecuta al inicio y en timer 54 ms.
 void updateBIOSDataArea()
@@ -2595,7 +2592,7 @@ void exec86 (uint32_t execloops) {
 								break;
 							}
 
-						putmem8 (useseg, getreg16 (regsi) , portRead (regs.wordregs[regdx]) );
+						putmem8 (useseg, getreg16 (regsi) , ports.read (regs.wordregs[regdx]) );
 						if (df) {
 								putreg16 (regsi, getreg16 (regsi) - 1);
 								putreg16 (regdi, getreg16 (regdi) - 1);
@@ -2623,7 +2620,7 @@ void exec86 (uint32_t execloops) {
 								break;
 							}
 
-						putmem16 (useseg, getreg16 (regsi) , portin16 (regs.wordregs[regdx]) );
+						putmem16 (useseg, getreg16 (regsi) , ports.read16 (regs.wordregs[regdx]) );
 						if (df) {
 								putreg16 (regsi, getreg16 (regsi) - 2);
 								putreg16 (regdi, getreg16 (regdi) - 2);
@@ -2651,12 +2648,14 @@ void exec86 (uint32_t execloops) {
 								break;
 							}
 
-						portWrite (regs.wordregs[regdx], getmem8 (useseg, getreg16 (regsi) ) );
-						if (df) {
-								putreg16 (regsi, getreg16 (regsi) - 1);
+						// portWrite (regs.wordregs[regdx], getmem8 (useseg, getreg16 (regsi) ) );
+            ports.write(regs.wordregs[regdx], getmem8(useseg, getreg16(regsi)));
+            if (df)
+            {
+                putreg16 (regsi, getreg16 (regsi) - 1);
 								putreg16 (regdi, getreg16 (regdi) - 1);
-							}
-						else {
+            }
+            else {
 								putreg16 (regsi, getreg16 (regsi) + 1);
 								putreg16 (regdi, getreg16 (regdi) + 1);
 							}
@@ -2679,7 +2678,7 @@ void exec86 (uint32_t execloops) {
 								break;
 							}
 
-						portout16 (regs.wordregs[regdx], getmem16 (useseg, getreg16 (regsi) ) );
+						ports.write16 (regs.wordregs[regdx], getmem16 (useseg, getreg16 (regsi) ) );
 						if (df) {
 								putreg16 (regsi, getreg16 (regsi) - 2);
 								putreg16 (regdi, getreg16 (regdi) - 2);
@@ -3718,25 +3717,26 @@ void exec86 (uint32_t execloops) {
 					case 0xE4:	/* E4 IN regs.byteregs[regal] Ib */
 						oper1b = getmem8 (segregs[regcs], ip);
 						StepIP (1);
-						regs.byteregs[regal] = (uint8_t) portRead (oper1b);
+						regs.byteregs[regal] = (uint8_t) ports.read (oper1b);
 						break;
 
 					case 0xE5:	/* E5 IN eAX Ib */
 						oper1b = getmem8 (segregs[regcs], ip);
 						StepIP (1);
-						putreg16 (regax, portin16 (oper1b) );
+						putreg16 (regax, ports.read16 (oper1b) );
 						break;
 
 					case 0xE6:	/* E6 OUT Ib regs.byteregs[regal] */
 						oper1b = getmem8 (segregs[regcs], ip);
 						StepIP (1);
-						portWrite (oper1b, regs.byteregs[regal]);
-						break;
+						// portWrite (oper1b, regs.byteregs[regal]);
+            ports.write(oper1b, regs.byteregs[regal]);
+            break;
 
-					case 0xE7:	/* E7 OUT Ib eAX */
+          case 0xE7:	/* E7 OUT Ib eAX */
 						oper1b = getmem8 (segregs[regcs], ip);
 						StepIP (1);
-						portout16 (oper1b, (getreg16 (regax) ) );
+						ports.write16 (oper1b, (getreg16 (regax) ) );
 						break;
 
 					case 0xE8:	/* E8 CALL Jv */
@@ -3768,22 +3768,23 @@ void exec86 (uint32_t execloops) {
 
 					case 0xEC:	/* EC IN regs.byteregs[regal] regdx */
 						oper1 = (getreg16 (regdx) );
-						regs.byteregs[regal] = (uint8_t) portRead (oper1);
+						regs.byteregs[regal] = (uint8_t) ports.read (oper1);
 						break;
 
 					case 0xED:	/* ED IN eAX regdx */
 						oper1 = (getreg16 (regdx) );
-						putreg16 (regax, portin16 (oper1) );
+						putreg16 (regax, ports.read16 (oper1) );
 						break;
 
 					case 0xEE:	/* EE OUT regdx regs.byteregs[regal] */
 						oper1 = (getreg16 (regdx) );
-						portWrite (oper1, regs.byteregs[regal]);
-						break;
+						// portWrite (oper1, regs.byteregs[regal]);
+            ports.write(oper1, regs.byteregs[regal]);
+            break;
 
-					case 0xEF:	/* EF OUT regdx eAX */
+          case 0xEF:	/* EF OUT regdx eAX */
 						oper1 = (getreg16 (regdx) );
-						portout16 (oper1, (getreg16 (regax) ) );
+						ports.write16 (oper1, (getreg16 (regax) ) );
 						break;
 
 					case 0xF0:	/* F0 LOCK */

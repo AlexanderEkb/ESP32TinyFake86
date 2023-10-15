@@ -79,6 +79,22 @@
 #define VIDEO_MODE_COLOR			(0x04)
 #define VIDEO_MODE_GRAY				(0x00)
 
+static void outVGA(uint32_t portnum, uint8_t value);
+static uint8_t inVGA(uint32_t portnum);
+
+// IOPort port_3B8h = IOPort(0x3B8, 0xFF, inVGA, outVGA);
+// IOPort port_3C0h = IOPort(0x3C0, 0xFF, inVGA, outVGA);
+// IOPort port_3C4h = IOPort(0x3C4, 0xFF, inVGA, outVGA);
+// IOPort port_3C5h = IOPort(0x3C5, 0xFF, inVGA, outVGA);
+// IOPort port_3C7h = IOPort(0x3C7, 0xFF, inVGA, outVGA);
+// IOPort port_3C8h = IOPort(0x3C8, 0xFF, inVGA, outVGA);
+// IOPort port_3C9h = IOPort(0x3C9, 0xFF, inVGA, outVGA);
+IOPort port_3D4h = IOPort(0x3D4, 0xFF, inVGA, outVGA);
+IOPort port_3D5h = IOPort(0x3D5, 0xFF, inVGA, outVGA);
+IOPort port_3D8h = IOPort(0x3D8, 0xFF, nullptr, nullptr);
+IOPort port_3D9h = IOPort(0x3D9, 0xFF, nullptr, nullptr); // CGA
+IOPort port_3DAh = IOPort(0x3DA, 0xFF, nullptr, nullptr); // CGA
+
 extern union _bytewordregs_ regs;
 uint16_t cursx, cursy, cursorPosition, cols = 80, rows = 25, vgapage, cursorposition, cursorvisible;
 uint8_t clocksafe, port6, portout16;
@@ -98,16 +114,16 @@ void setVideoParameters(uint32_t modeDesc, int32_t videoBase)
     videobase = videoBase;
 		if(modeDesc & VIDEO_MODE_GRAPH)
 		{
-			portSet(0x3D8, PORT_3D8_GRAPHICS);
+			IOPortSpace::getInstance().setBits(0x3D8, PORT_3D8_GRAPHICS);
 			if(modeDesc & VIDEO_MODE_640_PX)
 			{
 				cols = 80;
-				portSet(0x3D8, PORT_3D8_HIRES_GRAPH);
+				IOPortSpace::getInstance().setBits(0x3D8, PORT_3D8_HIRES_GRAPH);
 			}
 			else
 			{
 				cols = 40;
-				portReset(0x3D8, PORT_3D8_HIRES_GRAPH);
+				IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_HIRES_GRAPH);
 			}
 		}
 		else
@@ -115,12 +131,12 @@ void setVideoParameters(uint32_t modeDesc, int32_t videoBase)
 			if (modeDesc & VIDEO_MODE_80_COLS)
 			{
 				cols = 80;
-				portSet(0x3D8, PORT_3D8_80_COL_TEXT);
+				IOPortSpace::getInstance().setBits(0x3D8, PORT_3D8_80_COL_TEXT);
 			}
 			else
 			{
 				cols = 40;
-				portSet(0x3D8, PORT_3D8_80_COL_TEXT);
+				IOPortSpace::getInstance().setBits(0x3D8, PORT_3D8_80_COL_TEXT);
 			}
 		}
     
@@ -135,12 +151,12 @@ void setVideoParameters(uint32_t modeDesc, int32_t videoBase)
 		if(enableColour)
 		{
 			pendingColorburstValue = PENDING_COLORBURST_TRUE;
-			portReset(0x3D8, PORT_3D8_NOCOLOR);
+			IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_NOCOLOR);
 		}
 		else
 		{
     	pendingColorburstValue = PENDING_COLORBURST_FALSE;
-			portSet(0x3D8, PORT_3D8_NOCOLOR);
+			IOPortSpace::getInstance().setBits(0x3D8, PORT_3D8_NOCOLOR);
 		}
 }
 
@@ -166,12 +182,12 @@ void setVideoMode(uint8_t mode)
     break;
   case VIDEO_MODE_320x200_COLOR: // 320x200 color
 		setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-		gb_portramTiny[fast_tiny_port_0x3D9] = 48;
+		IOPortSpace::getInstance().write(0x3D9, 48);
     renderSetBlitter(1);
     break;
   case VIDEO_MODE_320x200_BW: // 320x200 BW
 		setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
-		gb_portramTiny[fast_tiny_port_0x3D9] = 0;
+    IOPortSpace::getInstance().write(0x3D9, 0);
     renderSetBlitter(1);
     break;
   case VIDEO_MODE_640x200_COLOR: // 640x200 color
@@ -182,7 +198,7 @@ void setVideoMode(uint8_t mode)
 			videobase = CGA_BASE_MEMORY;
 			cols = 90;
 			memset(gb_video_cga, 0, 16384);
-      portReset(0x3D8, PORT_3D8_80_COL_TEXT);
+      IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
       pendingColorburstValue = PENDING_COLORBURST_TRUE;
 			break;
 	case VIDEO_MODE_0x09: // 320x200 16-color
@@ -191,7 +207,7 @@ void setVideoMode(uint8_t mode)
 			if ((regs.byteregs[regal] & 0x80) == 0) {
 					memset(gb_video_cga, 0, 16384);
 			}
-      portReset(0x3D8, PORT_3D8_80_COL_TEXT);
+      IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
       pendingColorburstValue = PENDING_COLORBURST_TRUE;
 			break;
 	case VIDEO_MODE_0x0D: // 320x200 16-color
@@ -199,7 +215,7 @@ void setVideoMode(uint8_t mode)
 	case VIDEO_MODE_0x13: // 320x200 256-color
 			videobase = VGA_BASE_MEMORY;
 			cols = 40;
-      portReset(0x3D8, PORT_3D8_80_COL_TEXT);
+      IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
       pendingColorburstValue = PENDING_COLORBURST_TRUE;
 			break;
 	}
@@ -250,7 +266,7 @@ void vidinterrupt()
 }
 
 uint16_t vtotal = 0;
-void outVGA (unsigned short int portnum, unsigned char value)
+void outVGA (uint32_t portnum, uint8_t value)
 {
 	static uint8_t oldah, oldal;
 	uint8_t flip3c0 = 0;
@@ -276,7 +292,7 @@ void outVGA (unsigned short int portnum, unsigned char value)
 				if (flip3c0) {
 						flip3c0 = 0;
 						//JJ puerto portram[0x3C0] = value & 255;
-						gb_portramTiny[fast_tiny_port_0x3C0]= value & 255;
+						IOPortSpace::getInstance().write(0x3C0, value & 255);
 						return;
 					}
 				else {
@@ -286,7 +302,7 @@ void outVGA (unsigned short int portnum, unsigned char value)
 					}
 			case 0x3C4: //sequence controller index
 				//JJ puerto portram[0x3C4] = value & 255;
-				gb_portramTiny[fast_tiny_port_0x3C4]= value & 255;
+				IOPortSpace::getInstance().write(0x3C4, value & 255);
 				//if (portout16) VGA_SC[value & 255] = value >> 8;
 				break;
 			case 0x3C5: //sequence controller data
@@ -297,7 +313,7 @@ void outVGA (unsigned short int portnum, unsigned char value)
 				break;
 			case 0x3D4: //CRT controller index
 				//JJ portram[0x3D4] = value & 255;
-				gb_portramTiny[fast_tiny_port_0x3D4] = value & 255;
+				IOPortSpace::getInstance().write(0x3D4, value & 255);
 				//if (portout16) VGA_CRTC[value & 255] = value >> 8;
 				break;
 			case 0x3C7: //color index register (read operations)
@@ -345,14 +361,14 @@ void outVGA (unsigned short int portnum, unsigned char value)
 			case 0x3D5: //cursor position latch
 				//JJVGA VGA_CRTC[portram[0x3D4]] = value & 255;
 				//JJ puerto if (portram[0x3D4]==0xE)
-				if (gb_portramTiny[fast_tiny_port_0x3D4] == 0xE)
+				if (IOPortSpace::getInstance().read(0x3D4) == 0xE)
 				{
 					cursorposition = (cursorposition&0xFF) | (value<<8);
 				}
 				else
 				{
 				 //JJ puerto if (portram[0x3D4]==0xF)
-				 if (gb_portramTiny[fast_tiny_port_0x3D4] == 0xF)
+				 if (IOPortSpace::getInstance().read(0x3D4) == 0xF)
 				 {
 				  cursorposition = (cursorposition&0xFF00) |value;
 				 }
@@ -370,12 +386,11 @@ void outVGA (unsigned short int portnum, unsigned char value)
 				//JJVGA VGA_GC[portram[0x3CE]] = value;
 				break;
 			default:
-				//JJ puerto portram[portnum] = value;
-				portWriteTiny(portnum,value);
-		}
+      break;
+    }
 }
 
-uint8_t inVGA (uint16_t portnum) {
+uint8_t inVGA (uint32_t portnum) {
 	if (portnum > (gb_max_portram-1))
 	 return 0;        
 	switch (portnum) {
@@ -419,7 +434,7 @@ uint8_t inVGA (uint16_t portnum) {
 				return (port3da);
 		}
 	//JJ puerto return (portram[portnum]); //this won't be reached, but without it the compiler gives a warning
-	return (portReadTiny(portnum)); //this won't be reached, but without it the compiler gives a warning
+	return (0xFF); //this won't be reached, but without it the compiler gives a warning
 }
 
 #define shiftVGA(value) {\
@@ -578,8 +593,6 @@ uint8_t readVGA (uint32_t addr32) {
 
 void initVideoPorts() 
 {
- //JJ set_port_write_redirector (0x3B0, 0x3DA, &outVGA); 
- //JJ set_port_read_redirector (0x3B0, 0x3DA, &inVGA);
- set_port_write_redirector (0x3B0, 0x3DA, (void *)&outVGA);
- set_port_read_redirector (0x3B0, 0x3DA, (void *)&inVGA);
+//  set_port_write_redirector (0x3B0, 0x3DA, (void *)&outVGA);
+//  set_port_read_redirector (0x3B0, 0x3DA, (void *)&inVGA);
 }

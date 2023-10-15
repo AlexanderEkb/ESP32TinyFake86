@@ -9,7 +9,6 @@
 #define SAMPLE_RATE 16000
 #endif
 
-void onPort0x61Write(uint8_t val);
 void my_callback_speaker_func();
 
 #endif /* SPEAKER_H */

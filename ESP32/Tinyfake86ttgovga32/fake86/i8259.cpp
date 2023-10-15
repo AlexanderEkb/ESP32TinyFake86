@@ -30,12 +30,18 @@
 struct structpic i8259;
 
 uint8_t keyboardwaitack;
+//  set_port_write_redirector(0x20, 0x21, (void *)&out8259);
+//  set_port_read_redirector(0x20, 0x21, (void *)&in8259);
+static uint8_t in8259(uint32_t portnum);
+static void out8259(uint32_t portnum, uint8_t value);
 
-//JJ extern void set_port_write_redirector(uint16_t startport, uint16_t endport, void *callback);
-//JJ extern void set_port_read_redirector(uint16_t startport, uint16_t endport, void *callback);
+IOPort port_020h = IOPort(0x020, 0xFF, in8259, out8259);
+IOPort port_021h = IOPort(0x021, 0xFF, in8259, out8259);
+IOPort port_0A0h = IOPort(0x0A0, 0xFF, nullptr, nullptr);
 
-uint8_t in8259(uint16_t portnum) {
-	switch (portnum & 1) {
+uint8_t in8259(uint32_t portnum)
+{
+  switch (portnum & 1) {
 		   case 0:
 			if (i8259.readmode==0) return(i8259.irr); else return(i8259.isr);
 		   case 1: //read mask register
@@ -45,7 +51,7 @@ uint8_t in8259(uint16_t portnum) {
 }
 
 extern uint32_t makeupticks;
-void out8259(uint16_t portnum, uint8_t value) {
+void out8259(uint32_t portnum, uint8_t value) {
 	 uint8_t i;
 	 switch (portnum & 1) {
 		case 0:
@@ -104,6 +110,6 @@ uint8_t nextintr() {
 
 void init8259() {
 	 memset((void *)&i8259, 0, sizeof(i8259));
-	 set_port_write_redirector(0x20, 0x21, (void *)&out8259);
-	 set_port_read_redirector(0x20, 0x21, (void *)&in8259);
+	//  set_port_write_redirector(0x20, 0x21, (void *)&out8259);
+	//  set_port_read_redirector(0x20, 0x21, (void *)&in8259);
 }

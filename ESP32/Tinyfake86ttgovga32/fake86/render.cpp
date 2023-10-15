@@ -26,6 +26,7 @@
 //JJ #include "mutex.h"
 #include "gbGlobals.h"
 #include "cpu.h"
+#include "ports.h"
 #include "render.h"
 #include "fake86.h"
 #include "gb_sdl_font8x8.h"
@@ -113,6 +114,8 @@ CompositeColorOutput composite(CompositeColorOutput::NTSC);
 uint32_t pendingColorburstValue = PENDING_COLORBURST_NO;
 char **gb_buffer_vga;
 
+static IOPort * port_3D8 = IOPortSpace::getInstance().get(0x3D8);
+static IOPort * port_3D4 = IOPortSpace::getInstance().get(0x3D4);
 //**************************
 
 void renderInit() {
@@ -291,7 +294,7 @@ void SDLdump80x25_font4x8()
   unsigned char aColor,aBgColor,aChar,swapColor;;
   unsigned int nOffset=0;
 
-  if ( (gb_portramTiny[fast_tiny_port_0x3D8]==9) && (gb_portramTiny[fast_tiny_port_0x3D4]==9) )
+  if ( (port_3D8->value==9) && (port_3D4->value==9))
   {
     SDLdump160x100_font4x8();
     return;
@@ -388,7 +391,7 @@ void SDLdump160x100_font8x8()
 //*****************************************
 void SDLdump80x25_font8x8()
 {
- if ((gb_portramTiny[fast_tiny_port_0x3D8] == 9) && (gb_portramTiny[fast_tiny_port_0x3D4] == 9))
+ if ((port_3D8->value == 9) && (port_3D4->value == 9))
  {
   SDLdump160x100_font8x8();
   return;
@@ -408,24 +411,6 @@ void SDLdump80x25_font8x8()
    bOffset++;
   }
  }
-
-//  const bool cbShowCursor = ((totalframes & 0x02) != 0);
-//  if (cbShowCursor)
-//  {
-//   uint32_t attrByte = (cursy * 80 + cursx) << 1 + 1;
-//   aColor = gb_video_cga[attrByte] & 0x0F;
-//   const int posX = cursx << 3;
-//   const int posY = cursy << 3;
-//   for (int row = 5; row < 8; row++)
-//   {
-//    for (int col = 0; col < 8; col++)
-//    {
-//     const int vgaLine = posY + row + VERTICAL_OFFSET;
-//     const int vgaCol = posX - col + 15;
-//     gb_buffer_vga[vgaLine][vgaCol] = aColor;
-//    }
-//   }
-//  }
 }
 
 void SDLdump40x25_font8x8()
@@ -598,7 +583,7 @@ void draw()
   //   for (x = 0; x < 720; x++)
   //   {
   //   charx = x;
-  //   chary = y >> 1;
+  //   chary = y >> 1;7
   //   vidptr = videobase + ((y & 3) << 13) + (y >> 2) * 90 + (x >> 3);
   //   curpixel = (read86(vidptr) >> (7 - (charx & 7))) & 1;
   //   color = curpixel ? 0x00FFFFFF : 0x00000000;

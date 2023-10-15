@@ -1,6 +1,7 @@
 #include "speaker.h"
-#include "hardware.h"
 #include "esp32-hal-gpio.h"
+#include "hardware.h"
+#include "ports.h"
 
 volatile unsigned int gb_pulsos_onda = 0;
 volatile unsigned int gb_cont_my_callbackfunc = 0;
@@ -15,6 +16,10 @@ volatile int gb_frecuencia01 = 0;
 volatile int gb_volumen01 = 0;
 unsigned char gb_silence = 0;
 
+static void onPort0x61Write(uint32_t address, uint8_t val);
+
+IOPort port_061h = IOPort(0x061, 0xFF, nullptr, onPort0x61Write);
+
 static void CalculaPulsosSonido(int freq)
 {
   if (freq != 0)
@@ -23,8 +28,9 @@ static void CalculaPulsosSonido(int freq)
     gb_pulsos_onda = 0;
 }
 
-void onPort0x61Write(uint8_t val)
+void onPort0x61Write(uint32_t address, uint8_t val)
 {
+  (void)address;
   speakerenabled = ((val & 3) == 3) ? 1 : 0;
   unsigned int aData = (gb_frec_speaker_high << 8) | gb_frec_speaker_low;
   aData = (aData != 0) ? (1193180 / aData) : 0;
@@ -56,7 +62,7 @@ void my_callback_speaker_func()
     {
       if (speaker_pin_estado != gb_estado_sonido)
       {
-        digitalWrite(SPEAKER_PIN, (gb_estado_sonido == LOW)?LOW:HIGH);
+        digitalWrite(SPEAKER_PIN, (gb_estado_sonido == LOW) ? LOW : HIGH);
         speaker_pin_estado = gb_estado_sonido;
       }
     }

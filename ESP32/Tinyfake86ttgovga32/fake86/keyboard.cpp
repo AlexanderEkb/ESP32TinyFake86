@@ -1,4 +1,9 @@
 #include "keyboard.h"
+#include "ports.h"
+
+IOPort port_060h = IOPort(0x060, 0x00, nullptr, nullptr);
+IOPort port_063h = IOPort(0x063, 0x00, nullptr, nullptr);
+IOPort port_064h = IOPort(0x064, 0x00, nullptr, nullptr);
 
 uint8_t KeyboardDriverAT::incoming = 0;
 uint8_t KeyboardDriverAT::lastKey = 0;

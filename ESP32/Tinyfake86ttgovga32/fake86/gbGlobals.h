@@ -71,10 +71,6 @@ extern unsigned char cf;
 //  extern unsigned char portram[0x10000];
 // #endif
 // JJ extern unsigned char portram[gb_max_portram]; //limito a 1023 bytes de puertos
-extern unsigned char gb_portramTiny[51]; // Solo 51 puertos
-extern void *gb_portTiny_write_callback[5];
-extern void *gb_portTiny_read_callback[5];
-
 extern unsigned char running;
 
 extern unsigned char vidmode;
@@ -156,12 +152,4 @@ extern unsigned long int gb_jj_cont_timer;
 
  extern unsigned char gb_invert_color;
  extern unsigned char gb_silence;
-  
-
-
-
- void portWrite(uint32_t, uint8_t);
- void portSet(uint32_t, uint8_t);
- void portReset(uint32_t, uint8_t);
-
 #endif
