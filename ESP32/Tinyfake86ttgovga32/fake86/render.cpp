@@ -137,6 +137,31 @@ void renderExec()
   }
 }
 
+void renderClearScreen()
+{
+  for (int y = 0; y < 200; y++)
+    for (int x = 0; x < 320; x++)
+      gb_buffer_vga[y + VERTICAL_OFFSET][x] = 0;
+}
+
+void renderPrintCharOSD(char character, int col, int row, unsigned char color, unsigned char backcolor)
+{
+  // unsigned char aux = gb_sdl_font_6x8[(car-64)];
+  int auxId = character << 3; //*8
+  unsigned char pixel;
+  for (uint32_t y = 0; y < 8; y++)
+  {
+    uint8_t aux = gb_sdl_font_8x8[auxId + y];
+    for (uint32_t x = 0; x < 8; x++)
+    {
+      pixel = ((aux >> x) & 0x01);
+      const uint32_t line = row + y + VERTICAL_OFFSET;
+      const uint32_t column = col + (8 - x);
+      gb_buffer_vga[line][column] = (pixel == 1) ? color : backcolor;
+    }
+  }
+}
+
 void PreparaPaleta()
 {
  InitPaletaCGA();
@@ -167,12 +192,6 @@ extern void handleinput();
 void VideoThreadPoll()
 {
  draw();
-}
-
-inline void jj_fast_putpixel(int x,int y,unsigned char c)
-{
-//  gb_buffer_vga[y + VERTICAL_OFFSET][x] = gb_color_vga[c];
- gb_buffer_vga[y + VERTICAL_OFFSET][x] = c;
 }
 
 extern uint16_t vtotal;

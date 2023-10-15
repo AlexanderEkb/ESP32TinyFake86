@@ -4,7 +4,9 @@
  void renderInit();
  void renderExec();
  void renderSetBlitter(unsigned int blitter);
- void jj_fast_putpixel(int x, int y, unsigned char c);
+ void renderClearScreen(void);
+ void renderPrintCharOSD(char character, int col, int row, unsigned char color, unsigned char backcolor);
+ 
  unsigned char initscreen ();
  void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
  void InitPaletaCGA(void);

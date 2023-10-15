@@ -134,31 +134,7 @@ const char * gb_reset_menu[max_gb_reset_menu]={
 
 static void ShowColorTable();
 
-void SDLClear()
-{
- for (int y=0; y<200; y++)
-  for (int x=0; x<320; x++)
-   jj_fast_putpixel(x,y,0);
-}
-
 //*************************************************************************************
-void SDLprintCharOSD(char car,int col,int row,unsigned char color,unsigned char backcolor)
-{ 
-// unsigned char aux = gb_sdl_font_6x8[(car-64)];
- int auxId = car << 3; //*8
- unsigned char pixel;
- for (uint32_t y=0; y<8; y++)
- {
-  uint8_t aux = gb_sdl_font_8x8[auxId + y];
-  for (uint32_t x=0; x<8; x++)
-  {
-   pixel= ((aux>>x) & 0x01);
-   //SDLputpixel(surface,x+(6-i),y+j,(auxColor==1)?color:backcolor);
-   jj_fast_putpixel(col+(8-x),row+y,(pixel==1)?color:backcolor);
-  }
- }
-}
-
 void SDLprintText(const char *cad,int x, int y, unsigned char color,unsigned char backcolor)
 {
 //SDL_Surface *surface,
@@ -168,7 +144,7 @@ void SDLprintText(const char *cad,int x, int y, unsigned char color,unsigned cha
   auxLen=50;
  for (int i=0;i<auxLen;i++)
  {
-  SDLprintCharOSD(cad[i],x,y,color,backcolor);
+  renderPrintCharOSD(cad[i],x,y,color,backcolor);
   x+=7;
  }
 }
@@ -193,10 +169,10 @@ unsigned char ShowTinyMenu(const char *cadTitle,const char **ptrValue,unsigned c
 {
   unsigned char aReturn=0;
   bool bExit = false;
-  SDLClear();
+  renderClearScreen();
   SDLprintText("Port Fake86 by Ackerman",gb_pos_x_menu-(4<<3),gb_pos_y_menu-16,WHITE,0);
   for (int i=0;i<20;i++)
-    SDLprintCharOSD(' ',gb_pos_x_menu+(i<<3),gb_pos_y_menu,0,WHITE);
+    renderPrintCharOSD(' ',gb_pos_x_menu+(i<<3),gb_pos_y_menu,0,WHITE);
   SDLprintText(cadTitle,gb_pos_x_menu,gb_pos_y_menu,0,WHITE);
 
   OSDMenuRowsDisplayScroll(ptrValue,0,aMax);

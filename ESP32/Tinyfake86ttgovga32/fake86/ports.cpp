@@ -27,17 +27,7 @@
 #include <stdio.h>
 #include "ports.h"
 
-// Lista puertos
-// 0x60 teclado
-// 0x64
-// 0x61 speaker
-// 0x3D8 video
-// 0x3D4
-// 0x3D8
-// 0x3D9
-// 0x3C0
-// 0x3C4
-// 0x3CE
+// tree tree::instance;
 
 #ifndef use_lib_not_use_callback_port
 void (*do_callback_write)(uint16_t portnum, uint8_t value) = NULL;
