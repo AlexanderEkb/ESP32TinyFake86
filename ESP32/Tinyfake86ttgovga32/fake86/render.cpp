@@ -114,8 +114,8 @@ CompositeColorOutput composite(CompositeColorOutput::NTSC);
 uint32_t pendingColorburstValue = PENDING_COLORBURST_NO;
 char **gb_buffer_vga;
 
-static IOPort * port_3D8 = IOPortSpace::getInstance().get(0x3D8);
-static IOPort * port_3D4 = IOPortSpace::getInstance().get(0x3D4);
+// static IOPort * port_3D8 = IOPortSpace::getInstance().get(0x3D8);
+// static IOPort * port_3D4 = IOPortSpace::getInstance().get(0x3D4);
 //**************************
 
 void renderInit() {
@@ -294,11 +294,11 @@ void SDLdump80x25_font4x8()
   unsigned char aColor,aBgColor,aChar,swapColor;;
   unsigned int nOffset=0;
 
-  if ( (port_3D8->value==9) && (port_3D4->value==9))
-  {
-    SDLdump160x100_font4x8();
-    return;
-  }
+  // if ( (port_3D8->value==9) && (port_3D4->value==9))
+  // {
+  //   SDLdump160x100_font4x8();
+  //   return;
+  // }
   
  for (int y=0;y<25;y++)
  {  
@@ -391,11 +391,11 @@ void SDLdump160x100_font8x8()
 //*****************************************
 void SDLdump80x25_font8x8()
 {
- if ((port_3D8->value == 9) && (port_3D4->value == 9))
- {
-  SDLdump160x100_font8x8();
-  return;
- }
+//  if ((port_3D8->value == 9) && (port_3D4->value == 9))
+//  {
+//   SDLdump160x100_font8x8();
+//   return;
+//  }
 
  unsigned char aColor, aBgColor, aChar;
  uint32_t bOffset = 0;

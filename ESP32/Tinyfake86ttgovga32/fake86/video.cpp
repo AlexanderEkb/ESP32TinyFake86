@@ -136,7 +136,7 @@ void setVideoParameters(uint32_t modeDesc, int32_t videoBase)
 			else
 			{
 				cols = 40;
-				IOPortSpace::getInstance().setBits(0x3D8, PORT_3D8_80_COL_TEXT);
+				IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
 			}
 		}
     
@@ -198,7 +198,7 @@ void setVideoMode(uint8_t mode)
 			videobase = CGA_BASE_MEMORY;
 			cols = 90;
 			memset(gb_video_cga, 0, 16384);
-      IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
+      // IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
       pendingColorburstValue = PENDING_COLORBURST_TRUE;
 			break;
 	case VIDEO_MODE_0x09: // 320x200 16-color
@@ -207,7 +207,7 @@ void setVideoMode(uint8_t mode)
 			if ((regs.byteregs[regal] & 0x80) == 0) {
 					memset(gb_video_cga, 0, 16384);
 			}
-      IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
+      // IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
       pendingColorburstValue = PENDING_COLORBURST_TRUE;
 			break;
 	case VIDEO_MODE_0x0D: // 320x200 16-color
@@ -215,7 +215,7 @@ void setVideoMode(uint8_t mode)
 	case VIDEO_MODE_0x13: // 320x200 256-color
 			videobase = VGA_BASE_MEMORY;
 			cols = 40;
-      IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
+      // IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
       pendingColorburstValue = PENDING_COLORBURST_TRUE;
 			break;
 	}
@@ -275,115 +275,22 @@ void outVGA (uint32_t portnum, uint8_t value)
 	
 	//updatedscreen = 1;
 	switch (portnum) {
-			case 0x3B8: //hercules support
-				if ( ( (value & 2) == 2) && (vidmode != 127) ) {
-						oldah = regs.byteregs[regah];
-						oldal = regs.byteregs[regal];
-						regs.byteregs[regah] = 0;
-						regs.byteregs[regal] = 127;
-						vidinterrupt();
-						regs.byteregs[regah] = oldah;
-						regs.byteregs[regal] = oldal;
-					}
-				if (value & 0x80) videobase = 0xB8000;
-				else videobase = 0xB0000;
-				break;
-			case 0x3C0:
-				if (flip3c0) {
-						flip3c0 = 0;
-						//JJ puerto portram[0x3C0] = value & 255;
-						IOPortSpace::getInstance().write(0x3C0, value & 255);
-						return;
-					}
-				else {
-						flip3c0 = 1;
-						//JJVGA VGA_ATTR[portram[0x3C0]] = value & 255;
-						return;
-					}
-			case 0x3C4: //sequence controller index
-				//JJ puerto portram[0x3C4] = value & 255;
-				IOPortSpace::getInstance().write(0x3C4, value & 255);
-				//if (portout16) VGA_SC[value & 255] = value >> 8;
-				break;
-			case 0x3C5: //sequence controller data
-				//JJVGA VGA_SC[portram[0x3C4]] = value & 255;
-				/*if (portram[0x3C4] == 2) {
-				printf("VGA_SC[2] = %02X\n", value);
-				}*/
-				break;
 			case 0x3D4: //CRT controller index
 				//JJ portram[0x3D4] = value & 255;
-				IOPortSpace::getInstance().write(0x3D4, value & 255);
 				//if (portout16) VGA_CRTC[value & 255] = value >> 8;
 				break;
-			case 0x3C7: //color index register (read operations)
-				latchReadPal = value & 255;
-				latchReadRGB = 0;
-				stateDAC = 0;
-				break;
-			case 0x3C8: //color index register (write operations)
-				latchPal = value & 255;
-				latchRGB = 0;
-				tempRGB = 0;
-				stateDAC = 3;
-				break;
-			case 0x3C9: //RGB data register
-				value = value & 63;
-				switch (latchRGB) {
-//JJ #ifdef __BIG_ENDIAN__
-//JJ 						case 0: //red
-//JJ 							tempRGB = value << 26;
-//JJ 							break;
-//JJ 						case 1: //green
-//JJ 							tempRGB |= value << 18;
-//JJ 							break;
-//JJ 						case 2: //blue
-//JJ 							tempRGB |= value << 10;
-//JJ 							palettevga[latchPal] = tempRGB;
-//JJ 							latchPal = latchPal + 1;
-//JJ 							break;
-//JJ #else
-						case 0: //red
-							tempRGB = value << 2;
-							break;
-						case 1: //green
-							tempRGB |= value << 10;
-							break;
-						case 2: //blue
-							tempRGB |= value << 18;
-							//JJ palettevga[latchPal] = tempRGB;
-							latchPal = latchPal + 1;
-							break;
-//JJ #endif
-					}
-				latchRGB = (latchRGB + 1) % 3;
-				break;
 			case 0x3D5: //cursor position latch
-				//JJVGA VGA_CRTC[portram[0x3D4]] = value & 255;
-				//JJ puerto if (portram[0x3D4]==0xE)
-				if (IOPortSpace::getInstance().read(0x3D4) == 0xE)
+				if (IOPortSpace::getInstance().get(0x3D4)->value == 0xE)
 				{
 					cursorposition = (cursorposition&0xFF) | (value<<8);
 				}
-				else
-				{
-				 //JJ puerto if (portram[0x3D4]==0xF)
-				 if (IOPortSpace::getInstance().read(0x3D4) == 0xF)
+				else if (IOPortSpace::getInstance().get(0x3D4)->value == 0xF)
 				 {
 				  cursorposition = (cursorposition&0xFF00) |value;
 				 }
-				}
 				cursy = cursorposition/cols;
 				cursx = cursorposition%cols;
         cursorPosition = (cursy << 8) | cursx;
-				//JJ if (portram[0x3D4] == 6) 
-				//JJ {
-				 //JJVGA vtotal = value | ( ( (uint16_t) VGA_GC[7] & 1) << 8) | ( ( (VGA_GC[7] & 32) ? 1 : 0) << 9);
-				 //printf("Vertical total: %u\n", vtotal);
-				//JJ }
-				break;
-			case 0x3CF:
-				//JJVGA VGA_GC[portram[0x3CE]] = value;
 				break;
 			default:
       break;

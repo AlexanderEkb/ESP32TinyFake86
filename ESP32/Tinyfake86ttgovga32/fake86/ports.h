@@ -95,14 +95,15 @@ class IOPort
 
     uint8_t read(uint32_t address)
     {
-      IOPort * port = get(address);
+      uint32_t addr = address & MAX_PORT;
+      IOPort * port = get(addr);
       if(port == nullptr) {
-        LOG("Error reading port %xh\n", address);
-        return 0xFF;
+        // LOG("Error reading port %xh\n", address);
+        return 0x00;
       } else if(port->reader == nullptr) {
         return port->value;
       } else {
-        return port->reader(address);
+        return port->reader(addr);
       }
     }
 
@@ -111,7 +112,7 @@ class IOPort
       IOPort *port = get(address);
       if (port == nullptr)
       {
-        LOG("Error writing port %xh\n", address);
+        // LOG("Error writing port %xh\n", address);
         return;
       }
       port->value = value;
@@ -148,18 +149,19 @@ class IOPort
       write(address, val);
     }
   private:
+    static const uint32_t MAX_PORT = 0x3FF;
     static IOPort *root;
     static IOPortSpace instance;
 
-    void _scan(IOPort * startPoint)
+    void _scan(IOPort *startPoint)
     {
-      if(startPoint != nullptr)
-      {
-        LOG("Port %03xh\n", startPoint->address);
-        _scan(startPoint->right);
-        _scan(startPoint->left);
-      }
+    if(startPoint != nullptr)
+    {
+      LOG("Port %03xh\n", startPoint->address);
+      _scan(startPoint->right);
+      _scan(startPoint->left);
     }
+  }
 };
 
 #endif
