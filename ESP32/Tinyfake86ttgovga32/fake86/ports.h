@@ -41,7 +41,6 @@ class IOPort
         IOPort *port = *node;
         if (port == nullptr)
         {
-          LOG("Added port %03xh\n", newNode->address);
           *node = newNode;
           return;
         }
@@ -96,29 +95,37 @@ class IOPort
     uint8_t read(uint32_t address)
     {
       uint32_t addr = address & MAX_PORT;
-      IOPort * port = get(addr);
+      // LOG("IN %03xh ", addr);
+      IOPort *port = get(addr);
       if(port == nullptr) {
-        LOG("Error reading port %xh\n", addr);
+        // LOG("Error reading port %xh\n", addr);
+        // LOG("(00) Err\n");
         return 0x00;
       } else if(port->reader == nullptr) {
-        return 0xFF; //port->value;
+        // LOG("(%02xh)\n", port->value);
+        return port->value;
       } else {
-        return port->reader(addr);
+        uint8_t result = port->reader(addr);;
+        // LOG("(%02xh)\n", result);
+        return result;
       }
     }
 
     void write(uint32_t address, uint8_t value)
     {
       uint32_t addr = address & MAX_PORT;
+      // LOG("OUT %03xh, %02xh ", addr, value);
       IOPort *port = get(addr);
       if (port == nullptr)
       {
-        LOG("Error writing port %xh\n", addr);
+        // LOG("Error writing port %xh\n", addr);
+        // LOG("Err\n");
         return;
       }
       port->value = value;
       if (port->writer != nullptr)
         port->writer(addr, value);
+        // LOG("\n");
     }
 
     uint16_t read16(uint32_t address)
@@ -126,12 +133,13 @@ class IOPort
       uint16_t LSB = (uint16_t)(read(address));
       uint16_t MSB = (uint16_t)(read(address + 1)) << 16;
       uint16_t result = MSB | LSB;
-
+      // LOG("IN16 %03xh (%x04xh)\n", address, result);
       return result;
     }
 
     void write16(uint32_t address, uint16_t value)
     {
+      // LOG("OUT16:\n");
       write(address, (uint8_t)value);
       write(address + 1, (uint8_t)(value >> 8));
     }

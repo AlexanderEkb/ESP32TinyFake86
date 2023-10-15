@@ -34,7 +34,7 @@ class Stats {
     };
 
     void PrintAndReset() {
-      LOG("c:%u m:%u mx:%u\n", gb_cur_cpu_ticks, gb_min_cpu_ticks, gb_max_cpu_ticks);
+      // LOG("c:%u m:%u mx:%u\n", gb_cur_cpu_ticks, gb_min_cpu_ticks, gb_max_cpu_ticks);
       gb_min_cpu_ticks = 1000000;
       gb_max_cpu_ticks = 0;
       gb_cur_cpu_ticks = 0;

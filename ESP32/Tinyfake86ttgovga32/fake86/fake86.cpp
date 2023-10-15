@@ -82,10 +82,16 @@ uint8_t defaultReader_00(uint32_t address)
   return 0x00;
 }
 
+uint8_t defaultReader_FF(uint32_t address)
+{
+  (void)address;
+  return 0xFF;
+}
+
 uint8_t defaultReader_Stub(uint32_t address)
 {
   // LOG("Reading stub port %03xh\n", address & 0x3FF);
-  return 0x00; //IOPortSpace::getInstance().get(address)->value;
+  return IOPortSpace::getInstance().get(address)->value;
 }
 
 void defaultWriter(uint32_t address, uint8_t value)
@@ -97,21 +103,21 @@ void defaultWriter(uint32_t address, uint8_t value)
 IOPort port_062h = IOPort(0x62, 0x00, defaultReader_00, defaultWriter);
 
 IOPort port_200h = IOPort(0x200, 0x00, defaultReader_Stub, defaultWriter);
-IOPort port_201h = IOPort(0x201, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_201h = IOPort(0x201, 0x00, defaultReader_FF, defaultWriter);
 
 IOPort port_213h = IOPort(0x213, 0x00, defaultReader_Stub, defaultWriter);
 
-IOPort port_278h = IOPort(0x278, 0x00, defaultReader_00, defaultWriter);
-IOPort port_378h = IOPort(0x378, 0x00, defaultReader_00, defaultWriter);
+IOPort port_278h = IOPort(0x278, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_378h = IOPort(0x378, 0x00, defaultReader_FF, defaultWriter);
 
-IOPort port_2E8h = IOPort(0x2E8, 0x00, defaultReader_00, defaultWriter);
-IOPort port_2EBh = IOPort(0x2EB, 0x00, defaultReader_00, defaultWriter);
-IOPort port_2F8h = IOPort(0x2F8, 0x00, defaultReader_00, defaultWriter);
-IOPort port_2FBh = IOPort(0x2FB, 0x00, defaultReader_00, defaultWriter);
-IOPort port_3E8h = IOPort(0x3E8, 0x00, defaultReader_00, defaultWriter);
-IOPort port_3EBh = IOPort(0x3EB, 0x00, defaultReader_00, defaultWriter);
+IOPort port_2E8h = IOPort(0x2E8, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_2EBh = IOPort(0x2EB, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_2F8h = IOPort(0x2F8, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_2FBh = IOPort(0x2FB, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3E8h = IOPort(0x3E8, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3EBh = IOPort(0x3EB, 0x00, defaultReader_FF, defaultWriter);
 IOPort port_3F8h = IOPort(0x3F8, 0x00, defaultReader_Stub, defaultWriter);
-IOPort port_3FBh = IOPort(0x3FB, 0x00, defaultReader_Stub, defaultWriter);
+IOPort port_3FBh = IOPort(0x3FB, 0x00, defaultReader_FF, defaultWriter);
 
 IOPort port_3B4h = IOPort(0x3B4, 0x00, defaultReader_Stub, defaultWriter);
 IOPort port_3B5h = IOPort(0x3B5, 0x00, defaultReader_Stub, defaultWriter);
@@ -348,9 +354,9 @@ void execKeyboard()
         const uint8_t scancode = keyboard->Poll();
         if (scancode != 0)
         {
-            IOPortSpace::getInstance().write(0x060, scancode);
-            uint8_t val = IOPortSpace::getInstance().read(0x064);
-            IOPortSpace::getInstance().write(0x064, val |= 2);
+            IOPortSpace::getInstance().get(0x060)->value = scancode;
+            uint8_t val = IOPortSpace::getInstance().get(0x064)->value;
+            IOPortSpace::getInstance().get(0x064)->value = val |= 2;
             doirq(1);
             Serial.printf("key: 0x%02x\n", scancode);
         }
