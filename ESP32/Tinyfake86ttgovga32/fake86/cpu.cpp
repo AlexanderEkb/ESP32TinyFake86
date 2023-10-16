@@ -44,6 +44,7 @@
 #include "gbGlobals.h"
 #include "ports.h"
 #include <Arduino.h>
+#include "video.h"
 
 extern struct i8253_s i8253;
 
@@ -1647,7 +1648,11 @@ void exec86 (uint32_t execloops) {
       my_callback_speaker_func();
 	 #endif 
 
-			if ( (totalexec & 31) == 0) simulateCGARetrace();
+			if ( (totalexec & 31) == 0)
+      {
+        videoExecCpu();
+        simulateCGARetrace();
+      }
 
             //if ( (totalexec & 0x07) == 0)
 			//{

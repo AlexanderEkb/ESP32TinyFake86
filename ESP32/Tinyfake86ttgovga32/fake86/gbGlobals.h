@@ -120,10 +120,7 @@ extern unsigned long int gb_jj_cont_timer;
 
  extern unsigned char gb_font_8x8;
 
- //retrazo
- extern unsigned char port3da;
- 
- extern unsigned char gb_reset;
+  extern unsigned char gb_reset;
  
 
  //Medicion tiempos

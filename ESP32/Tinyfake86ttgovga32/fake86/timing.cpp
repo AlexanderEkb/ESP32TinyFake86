@@ -52,7 +52,6 @@ extern struct i8253_s i8253;
 unsigned long hostfreq = 1000000;
 
 unsigned int jj_cur_ms_tick, jj_last_ms_tick;
-unsigned char port3da = 0;
 
 //uint16_t pit0counter = 65535; //No lo necesito
 extern uint64_t totalexec;
@@ -63,31 +62,13 @@ void inittiming() {
 }
 
 
-static uint32_t localscanline=0;
-
 void simulateCGARetrace()
 {
-  static const uint8_t CGA_HORIZONTAL_RETRACE = 0x01;
-  static const uint8_t CGA_VERTICAL_RETRACE   = 0x08;
-
-  // Funcion Alleycat y Digger
-  jj_cur_ms_tick = millis();
-  unsigned int auxCurTick = (jj_last_ms_tick - jj_cur_ms_tick);
-  {
-      localscanline++;
-      if (localscanline > 479)
-          port3da = CGA_VERTICAL_RETRACE;
-      else
-          port3da = 0;
-      if (localscanline & 1)
-          port3da |= CGA_HORIZONTAL_RETRACE;
-      if (localscanline > 525)
-          localscanline = 0;
- }
-
  //Fuerzo siempre 54 ms 18.2 ticks 
  //auxCurTick= (jj_last_ms_tick - jj_cur_ms_tick);
  //if (auxCurTick >= 54)
+ jj_cur_ms_tick = millis();
+ unsigned int auxCurTick = (jj_last_ms_tick - jj_cur_ms_tick);
  if (auxCurTick >= gb_timers_poll_milis)
  {
   jj_last_ms_tick = jj_cur_ms_tick;

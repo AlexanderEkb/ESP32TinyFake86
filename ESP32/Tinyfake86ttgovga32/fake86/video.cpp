@@ -95,6 +95,8 @@ IOPort port_3D8h = IOPort(0x3D8, 0xFF, nullptr, nullptr);
 IOPort port_3D9h = IOPort(0x3D9, 0xFF, nullptr, nullptr); // CGA
 IOPort port_3DAh = IOPort(0x3DA, 0xFF, inVGA, nullptr);   // CGA
 
+static unsigned char port3da = 0;
+
 extern union _bytewordregs_ regs;
 uint16_t cursx, cursy, cursorPosition, cols = 80, rows = 25, vgapage, cursorposition, cursorvisible;
 uint8_t clocksafe, port6, portout16;
@@ -363,4 +365,24 @@ void initVideoPorts()
 {
 //  set_port_write_redirector (0x3B0, 0x3DA, (void *)&outVGA);
 //  set_port_read_redirector (0x3B0, 0x3DA, (void *)&inVGA);
+}
+
+void videoExecCpu(void)
+{
+  static const uint8_t CGA_HORIZONTAL_RETRACE = 0x01;
+  static const uint8_t CGA_VERTICAL_RETRACE = 0x08;
+  static uint32_t localscanline = 0;
+
+  // Funcion Alleycat y Digger
+  {
+        localscanline++;
+        if (localscanline > 479)
+              port3da = CGA_VERTICAL_RETRACE;
+        else
+              port3da = 0;
+        if (localscanline & 1)
+              port3da |= CGA_HORIZONTAL_RETRACE;
+        if (localscanline > 525)
+              localscanline = 0;
+  }
 }
