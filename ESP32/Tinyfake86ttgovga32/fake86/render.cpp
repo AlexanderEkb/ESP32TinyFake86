@@ -55,7 +55,23 @@ static void SDLprintChar160x100_font4x8(char car,int x,int y,unsigned char color
 static void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
 static void SDLprintChar160x100_font8x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
 
-const dumper_t dumpers[7] = {
+static const uint32_t DUMPER_COUNT = 7;
+
+static const uint32_t MODE_COUNT = 7;
+
+typedef enum {COLOR_SHOW, COLOR_JAM} color_t;
+typedef struct {
+  dumper_t  dumper;
+  uint32_t  textWidth;
+  uint32_t  palette;
+  color_t   color;
+} videoMode_t;
+
+const videoMode_t modes[MODE_COUNT] = {
+  {}
+};
+
+const dumper_t dumpers[DUMPER_COUNT] = {
   dump160x100_font4x8,
   dump80x25_font4x8,
   dump160x100_font8x8,
@@ -712,6 +728,7 @@ void renderSetBlitter(unsigned int blitter)
 void renderSetColorEnabled(bool bEnabled)
 {
   render.pendingColorburstValue = bEnabled?PENDING_COLORBURST_TRUE:PENDING_COLORBURST_FALSE;
+  LOG("SetColorEnabled(%i)\n", bEnabled);
 }
 
 void renderSetColumnCount(uint32_t columnCount)
@@ -737,6 +754,7 @@ void renderUpdateColorSettings(uint32_t paletteIndex, uint32_t color)
   render.paletteIndex = paletteIndex;
   render.specialColor = color;
 
+  LOG("updateColorSettings(%02x, %02x)\n", paletteIndex, color);
   enum mode {TEXT, GRAPH_LO, GRAPH_HI} mode = (render.dumper <= 4)?TEXT:((render.dumper == 5)?GRAPH_LO:GRAPH_HI);
   switch(mode)
   {
@@ -766,8 +784,14 @@ void renderUpdateDumper(uint32_t dumper)
 {
   if(render.dumper != dumper)
   {
-    renderUpdateColorSettings(render.paletteIndex, render.specialColor);
-    render.dumper = dumper;
+    if(dumper < DUMPER_COUNT)
+    {
+      renderUpdateColorSettings(render.paletteIndex, render.specialColor);
+      render.dumper = dumper;
+      LOG("Dumper #%i\n", dumper);
+    }
+    else
+      LOG("Dumper #%i - FAIL!\n", dumper);
   }
 }
 
