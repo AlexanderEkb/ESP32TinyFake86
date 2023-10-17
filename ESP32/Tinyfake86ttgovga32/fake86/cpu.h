@@ -133,11 +133,6 @@ void ExternalSetCF(unsigned char valor);
 
 void my_callback_speaker_func(void);
 
-#ifdef use_lib_sna_rare
- void jj_write86_remap(unsigned int addr32, unsigned char value);
- unsigned char jj_read86_remap(unsigned int addr32);
-#endif 
-
 #ifndef use_lib_fast_push
  void push (unsigned short int pushval);
 #endif
