@@ -11,23 +11,7 @@
 #define LOG(...) (void)
 #endif
 
-#define PENDING_COLORBURST_NO     (0x00)
-#define PENDING_COLORBURST_TRUE   (0x01)
-#define PENDING_COLORBURST_FALSE  (0x02)
-
-#define fast_tiny_port_0x60 11
-#define fast_tiny_port_0x61 12
-#define fast_tiny_port_0x64 14
-#define fast_tiny_port_0x3C0 37
-#define fast_tiny_port_0x3C4 40
-#define fast_tiny_port_0x3D4 44
-#define fast_tiny_port_0x3D8 46
-#define fast_tiny_port_0x3D9 47
-#define fast_tiny_port_0x3B9 31
-
 #define CGA_BASE_MEMORY (0xB8000)
-#define HGC_BASE_MEMORY (0xB0000)
-#define VGA_BASE_MEMORY (0xA0000)
 
 #define VIDEO_MODE_40x25_BW       (0x00)
 #define VIDEO_MODE_40x25_COLOR    (0x01)
@@ -36,14 +20,7 @@
 #define VIDEO_MODE_320x200_COLOR  (0x04)
 #define VIDEO_MODE_320x200_BW     (0x05)
 #define VIDEO_MODE_640x200_COLOR  (0x06)
-#define VIDEO_MODE_0x09           (0x09)
-#define VIDEO_MODE_0x0D           (0x0D)
-#define VIDEO_MODE_0x12           (0x12)
-#define VIDEO_MODE_0x13           (0x13)
-#define VIDEO_MODE_0x7F           (0x7F)
 
-// JJ extern CRITICAL_SECTION screenmutex;
-// extern SDL_Surface *screen;
 extern unsigned char bootdrive;
 // noscale, usessource, useconsole,doaudio,cgaonly,nosmooth,ethif
 
@@ -72,8 +49,6 @@ extern unsigned char cf;
 // #endif
 // JJ extern unsigned char portram[gb_max_portram]; //limito a 1023 bytes de puertos
 extern unsigned char running;
-
-extern unsigned char vidmode;
 
 #ifdef use_lib_debug_interrupt
 extern unsigned char gb_interrupt_before;

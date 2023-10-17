@@ -717,6 +717,23 @@ void modregrm()
 {
   uint8_t addrbyte = getmem8(segregs[regcs], ip);
   StepIP(1);
+  /* ╭───────────┬─────────────────┬─────────────────╮ */
+  /* │    MODE   │       REG       │       MEM       │ */
+  /* ├─────┬─────┼─────┬─────┬─────┼─────┬─────┬─────┤ */
+  /* │  7  │  6  │  5  │  4  │  3  │  2  │  1  │  0  │ */
+  /* ├─────┴─────┼─────┴─────┴─────┼─────┴─────┴─────┤ */
+  /* │ 00:0      │  000: AL / AX   │ 000: BX+IX+mode │ */
+  /* │ 01:disp8  │  001: CL / CX   │ 001: BX+IY+mode │ */
+  /* │ 10:disp16 │  010: DL / DX   │ 010: BP+IX+mode │ */
+  /* │ 11:REG    │  011: BL / BX   │ 011: BP+IY+mode │ */
+  /* │           │  100: AH / SP   │ 100: IX+mode    │ */
+  /* │           │  101: CH / BP   │ 101: IY+mode    │ */
+  /* │           │  110: DH / DI   │ 110: mode:      │ */
+  /* │           │  111: BH / SI   │  00: dir addr.  │ */
+  /* │           │                 │  01: BP+disp8   │ */
+  /* │           │                 │  10: BP+disp16  │ */
+  /* │           │                 │ 111: BW+mode    │ */
+  /* ╰───────────┴─────────────────┴─────────────────╯ */
   mode = addrbyte >> 6;
   reg = (addrbyte >> 3) & 7;
   rm = addrbyte & 7;
@@ -1476,88 +1493,78 @@ void exec86 (uint32_t execloops) {
   static uint16_t _temp16;
 	uint32_t	loopcount;
 	uint8_t	docontinue;
-	static uint16_t firstip;
+	static uint16_t _REP_ip;
 	static uint16_t trap_toggle = 0;
 
 	for (loopcount = 0; loopcount < execloops; loopcount++)
 	{
+    if ( (totalexec & 31) == 0)
+    {
+      videoExecCpu();
+      simulateCGARetrace();
+    }
+    if (trap_toggle)
+      intcall86 (1);
+    trap_toggle = (tf)?1:0;
+    if (!trap_toggle && (ifl && (i8259.irr & (~i8259.imr) ) ) )
+      intcall86 (nextintr() );	/* get next interrupt from the i8259, if any */
 
-     #ifdef use_lib_speaker_cpu
-      my_callback_speaker_func();
-	 #endif 
+    reptype = 0;
+    segoverride = 0;
+    useseg = segregs[regds];
+    docontinue = 0;
+    _REP_ip = ip;
 
-			if ( (totalexec & 31) == 0)
-      {
-        videoExecCpu();
-        simulateCGARetrace();
-      }
-
-            //if ( (totalexec & 0x07) == 0)
-			//{
-            // delayMicroseconds(gb_delay_tick_cpu_micros);
-            //}
-
-			if (trap_toggle) {
-					intcall86 (1);
-				}
-            trap_toggle=  (tf)?1:0;
-			if (!trap_toggle && (ifl && (i8259.irr & (~i8259.imr) ) ) ) {
-					intcall86 (nextintr() );	/* get next interrupt from the i8259, if any */
-				}
-
-			reptype = 0;
-			segoverride = 0;
-			useseg = segregs[regds];
-			docontinue = 0;
-			firstip = ip;
-
-			if ( (segregs[regcs] == 0xF000) && (ip == 0xE066) ) didbootstrap = 0; //detect if we hit the BIOS entry point to clear didbootstrap because we've rebooted
+    if ( (segregs[regcs] == 0xF000) && (ip == 0xE066) )
+      didbootstrap = 0; //detect if we hit the BIOS entry point to clear didbootstrap because we've rebooted
       
-      static uint8_t opcode;
-			while (!docontinue) {
-					segregs[regcs] = segregs[regcs] & 0xFFFF;
-					ip = ip & 0xFFFF;
-					opcode = getmem8 (segregs[regcs], ip);
-					StepIP (1);
+    static uint8_t opcode;
+    while (!docontinue) 
+    {
+      segregs[regcs] = segregs[regcs] & 0xFFFF;
+      ip = ip & 0xFFFF;
+      opcode = getmem8 (segregs[regcs], ip);
+      StepIP (1);
 
-					switch (opcode) {
-								/* segment prefix check */
-							case 0x2E:	/* segment segregs[regcs] */
-								useseg = segregs[regcs];
-								segoverride = 1;
-								break;
+      switch (opcode)
+      {
+        /* segment prefix check */
+        case 0x2E:	/* segment segregs[regcs] */
+          useseg = segregs[regcs];
+          segoverride = 1;
+          break;
 
-							case 0x3E:	/* segment segregs[regds] */
-								useseg = segregs[regds];
-								segoverride = 1;
-								break;
+        case 0x3E:	/* segment segregs[regds] */
+          useseg = segregs[regds];
+          segoverride = 1;
+          break;
 
-							case 0x26:	/* segment segregs[reges] */
-								useseg = segregs[reges];
-								segoverride = 1;
-								break;
+        case 0x26:	/* segment segregs[reges] */
+          useseg = segregs[reges];
+          segoverride = 1;
+          break;
 
-							case 0x36:	/* segment segregs[regss] */
-								useseg = segregs[regss];
-								segoverride = 1;
-								break;
+        case 0x36:	/* segment segregs[regss] */
+          useseg = segregs[regss];
+          segoverride = 1;
+          break;
 
-								/* repetition prefix check */
-							case 0xF3:	/* REP/REPE/REPZ */
-								reptype = 1;
-								break;
+        /* repetition prefix check */
+        case 0xF3:	/* REP/REPE/REPZ */
+          reptype = 1;
+          break;
 
-							case 0xF2:	/* REPNE/REPNZ */
-								reptype = 2;
-								break;
+        case 0xF2:	/* REPNE/REPNZ */
+          reptype = 2;
+          break;
 
-							default:
-								docontinue = 1;
-								break;
-						}
-				}
+        default:
+          docontinue = 1;
+          break;
+      }
+    }
 
-			totalexec++;
+    totalexec++;  // After prefix check
 
 			switch (opcode) {
 					case 0x0:	/* 00 ADD Eb Gb */
@@ -2378,13 +2385,13 @@ void exec86 (uint32_t execloops) {
 								putreg16 (regcx, getreg16 (regcx) - 1);
 							}
 
-						totalexec++;
+						totalexec++;  // INSB
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0x6D:	/* 6F INSW */
@@ -2406,13 +2413,13 @@ void exec86 (uint32_t execloops) {
 								putreg16 (regcx, getreg16 (regcx) - 1);
 							}
 
-						totalexec++;
+						totalexec++;  // INSW
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0x6E:	/* 6E OUTSB */
@@ -2436,13 +2443,13 @@ void exec86 (uint32_t execloops) {
 								putreg16 (regcx, getreg16 (regcx) - 1);
 							}
 
-						totalexec++;
+						totalexec++;  // OUTSB
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0x6F:	/* 6F OUTSW */
@@ -2464,13 +2471,13 @@ void exec86 (uint32_t execloops) {
 								putreg16 (regcx, getreg16 (regcx) - 1);
 							}
 
-						totalexec++;
+						totalexec++;  // OUTSW
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 #endif
 
@@ -2882,13 +2889,13 @@ void exec86 (uint32_t execloops) {
 								putreg16 (regcx, getreg16 (regcx) - 1);
 							}
 
-						totalexec++;
+						totalexec++;  // MOVSB
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0xA5:	/* A5 MOVSW */
@@ -2910,13 +2917,13 @@ void exec86 (uint32_t execloops) {
 								putreg16 (regcx, getreg16 (regcx) - 1);
 							}
 
-						totalexec++;
+						totalexec++;  // MOVSW
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0xA6:	/* A6 CMPSB */
@@ -2947,13 +2954,13 @@ void exec86 (uint32_t execloops) {
 								break;
 							}
 
-						totalexec++;
+						totalexec++;  // CMPSB
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0xA7:	/* A7 CMPSW */
@@ -2985,13 +2992,13 @@ void exec86 (uint32_t execloops) {
 								break;
 							}
 
-						totalexec++;
+						totalexec++;  // CMPSW
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0xA8:	/* A8 TEST regs.byteregs[regal] Ib */
@@ -3025,13 +3032,13 @@ void exec86 (uint32_t execloops) {
 								putreg16 (regcx, getreg16 (regcx) - 1);
 							}
 
-						totalexec++;
+						totalexec++;  // STOSB
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0xAB:	/* AB STOSW */
@@ -3051,13 +3058,13 @@ void exec86 (uint32_t execloops) {
 								putreg16 (regcx, getreg16 (regcx) - 1);
 							}
 
-						totalexec++;
+						totalexec++;  // STOSW
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0xAC:	/* AC LODSB */
@@ -3077,13 +3084,13 @@ void exec86 (uint32_t execloops) {
 								putreg16 (regcx, getreg16 (regcx) - 1);
 							}
 
-						totalexec++;
+						totalexec++;  // LODSB
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0xAD:	/* AD LODSW */
@@ -3104,13 +3111,13 @@ void exec86 (uint32_t execloops) {
 								putreg16 (regcx, getreg16 (regcx) - 1);
 							}
 
-						totalexec++;
+						totalexec++;  // LODSW
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0xAE:	/* AE SCASB */
@@ -3139,13 +3146,13 @@ void exec86 (uint32_t execloops) {
 								break;
 							}
 
-						totalexec++;
+						totalexec++;  // SCACB
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0xAF:	/* AF SCASW */
@@ -3174,13 +3181,13 @@ void exec86 (uint32_t execloops) {
 								break;
 							}
 
-						totalexec++;
+						totalexec++;  // SCACW
 						loopcount++;
 						if (!reptype) {
 								break;
 							}
 
-						ip = firstip;
+						ip = _REP_ip;
 						break;
 
 					case 0xB0:	/* B0 MOV regs.byteregs[regal] Ib */

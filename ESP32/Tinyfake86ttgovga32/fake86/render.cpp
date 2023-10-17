@@ -20,7 +20,6 @@
 
 #include "gbConfig.h"
 //#include <SDL/SDL.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <Arduino.h>
 //JJ #include "mutex.h"
@@ -36,7 +35,38 @@
 #define SUPPORT_NTSC 1
 #include "CompositeColorOutput.h"
 
-#define uint32_t int
+#define PENDING_COLORBURST_NO     (0x00)
+#define PENDING_COLORBURST_TRUE   (0x01)
+#define PENDING_COLORBURST_FALSE  (0x02)
+
+typedef void (* dumper_t)(void);
+
+static void dump160x100_font4x8(void);
+static void dump80x25_font4x8(void);
+static void dump160x100_font8x8(void);
+static void dump80x25_font8x8(void);
+static void dump40x25_font8x8(void);
+static void dump320x200(void);
+static void dump640x200(void);
+
+static void SDLprintChar_c(char car,int x,int y,unsigned char color,unsigned char backcolor);
+static void SDLprintChar(char car,int x,int y,unsigned char color,unsigned char backcolor);
+static void SDLprintChar160x100_font4x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
+static void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
+static void SDLprintChar160x100_font8x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
+
+const dumper_t dumpers[7] = {
+  dump160x100_font4x8,
+  dump80x25_font4x8,
+  dump160x100_font8x8,
+  dump80x25_font8x8,
+  dump40x25_font8x8,
+  dump320x200,
+  dump640x200
+};
+
+cursor_t cursor;
+static uint32_t scanlineBuffer[80];
 
 static const uint32_t VERTICAL_OFFSET = 20;
 
@@ -68,7 +98,7 @@ const unsigned char gb_color_cgagray[16]={
 };
 
 //Escala Gris static Rapido
-static unsigned char gb_color_vga[16]={
+static unsigned char palette[16]={
     0x00,   0x84,   0xC4,   0xA4,   0x34,   0x54,   0xF4,   0x07,
     0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
 };
@@ -80,43 +110,73 @@ static unsigned char gb_color_text_cga[16]={
     0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
 };
 
-uint32_t mixer[256] = {
-/*        0x00       0x01       0x02       0x03       0x04       0x05       0x06       0x07       0x08       0x09    */  
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-/*0x00*/  0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
-};
+static struct render {
+  uint32_t dumper = 0;
+  uint32_t colCount = 80;
+  uint32_t frameCount = 0;
+  uint32_t paletteIndex = 0;
+  uint32_t specialColor = 0;
+  uint32_t pendingColorburstValue = PENDING_COLORBURST_NO;
+} render;
 
-extern uint16_t cursx, cursy, cols, rows, vgapage, cursorposition, cursorvisible;
-extern uint8_t clocksafe, port6, portout16;
-extern uint32_t videobase, textbase;
-extern uint32_t usefullscreen;
-uint64_t totalframes = 0;
-char windowtitle[128];
-unsigned char vidmode = 0;
-
-int gb_cont_rgb=0;
 
 CompositeColorOutput composite(CompositeColorOutput::NTSC);
-uint32_t pendingColorburstValue = PENDING_COLORBURST_NO;
+
 char **gb_buffer_vga;
 
-// static IOPort * port_3D8 = IOPortSpace::getInstance().get(0x3D8);
-// static IOPort * port_3D4 = IOPortSpace::getInstance().get(0x3D4);
-//**************************
+uint32_t cursor_t::row;
+uint32_t cursor_t::col;
+uint32_t cursor_t::value;
+uint32_t cursor_t::start;
+uint32_t cursor_t::end;
+
+void cursor_t::updateMSB(uint8_t MSB)
+{
+  value = (value & 0x00FF) | (MSB << 8);
+  updatePosition();
+};
+
+void cursor_t::updateLSB(uint8_t LSB)
+{
+  value = (value & 0xFF00) | (LSB);
+  updatePosition();
+};
+
+void cursor_t::updateStart(uint32_t startLine)
+{
+  start = startLine;
+}
+
+void cursor_t::updateEnd(uint32_t endLine)
+{
+  end = endLine;
+}
+
+uint32_t __always_inline cursor_t::getCol()
+{
+  return col;
+};
+
+uint32_t __always_inline cursor_t::getRow()
+{
+  return row;
+};
+
+uint32_t __always_inline cursor_t::getStart()
+{
+  return start;
+};
+
+uint32_t __always_inline cursor_t::getEnd()
+{
+  return end;
+};
+
+void cursor_t::updatePosition()
+{
+  row = value / render.colCount;
+  col = value % render.colCount;
+};
 
 void renderInit() {
   gb_buffer_vga = (char **)malloc(CompositeColorOutput::YRES * sizeof(char *));
@@ -133,10 +193,10 @@ void renderInit() {
 
 void renderExec()
 {
-  if (pendingColorburstValue != PENDING_COLORBURST_NO)
+  if (render.pendingColorburstValue != PENDING_COLORBURST_NO)
   {
-    composite.setColorburstEnabled(pendingColorburstValue == PENDING_COLORBURST_TRUE);
-    pendingColorburstValue = PENDING_COLORBURST_NO;
+    composite.setColorburstEnabled(render.pendingColorburstValue == PENDING_COLORBURST_TRUE);
+    render.pendingColorburstValue = PENDING_COLORBURST_NO;
   }
 }
 
@@ -186,9 +246,6 @@ unsigned char initscreen()
 	return (1);
 }
 
-uint32_t nw, nh; //native width and height, pre-stretching (i.e. 320x200 for mode 13h)
-
-extern uint16_t oldw, oldh;
 void draw();
 extern void handleinput();
 
@@ -197,80 +254,8 @@ void VideoThreadPoll()
  draw();
 }
 
-extern uint16_t vtotal;
-
-//*************************************************************************************
-void SDLprintChar_c(char code,int x,int y,unsigned char color,unsigned char backcolor)
-{ 
- int nBaseOffset = code << 3;
- const bool cbTime = totalframes & 0x04;
- for (unsigned int row=0; row<8; row++)
- {
-     unsigned char bLine = ((row >= 6) && (cbTime))?0xFF:gb_sdl_font_8x8[nBaseOffset + row];
-     for (int col = 0; col < 8; col++) {
-      unsigned char Pixel = ((bLine >> col) & 0x01);
-      const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
-      const uint32_t vgaCol = x - col + 15;
-      gb_buffer_vga[vgaLine][vgaCol] = gb_color_text_cga[(Pixel != 0) ? color : backcolor];
-  }
- }
-}
-
-//*************************************************************************************
-void SDLprintChar(char code, int x, int y, unsigned char color, unsigned char backcolor)
-{
-  if((x == (cursx << 3)) && (y == (cursy << 3)))
-  {
-    SDLprintChar_c(code, x, y, color, backcolor);
-  }
-  else
-  {
-    // unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
-    int nBaseOffset = code << 3; //*8
-    for (unsigned int row = 0; row < 8; row++)
-    {
-      unsigned char bLine = gb_sdl_font_8x8[nBaseOffset + row];
-      for (int col = 0; col < 8; col++)
-      {
-          unsigned char Pixel = ((bLine >> col) & 0x01);
-          const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
-          const uint32_t vgaCol = x - col + 15;
-          gb_buffer_vga[vgaLine][vgaCol] = gb_color_text_cga[(Pixel != 0) ? color : backcolor];
-      }
-    }
-  }
-}
-
 //*****************************************
-void SDLprintChar160x100_font4x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
-{
- unsigned char bFourPixels;
- unsigned char bFourPixelsBit,bFourPixelsColor;
- unsigned char aColor;
- unsigned char nibble0;
- unsigned char nibble1;
- switch (car)
- {
-  case 221: nibble0=color; nibble1=backcolor; break;
-  case 222: nibble0=backcolor; nibble1=color; break;
-  default: nibble0=0; nibble1=0; break;  
- }
- for (unsigned char j=0;j<2;j++)
- {
-  //bFourPixels = gb_sdl_font_8x8[bFourPixelsId + j];  
-  for (int i=0;i<2;i++)
-  {//4 primeros pixels
-         gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + i)] = gb_color_text_cga[nibble0];
-  }
-  for (int i=2;i<4;i++)
-  {//4 segundos pixels
-         gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + i)] = gb_color_text_cga[nibble1];
-  }  
- }
-}     
-
-//*****************************************
-void SDLdump160x100_font4x8()
+static void dump160x100_font4x8()
 {
  unsigned char aColor,aBgColor,aChar;
  unsigned int bFourPixelsOffset=0;     
@@ -288,8 +273,7 @@ void SDLdump160x100_font4x8()
  }
 }
 
-//*****************************************
-void SDLdump80x25_font4x8()
+static void dump80x25_font4x8()
 {
   unsigned char aColor,aBgColor,aChar,swapColor;;
   unsigned int nOffset=0;
@@ -322,54 +306,7 @@ void SDLdump80x25_font4x8()
  }
 }
 
-//*****************************************
-void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
-{ 
-// unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
- int nBaseOffset = car << 3; //*8
- for (unsigned char row=0;row<8;row++)
- {  
-  uint8_t Line = gb_sdl_font_4x8[nBaseOffset + row];  
-  for (int i=4;i<8;i++)
-  {
-   uint8_t Pixel = ((Line>>i) & 0x01);
-   //jj_fast_putpixel(x+(7-i),y+j,(bFourPixelsColor==1)?color:backcolor);
-   gb_buffer_vga[(y+row) + VERTICAL_OFFSET][(x+(7-i)) + 8]= gb_color_text_cga[((Pixel == 0)?color:backcolor)];
-  }
- }
-}
-
-
-//*****************************************************
-void SDLprintChar160x100_font8x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
-{
- unsigned char bFourPixels;
- unsigned char bFourPixelsBit,bFourPixelsColor;
- unsigned char aColor;
- unsigned char nibble0;
- unsigned char nibble1; 
- switch (car)
- {
-  case 221: nibble0=color; nibble1=backcolor; break;
-  case 222: nibble0=backcolor; nibble1=color; break;
-  default: nibble0=0; nibble1=0; break;  
- }
- for (unsigned char j=0;j<2;j++)
- {
-  //bFourPixels = gb_sdl_font_8x8[bFourPixelsId + j];  
-  for (int i=0;i<4;i++)
-  {//4 primeros pixels      
-   gb_buffer_vga[(y+j) + VERTICAL_OFFSET][(x+i)]= gb_color_text_cga[nibble0];
-  }
-  for (int i=4;i<8;i++)
-  {//4 segundos pixels
-   gb_buffer_vga[(y+j) + VERTICAL_OFFSET][(x+i)]= gb_color_text_cga[nibble1];
-  }  
- }     
-}
-
-//*****************************************************
-void SDLdump160x100_font8x8()
+static void dump160x100_font8x8()
 {
  unsigned char aColor,aBgColor,aChar;
  unsigned int bFourPixelsOffset=0;     
@@ -388,8 +325,7 @@ void SDLdump160x100_font8x8()
  }
 }
 
-//*****************************************
-void SDLdump80x25_font8x8()
+static void dump80x25_font8x8()
 {
 //  if ((port_3D8->value == 9) && (port_3D4->value == 9))
 //  {
@@ -413,7 +349,7 @@ void SDLdump80x25_font8x8()
  }
 }
 
-void SDLdump40x25_font8x8()
+static void dump40x25_font8x8()
 {
  uint32_t bOffset = 0;
  for (uint32_t y = 0; y < 25; y++)
@@ -430,9 +366,7 @@ void SDLdump40x25_font8x8()
  }
 }
 
-static unsigned int gb_local_scanline[80];
-
-void jj_sdl_dump_cga_320x200()
+static void dump320x200()
 {
     unsigned short int cont=0;
   for (uint32_t y=0; y<100; y++)
@@ -447,13 +381,13 @@ void jj_sdl_dump_cga_320x200()
             unsigned char bPixel1 = ((bFourPixels >> 4) & 0x03);
             unsigned char bPixel0 = ((bFourPixels >> 6) & 0x03);
 
-            uint32_t a32= (gb_color_vga[bPixel0]) | (gb_color_vga[bPixel1]<<8) | (gb_color_vga[bPixel2]<<16) | (gb_color_vga[bPixel3]<<24);
+            uint32_t a32= (palette[bPixel0]) | (palette[bPixel1]<<8) | (palette[bPixel2]<<16) | (palette[bPixel3]<<24);
 			//ptr32[x]= a32;
-			gb_local_scanline[x]= a32;
+			scanlineBuffer[x]= a32;
 
 			cont++;
    }
-   memcpy(pLine+2,gb_local_scanline,320);
+   memcpy(pLine+2,scanlineBuffer,320);
   } 
 
   cont = 0x2000;   
@@ -469,19 +403,19 @@ void jj_sdl_dump_cga_320x200()
             unsigned char bPixel1 = ((bFourPixels >> 4) & 0x03);
             unsigned char bPixel0 = ((bFourPixels >> 6) & 0x03);
 
-            uint32_t a32 = (gb_color_vga[bPixel0]) | (gb_color_vga[bPixel1] << 8) | (gb_color_vga[bPixel2] << 16) |
-                           (gb_color_vga[bPixel3] << 24);
-            gb_local_scanline[x] = a32;
+            uint32_t a32 = (palette[bPixel0]) | (palette[bPixel1] << 8) | (palette[bPixel2] << 16) |
+                           (palette[bPixel3] << 24);
+            scanlineBuffer[x] = a32;
 
             cont++;
    }
-   memcpy(pLine+2, gb_local_scanline,320);
+   memcpy(pLine+2, scanlineBuffer,320);
   } 
 }
 
 
 //cga6 rapido
-void jj_sdl_dump_640x200()
+static void dump640x200()
 {//640x200 1 bit Escalado a la mitad
  unsigned short int cont=0;
  unsigned int yDest; 
@@ -508,13 +442,13 @@ void jj_sdl_dump_640x200()
     a4= (a4==0?0:3);
     a6= (a6==0?0:3);
 
-	a32= (gb_color_vga[a0]) | (gb_color_vga[a2]<<8) | (gb_color_vga[a4]<<16) | (gb_color_vga[a6]<<24);
+	a32= (palette[a0]) | (palette[a2]<<8) | (palette[a4]<<16) | (palette[a6]<<24);
 	//ptr32[x]= a32;
-	gb_local_scanline[x]= a32;
+	scanlineBuffer[x]= a32;
 
     cont++;
    }
-   memcpy(ptr32 + 2,gb_local_scanline,320);
+   memcpy(ptr32 + 2,scanlineBuffer,320);
   } 
 
   cont = 0x2000;   
@@ -535,164 +469,190 @@ void jj_sdl_dump_640x200()
     a4= (a4==0?0:3);
     a6= (a6==0?0:3);
    	
-	a32= (gb_color_vga[a0]) | (gb_color_vga[a6]<<2) | (gb_color_vga[a4]<<16) | (gb_color_vga[a6]<<24);
+	a32= (palette[a0]) | (palette[a6]<<2) | (palette[a4]<<16) | (palette[a6]<<24);
 	//ptr32[x]= a32;
-	gb_local_scanline[x]= a32;
+	scanlineBuffer[x]= a32;
 
     cont++;
    }
-   memcpy(ptr32 + 2,gb_local_scanline,320);
+   memcpy(ptr32 + 2,scanlineBuffer,320);
   } 
+}
+
+//*************************************************************************************
+static void SDLprintChar_c(char code,int x,int y,unsigned char color,unsigned char backcolor)
+{ 
+ int nBaseOffset = code << 3;
+ const bool cbTime = render.frameCount & 0x04;
+ for (unsigned int row=0; row<8; row++)
+ {
+    const bool cbFill = (row >= cursor.getStart()) && (row <= cursor.getEnd()) && cbTime;
+     unsigned char bLine = ((row >= 6) && (cbTime))?0xFF:gb_sdl_font_8x8[nBaseOffset + row];
+     for (int col = 0; col < 8; col++) {
+      unsigned char Pixel = ((bLine >> col) & 0x01);
+      const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
+      const uint32_t vgaCol = x - col + 15;
+      gb_buffer_vga[vgaLine][vgaCol] = gb_color_text_cga[(Pixel != 0) ? color : backcolor];
+  }
+ }
+}
+
+static void SDLprintChar(char code, int x, int y, unsigned char color, unsigned char backcolor)
+{
+  if((x == (cursor.getCol() << 3)) && (y == (cursor.getRow() << 3)))
+  {
+    SDLprintChar_c(code, x, y, color, backcolor);
+  }
+  else
+  {
+    // unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
+    int nBaseOffset = code << 3; //*8
+    for (unsigned int row = 0; row < 8; row++)
+    {
+      unsigned char bLine = gb_sdl_font_8x8[nBaseOffset + row];
+      for (int col = 0; col < 8; col++)
+      {
+          unsigned char Pixel = ((bLine >> col) & 0x01);
+          const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
+          const uint32_t vgaCol = x - col + 15;
+          gb_buffer_vga[vgaLine][vgaCol] = gb_color_text_cga[(Pixel != 0) ? color : backcolor];
+      }
+    }
+  }
+}
+
+static void SDLprintChar160x100_font4x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
+{
+ unsigned char bFourPixels;
+ unsigned char bFourPixelsBit,bFourPixelsColor;
+ unsigned char aColor;
+ unsigned char nibble0;
+ unsigned char nibble1;
+ switch (car)
+ {
+  case 221: nibble0=color; nibble1=backcolor; break;
+  case 222: nibble0=backcolor; nibble1=color; break;
+  default: nibble0=0; nibble1=0; break;  
+ }
+ for (unsigned char j=0;j<2;j++)
+ {
+  //bFourPixels = gb_sdl_font_8x8[bFourPixelsId + j];  
+  for (int i=0;i<2;i++)
+  {//4 primeros pixels
+         gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + i)] = gb_color_text_cga[nibble0];
+  }
+  for (int i=2;i<4;i++)
+  {//4 segundos pixels
+         gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + i)] = gb_color_text_cga[nibble1];
+  }  
+ }
+}     
+
+static void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
+{ 
+// unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
+ int nBaseOffset = car << 3; //*8
+ for (unsigned char row=0;row<8;row++)
+ {  
+  uint8_t Line = gb_sdl_font_4x8[nBaseOffset + row];  
+  for (int i=4;i<8;i++)
+  {
+   uint8_t Pixel = ((Line>>i) & 0x01);
+   //jj_fast_putpixel(x+(7-i),y+j,(bFourPixelsColor==1)?color:backcolor);
+   gb_buffer_vga[(y+row) + VERTICAL_OFFSET][(x+(7-i)) + 8]= gb_color_text_cga[((Pixel == 0)?color:backcolor)];
+  }
+ }
+}
+
+static void SDLprintChar160x100_font8x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
+{
+ unsigned char bFourPixels;
+ unsigned char bFourPixelsBit,bFourPixelsColor;
+ unsigned char aColor;
+ unsigned char nibble0;
+ unsigned char nibble1; 
+ switch (car)
+ {
+  case 221: nibble0=color; nibble1=backcolor; break;
+  case 222: nibble0=backcolor; nibble1=color; break;
+  default: nibble0=0; nibble1=0; break;  
+ }
+ for (unsigned char j=0;j<2;j++)
+ {
+  //bFourPixels = gb_sdl_font_8x8[bFourPixelsId + j];  
+  for (int i=0;i<4;i++)
+  {//4 primeros pixels      
+   gb_buffer_vga[(y+j) + VERTICAL_OFFSET][(x+i)]= gb_color_text_cga[nibble0];
+  }
+  for (int i=4;i<8;i++)
+  {//4 segundos pixels
+   gb_buffer_vga[(y+j) + VERTICAL_OFFSET][(x+i)]= gb_color_text_cga[nibble1];
+  }  
+ }     
 }
 
 void draw()
 {
-  totalframes++;
-  int x, y;
-
-  uint32_t planemode, vgapage, color, chary, charx, vidptr, divx, divy, curchar, curpixel, usepal, intensity, blockw, curheight, x1, y1;
-
-  switch (vidmode)
-  {
-  case 0:
-  case 1:
-   SDLdump40x25_font8x8();
-   break;
-  case 2: // text modes
-  case 3:
-  case 7:
-  case 0x82:
-   if (gb_font_8x8 == 1)
-    SDLdump80x25_font8x8();
-   else
-    SDLdump80x25_font4x8();
-   break;
-  case 4:
-  case 5:
-   jj_sdl_dump_cga_320x200();
-   break;
-  case 6:
-   jj_sdl_dump_640x200();
-   break;
-  
-  // case 127:
-  //  nw = 720;
-  //  nh = 348;
-  //  for (y = 0; y < 348; y++)
-  //  {
-  //   for (x = 0; x < 720; x++)
-  //   {
-  //   charx = x;
-  //   chary = y >> 1;7
-  //   vidptr = videobase + ((y & 3) << 13) + (y >> 2) * 90 + (x >> 3);
-  //   curpixel = (read86(vidptr) >> (7 - (charx & 7))) & 1;
-  //   color = curpixel ? 0x00FFFFFF : 0x00000000;
-  //   jj_fast_putpixel((x >> 2), (y >> 1), color);
-  //   }
-  //  }
+  render.frameCount++;
+  dumpers[render.dumper]();
+  // switch (render.dumper)
+  // {
+  // case 0:
+  // case 1:
+  //  dump40x25_font8x8();
   //  break;
-  // case 0x8:  // 160x200 16-color (PCjr)
-  //  nw = 640; // fix this
-  //  nh = 400; // part later
-  //  for (y = 0; y < 400; y++)
-  //   for (x = 0; x < 640; x++)
-  //   {
-  //   vidptr = 0xB8000 + (y >> 2) * 80 + (x >> 3) + ((y >> 1) & 1) * 8192;
-  //   if (((x >> 1) & 1) == 0)
-  //   {
-  //     // color = palettecga[RAM[vidptr] >> 4];
-  //     color = palettecga[read86(vidptr) >> 4];
-  //   }
-  //   else
-  //   {
-  //     // color = palettecga[RAM[vidptr] & 15];
-  //     color = palettecga[read86(vidptr) & 15];
-  //   }
-  //   // JJ prestretch[y][x] = color; //no necesito escalar
-  //   jj_fast_putpixel((x >> 1), (y >> 1), color);
-  //   }
+  // case 2: // text modes
+  // case 3:
+  // case 7:
+  // case 0x82:
+  //  if (gb_font_8x8 == 1)
+  //   dump80x25_font8x8();
+  //  else
+  //   dump80x25_font4x8();
   //  break;
-  // case 0x9:  // 320x200 16-color (Tandy/PCjr)
-  //  nw = 640; // fix this
-  //  nh = 400; // part later
-  //  for (y = 0; y < 400; y++)
-  //   for (x = 0; x < 640; x++)
-  //   {
-  //   vidptr = 0xB8000 + (y >> 3) * 160 + (x >> 2) + ((y >> 1) & 3) * 8192;
-  //   if (((x >> 1) & 1) == 0)
-  //   {
-  //     // color = palettecga[RAM[vidptr] >> 4];
-  //     color = palettecga[read86(vidptr) >> 4];
-  //   }
-  //   else
-  //   {
-  //     // color = palettecga[RAM[vidptr] & 15];
-  //     color = palettecga[read86(vidptr) & 15];
-  //   }
-  //   jj_fast_putpixel((x >> 1), (y >> 1), color);
-  //   }
+  // case 4:
+  // case 5:
+  //  dump320x200();
   //  break;
-  // case 0xD:
-  // case 0xE:
-  //  nw = 640; // fix this
-  //  nh = 400; // part later
-  //  for (y = 0; y < 400; y++)
-  //   for (x = 0; x < 640; x++)
-  //   {
-  //   divx = x >> 1;
-  //   divy = y >> 1;
-  //   vidptr = divy * 40 + (divx >> 3);
-  //   x1 = 7 - (divx & 7);
-  //   jj_fast_putpixel((x >> 1), (y >> 1), color);
-  //   }
+  // case 6:
+  //  dump640x200();
   //  break;
-  // case 0x10:
-  //  nw = 640;
-  //  nh = 350;
-  //  for (y = 0; y < 350; y++)
-  //   for (x = 0; x < 640; x++)
-  //   {
-  //   vidptr = y * 80 + (x >> 3);
-  //   x1 = 7 - (x & 7);
-  //   jj_fast_putpixel((x >> 1), (y >> 1), color);
-  //   }
+  // default:
   //  break;
-  default:
-   break;
-  } // Fin switch vidmode
+  // }
 }
 
 //******************************************
 void InitPaletaCGA()
 {
- memcpy(gb_color_vga,gb_color_cga,16);
+ memcpy(palette,gb_color_cga,16);
 }
 
 void InitPaletaCGA2()
 {
- memcpy(gb_color_vga,gb_color_cga2,16);
+ memcpy(palette,gb_color_cga2,16);
 }
 
 void InitPaletaCGAgray()
 {
- memcpy(gb_color_vga,gb_color_cgagray,16);
+ memcpy(palette,gb_color_cgagray,16);
 }
 
 void InitPaletaPCJR()
 {
- memcpy(gb_color_vga,gb_color_pcjr,16);
+ memcpy(palette,gb_color_pcjr,16);
 }
 
 void IRAM_ATTR blitter_0(uint8_t *src, uint16_t *dst)
 {
-  const unsigned int *palette = RawCompositeVideoBlitter::_palette;
+  const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
   static const uint32_t STEP = 2;
 
   uint16_t *dest_16 = dst + 32;
   for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH << 1; i += STEP)
   {
-    dest_16[0] = (uint16_t)(palette[src[0]]);
-    dest_16[1] = (uint16_t)(palette[src[1]] << 8);
+    dest_16[0] = (uint16_t)(destPalette[src[0]]);
+    dest_16[1] = (uint16_t)(destPalette[src[1]] << 8);
     dest_16 += STEP;
     src += STEP;
   }
@@ -700,16 +660,16 @@ void IRAM_ATTR blitter_0(uint8_t *src, uint16_t *dst)
 
 void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
 {
-  const unsigned int *palette = RawCompositeVideoBlitter::_palette;
+  const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
   static const uint32_t STEP = 4;
 
   uint32_t *d = (uint32_t *)dst + 16;
   for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP)  // 84 steps, 4 pixels per step
   {
-   d[0] = palette[src[0]];
-   d[1] = palette[src[1]] << 8;
-   d[2] = palette[src[2]];
-   d[3] = palette[src[3]] << 8;
+   d[0] = destPalette[src[0]];
+   d[1] = destPalette[src[1]] << 8;
+   d[2] = destPalette[src[2]];
+   d[3] = destPalette[src[3]] << 8;
    d += STEP;
    src += STEP;
   }
@@ -717,17 +677,17 @@ void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
 
 void IRAM_ATTR blitter_2(uint8_t *src, uint16_t *dst)
 {
-  const unsigned int *palette = RawCompositeVideoBlitter::_palette;
+  const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
   static const uint32_t STEP = 4;
 
   uint32_t *dest_32 = (uint32_t *)dst + 16;
   for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP) // 84 steps, 4 pixels per step
   {
     uint32_t c = *((uint32_t *)src); // screen may be in 32 bit mem
-    dest_32[0] = palette[(uint8_t)(c >>  0)];
-    dest_32[1] = palette[(uint8_t)(c >>  8)] << 8;
-    dest_32[2] = palette[(uint8_t)(c >> 16)];
-    dest_32[3] = palette[(uint8_t)(c >> 24)] << 8;
+    dest_32[0] = destPalette[(uint8_t)(c >>  0)];
+    dest_32[1] = destPalette[(uint8_t)(c >>  8)] << 8;
+    dest_32[2] = destPalette[(uint8_t)(c >> 16)];
+    dest_32[3] = destPalette[(uint8_t)(c >> 24)] << 8;
    dest_32 += STEP;
    src += STEP;
   }
@@ -749,6 +709,16 @@ void renderSetBlitter(unsigned int blitter)
   }
 }
 
+void renderSetColorEnabled(bool bEnabled)
+{
+  render.pendingColorburstValue = bEnabled?PENDING_COLORBURST_TRUE:PENDING_COLORBURST_FALSE;
+}
+
+void renderSetColumnCount(uint32_t columnCount)
+{
+  render.colCount = columnCount;
+}
+
 static void bar(int orgX, int orgY, int height, int width, uint8_t color)
 {
   for (int y = 0; y < height; y++)
@@ -760,6 +730,16 @@ static void bar(int orgX, int orgY, int height, int width, uint8_t color)
       gb_buffer_vga[scanline][col] = color;
     }
   }
+}
+
+void renderUpdateColorSettings(uint32_t palette, uint32_t color)
+{
+
+}
+
+void renderUpdateDumper(uint32_t dumper)
+{
+  render.dumper = dumper;
 }
 
 void ShowColorTable()
@@ -775,27 +755,5 @@ void ShowColorTable()
       uint8_t color = ((uint8_t)hue << 4) | ((uint8_t)luma & 0x0F);
       bar(orgX, orgY, HEIGHT, WIDTH, color);
     }
-  }
-
-  bool bExit = false;
-  while (!bExit)
-  {
-      extern KeyboardDriver *keyboard;
-      uint8_t scancode = keyboard->getLastKey();
-      switch(scancode)
-      {
-        case KEY_ESC:
-          bExit = true;
-          break;
-        case KEY_1:
-          renderSetBlitter(0);
-          break;
-        case KEY_2:
-          renderSetBlitter(1);
-          break;
-        case KEY_3:
-          renderSetBlitter(2);
-          break;
-      }
   }
 }

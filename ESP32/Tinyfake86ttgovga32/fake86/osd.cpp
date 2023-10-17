@@ -132,8 +132,6 @@ const char * gb_reset_menu[max_gb_reset_menu]={
 #define gb_pos_y_menu 20
 #define gb_osd_max_rows 10
 
-static void ShowColorTable();
-
 //*************************************************************************************
 void SDLprintText(const char *cad,int x, int y, unsigned char color,unsigned char backcolor)
 {
@@ -349,7 +347,33 @@ void ShowTinyVideoMenu()
  aSelNum = ShowTinyMenu("Video",gb_video_menu,max_gb_video_menu);
  switch (aSelNum)
  {
-   case 0: ShowColorTable(); break;
+   case 0: 
+    {
+      ShowColorTable(); 
+      
+      bool bExit = false;
+      while (!bExit)
+      {
+        extern KeyboardDriver *keyboard;
+        uint8_t scancode = keyboard->getLastKey();
+        switch(scancode)
+        {
+          case KEY_ESC:
+            bExit = true;
+            break;
+          case KEY_1:
+            renderSetBlitter(0);
+            break;
+          case KEY_2:
+            renderSetBlitter(1);
+            break;
+          case KEY_3:
+            renderSetBlitter(2);
+            break;
+        }
+      }
+    }
+    break;
    case 1: gb_font_8x8= 0; break; //font 4x8
    case 2: gb_font_8x8= 1; break; //font 8x8 
    case 3: gb_invert_color= ((~gb_invert_color)&0x01); break; //Invertir color

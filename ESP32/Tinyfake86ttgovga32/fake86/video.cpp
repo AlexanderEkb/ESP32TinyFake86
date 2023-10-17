@@ -58,7 +58,6 @@
 #include <stdio.h>
 #include "video.h"
 #include "cpu.h"
-#include "gbGlobals.h"
 #include "ports.h"
 #include <string.h>
 #include "render.h"
@@ -79,168 +78,85 @@
 #define VIDEO_MODE_COLOR			(0x04)
 #define VIDEO_MODE_GRAY				(0x00)
 
-static void     write3D5h(uint32_t portnum, uint8_t value);
-static uint8_t  inVGA(uint32_t portnum);
-static uint8_t  read3DAh(uint32_t portnum);
-static void     write3D8h(uint32_t portnum, uint8_t value);
+#define MC6845_REG_HTOTAL           (0)
+#define MC6845_REG_HDISP            (1)
+#define MC6845_REG_HSYNC            (2)
 
-IOPort port_3D4h = IOPort(0x3D4, 0xFF, inVGA,     nullptr);
-IOPort port_3D5h = IOPort(0x3D5, 0xFF, inVGA,     write3D5h);
+#define MC6845_REG_VTOTAL           (4)
+#define MC6845_REG_VTOTAL_ADJUST    (5)
+#define MC6845_REG_VDISP_POS        (6)
+#define MC6845_REG_VSYNC_POS        (7)
+
+#define MC6845_REG_MAX_ROWS         (9)
+#define MC6845_REG_CURSOS_START     (10)
+#define MC6845_REG_CURSOR_END       (11)
+#define MC6845_REG_START_ADDR_MSB   (12)
+#define MC6845_REG_START_ADDR_LSB   (13)
+#define MC6845_REG_CURSOR_ADDR_MSB  (14)
+#define MC6845_REG_CURSOR_ADDR_LSB  (15)
+#define MC6845_REG_LPEN_MSB         (16)
+#define MC6845_REG_LPEN_LSB         (17)
+
+static void     write3D4h(uint32_t portnum, uint8_t value);
+static void     write3D5h(uint32_t portnum, uint8_t value);
+static uint8_t  read3D5h(uint32_t portnum);
+static void     write3D8h(uint32_t portnum, uint8_t value);
+static void     write3D9h(uint32_t portnum, uint8_t value);
+static uint8_t  read3DAh(uint32_t portnum);
+
+IOPort port_3D4h = IOPort(0x3D4, 0xFF, nullptr,   write3D4h);
+IOPort port_3D5h = IOPort(0x3D5, 0xFF, read3D5h,  write3D5h);
 IOPort port_3D8h = IOPort(0x3D8, 0xFF, nullptr,   write3D8h);
-IOPort port_3D9h = IOPort(0x3D9, 0xFF, nullptr,   nullptr);
+IOPort port_3D9h = IOPort(0x3D9, 0xFF, nullptr,   write3D9h);
 IOPort port_3DAh = IOPort(0x3DA, 0xFF, read3DAh,  nullptr);
 
-static unsigned char port3da = 0;
+static uint8_t    port3da = 0; // Some sort of local cache
+static uint8_t    mc6845RegSelector; // 3D4h port writes modifies this var
 
-extern union _bytewordregs_ regs;
-uint16_t cursx, cursy, cursorPosition, cols = 80, rows = 25, vgapage, cursorposition, cursorvisible;
-uint8_t clocksafe, port6, portout16;
-uint32_t videobase= 0xB8000;
-uint32_t usefullscreen = 0;
-
-uint16_t oldw, oldh; //used when restoring screen mode
-
-extern uint32_t nw, nh;
-extern uint32_t pendingColorburstValue;
-
-void setVideoParameters(uint32_t modeDesc, int32_t videoBase)
+void setVideoParameters(uint32_t modeDesc)
 {
-    videobase = videoBase;
-		if(modeDesc & VIDEO_MODE_GRAPH)
-		{
-			// IOPortSpace::getInstance().setBits(0x3D8, PORT_3D8_GRAPHICS);
-			if(modeDesc & VIDEO_MODE_640_PX)
-			{
-				cols = 80;
-				// IOPortSpace::getInstance().setBits(0x3D8, PORT_3D8_HIRES_GRAPH);
-			}
-			else
-			{
-				cols = 40;
-				// IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_HIRES_GRAPH);
-			}
-		}
-		else
-		{
-			if (modeDesc & VIDEO_MODE_80_COLS)
-			{
-				cols = 80;
-				// IOPortSpace::getInstance().setBits(0x3D8, PORT_3D8_80_COL_TEXT);
-			}
-			else
-			{
-				cols = 40;
-				// IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
-			}
-		}
-    
-    for (uint32_t i = 0; i < 16384; i += 2) {
-			gb_video_cga[i] = 0;
-			gb_video_cga[i + 1] = 7;
-    }
-		const uint32_t hiresGraphMask = VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX;
-		const bool hiresGraph = ((modeDesc & hiresGraphMask) == hiresGraphMask);
-		const bool colour = (modeDesc & VIDEO_MODE_COLOR);
-		const bool enableColour = hiresGraph || colour;
-		if(enableColour)
-		{
-			pendingColorburstValue = PENDING_COLORBURST_TRUE;
-			// IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_NOCOLOR);
-		}
-		else
-		{
-    	pendingColorburstValue = PENDING_COLORBURST_FALSE;
-			// IOPortSpace::getInstance().setBits(0x3D8, PORT_3D8_NOCOLOR);
-		}
+    if(((modeDesc & VIDEO_MODE_GRAPH) && (modeDesc & VIDEO_MODE_640_PX)) || (modeDesc & VIDEO_MODE_80_COLS))
+      renderSetColumnCount(80);
+    else
+      renderSetColumnCount(40);
+
+		const bool enableColour = (modeDesc & VIDEO_MODE_COLOR);
+		renderSetColorEnabled(enableColour);
 }
 
-void setVideoMode(uint8_t mode)
+static void write3D4h (uint32_t portnum, uint8_t value)
 {
-	switch (mode)
-	{
-	case VIDEO_MODE_40x25_BW: // 40x25 mono text
-		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
-    renderSetBlitter(1);
-		break;
-	case VIDEO_MODE_40x25_COLOR: // 40x25 color text
-		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-    renderSetBlitter(1);
-    break;
-  case VIDEO_MODE_80x25_BW: // 80x25 mono text
-		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
-    renderSetBlitter(1 /*0*/);
-    break;
-  case VIDEO_MODE_80x25_COLOR: // 80x25 color text
-		setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-    renderSetBlitter(1 /*0*/);
-    break;
-  case VIDEO_MODE_320x200_COLOR: // 320x200 color
-		setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-		IOPortSpace::getInstance().write(0x3D9, 48);
-    renderSetBlitter(1);
-    break;
-  case VIDEO_MODE_320x200_BW: // 320x200 BW
-		setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
-    IOPortSpace::getInstance().write(0x3D9, 0);
-    renderSetBlitter(1);
-    break;
-  case VIDEO_MODE_640x200_COLOR: // 640x200 color
-	  setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-    renderSetBlitter(1);
-		break;
-	case VIDEO_MODE_0x7F:
-			videobase = CGA_BASE_MEMORY;
-			cols = 90;
-			memset(gb_video_cga, 0, 16384);
-      // IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
-      pendingColorburstValue = PENDING_COLORBURST_TRUE;
-			break;
-	case VIDEO_MODE_0x09: // 320x200 16-color
-			videobase = CGA_BASE_MEMORY;
-			cols = 40;
-			if ((regs.byteregs[regal] & 0x80) == 0) {
-					memset(gb_video_cga, 0, 16384);
-			}
-      // IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
-      pendingColorburstValue = PENDING_COLORBURST_TRUE;
-			break;
-	case VIDEO_MODE_0x0D: // 320x200 16-color
-	case VIDEO_MODE_0x12: // 640x480 16-color
-	case VIDEO_MODE_0x13: // 320x200 256-color
-			videobase = VGA_BASE_MEMORY;
-			cols = 40;
-      // IOPortSpace::getInstance().resetBits(0x3D8, PORT_3D8_80_COL_TEXT);
-      pendingColorburstValue = PENDING_COLORBURST_TRUE;
-			break;
-	}
+  (void)portnum;
+  mc6845RegSelector = value;
 }
 
-uint16_t vtotal = 0;
-void write3D5h (uint32_t portnum, uint8_t value)
+static void write3D5h (uint32_t portnum, uint8_t value)
 {
 	(void)portnum;
-  if (IOPortSpace::getInstance().get(0x3D4)->value == 0xE)
+  switch(mc6845RegSelector)
   {
-    cursorposition = (cursorposition&0xFF) | (value<<8);
+    case MC6845_REG_CURSOS_START:
+      cursor.updateStart(value);
+      break;
+    case MC6845_REG_CURSOR_END:
+      cursor.updateEnd(value);
+      break;
+    case MC6845_REG_CURSOR_ADDR_MSB:
+      cursor.updateMSB(value);
+      break;
+    case MC6845_REG_CURSOR_ADDR_LSB:
+      cursor.updateLSB(value);
+      break;
   }
-  else if (IOPortSpace::getInstance().get(0x3D4)->value == 0xF)
-  {
-    cursorposition = (cursorposition&0xFF00) |value;
-  }
-  cursy = cursorposition/cols;
-  cursx = cursorposition%cols;
-  cursorPosition = (cursy << 8) | cursx;
 }
 
-uint8_t inVGA (uint32_t portnum)
+uint8_t read3D5h (uint32_t portnum)
 {
 	if (portnum > (gb_max_portram-1))
 	 return 0;        
 	switch (portnum) {
 			case 0x3D5:
 				return 0;
-			case 0x3DA:
-				return (port3da);
 		}
 	//JJ puerto return (portram[portnum]); //this won't be reached, but without it the compiler gives a warning
 	return (0xFF); //this won't be reached, but without it the compiler gives a warning
@@ -259,59 +175,71 @@ static void write3D8h(uint32_t portnum, uint8_t value)
   switch(_mode)
   {
   case 0x00: // 40x25 text color
-    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-    vidmode = 1;
+    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_COLOR);
+    renderUpdateDumper(DUMPER_40x25_8x8);
     break;
   case 0x01: // 80x25 text color
-    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-    vidmode = 3;
+    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_COLOR);
+    renderUpdateDumper(DUMPER_80x25_4x8);
     break;
   case 0x02: // 320x200 graphics color
-    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-    vidmode = 4;
+    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_COLOR);
+    renderUpdateDumper(DUMPER_320x200);
     break;
   case 0x04: // 40x25 text monochrome
-    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
-    vidmode = 0;
+    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_GRAY);
+    renderUpdateDumper(DUMPER_40x25_8x8);
     break;
   case 0x05: // 80x25 text monochrome
-    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
-    vidmode = 2;
+    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_GRAY);
+    renderUpdateDumper(DUMPER_80x25_4x8);
     break;
   case 0x06: // 320x200 graphics monochrome
-    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_GRAY, CGA_BASE_MEMORY);
-    vidmode = 5;
+    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_GRAY);
+    renderUpdateDumper(DUMPER_320x200);
     break;
   case 0x0E: // 640x200 graphics monochrome
-    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX | VIDEO_MODE_COLOR, CGA_BASE_MEMORY);
-    vidmode = 6;
+    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX | VIDEO_MODE_COLOR);
+    renderUpdateDumper(DUMPER_640x200);
     break;
   default:
     break;
   }
 }
 
-uint8_t lastmode = 0;
+static void write3D9h(uint32_t portnum, uint8_t value)
+{
+  (void)portnum;
+  static const uint8_t COLOR_MASK = 0x0F;
+  static const uint8_t PALETTE_POS = 4;
+  static const uint8_t PALETTE_MASK = 0x03;
+  uint32_t color    = value & COLOR_MASK;
+  uint32_t palette  = (value >> PALETTE_POS) & PALETTE_MASK;
+  renderUpdateColorSettings(palette, color);
+}
+
 void initVideoPorts() 
 {
 }
 
+/// @brief Handles CGA retrace bits in 3DAh port. Gets called each 32th CPU instruction executed.
+/// @param  none
 void videoExecCpu(void)
 {
-  static const uint8_t CGA_HORIZONTAL_RETRACE = 0x01;
-  static const uint8_t CGA_VERTICAL_RETRACE = 0x08;
-  static uint32_t localscanline = 0;
+  static const  uint8_t   CGA_HORIZONTAL_RETRACE = 0x01;
+  static const  uint8_t   CGA_VERTICAL_RETRACE   = 0x08;
+  static        uint32_t  _counter = 0;
 
   // Funcion Alleycat y Digger
   {
-        localscanline++;
-        if (localscanline > 479)
-              port3da = CGA_VERTICAL_RETRACE;
-        else
-              port3da = 0;
-        if (localscanline & 1)
-              port3da |= CGA_HORIZONTAL_RETRACE;
-        if (localscanline > 525)
-              localscanline = 0;
+    _counter++;
+    if (_counter > 479)
+      port3da = CGA_VERTICAL_RETRACE;
+    else
+      port3da = 0;
+    if (_counter & 1)
+      port3da |= CGA_HORIZONTAL_RETRACE;
+    if (_counter > 525)
+      _counter = 0;
   }
 }
