@@ -732,14 +732,43 @@ static void bar(int orgX, int orgY, int height, int width, uint8_t color)
   }
 }
 
-void renderUpdateColorSettings(uint32_t palette, uint32_t color)
+void renderUpdateColorSettings(uint32_t paletteIndex, uint32_t color)
 {
+  render.paletteIndex = paletteIndex;
+  render.specialColor = color;
+
+  enum mode {TEXT, GRAPH_LO, GRAPH_HI} mode = (render.dumper <= 4)?TEXT:((render.dumper == 5)?GRAPH_LO:GRAPH_HI);
+  switch(mode)
+  {
+    case TEXT:
+      memcpy(palette, gb_color_text_cga, 16);
+      break;
+    case GRAPH_LO:
+      if(paletteIndex == 0)
+        memcpy(palette, gb_color_cga, 4);
+      else if(paletteIndex == 1)
+        memcpy(palette, gb_color_cga2, 4);
+      else if(paletteIndex == 2)
+        memcpy(palette, gb_color_cga, 4);
+      else if(paletteIndex == 3)
+        memcpy(palette, gb_color_cga2, 4);
+      palette[0] = color;
+      break;
+    case GRAPH_HI:
+      palette[0] = 0;
+      palette[1] = color;
+      break;
+  }
 
 }
 
 void renderUpdateDumper(uint32_t dumper)
 {
-  render.dumper = dumper;
+  if(render.dumper != dumper)
+  {
+    renderUpdateColorSettings(render.paletteIndex, render.specialColor);
+    render.dumper = dumper;
+  }
 }
 
 void ShowColorTable()
