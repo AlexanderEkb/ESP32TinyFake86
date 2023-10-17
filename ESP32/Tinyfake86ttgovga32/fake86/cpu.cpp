@@ -99,8 +99,6 @@ unsigned char didbootstrap = 0;
 
 static IOPortSpace & ports = IOPortSpace::getInstance();
 
-extern void vidinterrupt();
-
 extern uint8_t readVGA (uint32_t addr32);
 
 void ExternalSetCF(unsigned char valor)
@@ -1554,25 +1552,6 @@ void intcall86 (unsigned char intnum)
 
 	switch (intnum)
     {
-      /************************************/
-      /********** INT10H : Video **********/
-      /************************************/
-			case 0x10:
-				//updatedscreen = 1; //no lo necesito
-				if ( (regs.byteregs[regah]==0x00) || (regs.byteregs[regah]==0x10) ) {
-						oldregax = regs.wordregs[regax];
-						vidinterrupt();
-						regs.wordregs[regax] = oldregax;
-						if (regs.byteregs[regah]==0x10) return;
-					}
-				if ( (regs.byteregs[regah]==0x1A) && (lastint10ax!=0x0100) ) { //the 0x0100 is a cheap hack to make it not do this if DOS EDIT/QBASIC
-						regs.byteregs[regal] = 0x1A;
-						regs.byteregs[regbl] = 0x8;
-						return;
-					}
-				lastint10ax = regs.wordregs[regax];
-				break;
-
 #ifndef DISK_CONTROLLER_ATA
       /************************************/
       /******** INT19H : Bootstrap ********/
