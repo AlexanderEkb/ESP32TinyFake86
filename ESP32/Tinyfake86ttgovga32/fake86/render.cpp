@@ -724,7 +724,7 @@ void renderUpdateColorSettings(uint32_t paletteIndex, uint32_t color)
         memcpy(palette, paletteGraphicCMWdim, 4);
       else if(paletteIndex == 3)
         memcpy(palette, paletteGraphicCMWbright, 4);
-      palette[0] = color;
+      palette[0] = paletteBasic[color];
       break;
     case GRAPH_HI:
       palette[0] = 0;
