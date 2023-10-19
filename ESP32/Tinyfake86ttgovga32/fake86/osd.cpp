@@ -12,6 +12,7 @@
 #include "keyboard.h"
 #include <Esp.h>
 #include "sdcard.h"
+#include "render.h"
 
 //#define BLACK   0
 //#define BLUE    4
@@ -72,16 +73,12 @@ const char *gb_main_menu[max_gb_main_menu] = {
     "Sound",
     "Return"};
 
-#define max_gb_video_menu 8
+#define max_gb_video_menu 4
 const char * gb_video_menu[max_gb_video_menu]={
  "Colors",
  "Font 4x8",
  "Font 8x8",  
- "Invert Color",
- "Colour CGA1",
- "Colour CGA2",
- "Gray CGA",
- "Colour PCJR"
+ "Invert Color"
 };
 
 #define max_gb_speed_menu 4
@@ -340,7 +337,6 @@ void ShowTinyCOMMenu()
  //running= 0;
 }
 
-void ShowColorTable();
 void ShowTinyVideoMenu()
 {
  unsigned char aSelNum;
@@ -349,7 +345,7 @@ void ShowTinyVideoMenu()
  {
    case 0: 
     {
-      ShowColorTable(); 
+      svcShowColorTable(); 
       
       bool bExit = false;
       while (!bExit)
@@ -377,10 +373,6 @@ void ShowTinyVideoMenu()
    case 1: gb_font_8x8= 0; break; //font 4x8
    case 2: gb_font_8x8= 1; break; //font 8x8 
    case 3: gb_invert_color= ((~gb_invert_color)&0x01); break; //Invertir color
-   case 4: InitPaletaCGA(); break;
-   case 5: InitPaletaCGA2(); break;    
-   case 6: InitPaletaCGAgray(); break;    
-   case 7: InitPaletaPCJR(); break;   
  }
 }
 

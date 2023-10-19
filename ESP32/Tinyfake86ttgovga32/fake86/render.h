@@ -42,10 +42,8 @@ class cursor_t {
  void renderUpdateDumper(uint32_t dumper);
  
  unsigned char initscreen ();
- void InitPaletaCGA(void);
- void InitPaletaCGA2(void);
- void InitPaletaCGAgray(void);
- void InitPaletaPCJR(void);
+ 
+ void svcShowColorTable();
 
 extern cursor_t cursor;
 #endif
