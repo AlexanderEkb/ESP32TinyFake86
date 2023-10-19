@@ -171,6 +171,7 @@ static uint8_t read3DAh(uint32_t portnum)
 static void write3D8h(uint32_t portnum, uint8_t value)
 {
   (void)portnum;
+  LOG("3D8h: %02xh\n", value);
   uint8_t _mode = value & 0x17;
   switch(_mode)
   {
@@ -198,8 +199,14 @@ static void write3D8h(uint32_t portnum, uint8_t value)
     setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_GRAY);
     renderUpdateDumper(DUMPER_320x200);
     break;
-  case 0x0E: // 640x200 graphics monochrome
+  case 0x12:
+  case 0x13: // 640x200 graphics monochrome
     setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX | VIDEO_MODE_COLOR);
+    renderUpdateDumper(DUMPER_640x200);
+    break;
+  case 0x16:
+  case 0x17: // 640x200 graphics monochrome
+    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX);
     renderUpdateDumper(DUMPER_640x200);
     break;
   default:

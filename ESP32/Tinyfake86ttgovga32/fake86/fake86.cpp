@@ -38,8 +38,6 @@
 void videoTask(void *unused);
 QueueHandle_t vidQueue;
 TaskHandle_t videoTaskHandle;
-volatile bool videoTaskIsRunning = false;
-// Video Task Core END
 #endif
 
 #ifndef use_lib_speaker_cpu
@@ -269,21 +267,12 @@ void setup() {
 #ifndef use_lib_singlecore
 //******************************
 void videoTask(void *unused) {
-    videoTaskIsRunning = true;
     uint16_t *param;
     while (1) {
-        xQueuePeek(vidQueue, &param, portMAX_DELAY);
-        if ((int)param == 1)
-            break;
-        draw();
         xQueueReceive(vidQueue, &param, portMAX_DELAY);
-        videoTaskIsRunning = false;
+        draw();
     }
-    videoTaskIsRunning = false;
     vTaskDelete(NULL);
-
-    while (1) {
-    }
 }
 #endif
 
@@ -374,8 +363,15 @@ void execVideo()
         gb_ini_vga = gb_cur_vga;
     }
 #else
+  static uint32_t nextActivation = 0;
+
+  uint32_t now = millis();
+  if(now > nextActivation)
+  {
     static uint16_t *param;
     xQueueSend(vidQueue, &param, portMAX_DELAY);
+    nextActivation = now + 50;
+  }
 #endif
 }
 
