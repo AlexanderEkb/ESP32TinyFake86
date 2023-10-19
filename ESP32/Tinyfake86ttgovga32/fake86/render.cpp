@@ -86,31 +86,31 @@ static uint32_t scanlineBuffer[80];
 
 static const uint32_t VERTICAL_OFFSET = 20;
 
-//cga 1
-const unsigned char paletteGRYdim[16]={ 
+const unsigned char paletteGraphicGRYdim[16]={ 
 //  Black   Green   Red     Yellow - others don't matter
-    0x00,   0xD6,   0x44,   0xFA,   0x34,   0x54,   0xF4,   0x07,
-    0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
+    0x00,   0xD5,   0x44,   0xE7,   0x00,   0x00,   0x00,   0x00,
+    0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00
 };
 
-const unsigned char paletteGRYbright[16]={ 
+const unsigned char paletteGraphicGRYbright[16]={ 
 //  Black   Green   Red     Yellow - others don't matter
-    0x00,   0xD9,   0x47,   0xFF,   0x34,   0x54,   0xF4,   0x07,
-    0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
+    0x00,   0xDA,   0x49,   0xEC,   0x00,   0x00,   0x00,   0x00,
+    0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00
 };
 
 //cga 2
-const unsigned char paletteCMWdim[16] = {
+const unsigned char paletteGraphicCMWdim[16] = {
 //  Black   Cyan    Magenta White - others don't matter
-    0x00,   0x99,   0x64,   0x06, 0x34, 0x54, 0xF4, 0x07, 0x03,
-    0x8C,   0xCC,   0xAC,   0x3C, 0x5C, 0xFC, 0x0F
+    0x00,   0xB6,   0x65,   0x0A,   0x00,   0x00,   0x00,   0x00,
+    0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00
 };
 
-const unsigned char paletteCMWbright[16] = {
+const unsigned char paletteGraphicCMWbright[16] = {
 //  Black   Cyan    Magenta White - others don't matter
-    0x00,   0x9B,   0x67,   0x09, 0x34, 0x54, 0xF4, 0x07, 0x03,
-    0x8C,   0xCC,   0xAC,   0x3C, 0x5C, 0xFC, 0x0F
+    0x00,   0xBB,   0x6A,   0x0F,   0x00,   0x00,   0x00,   0x00,
+    0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00
 };
+
 //PCJR
 const unsigned char gb_color_pcjr[16]={ 
  0x00,0x15,0x2A,0x3F,0x21,0x19,0x10,0x1E,
@@ -124,17 +124,16 @@ const unsigned char gb_color_cgagray[16]={
  0x05,0x01,0x16,0x15,0x15,0x2E,0x25,0x2A 
 };
 
-//Escala Gris static Rapido
 static unsigned char palette[16]={
-    0x00,   0x84,   0xC4,   0xA4,   0x34,   0x54,   0xF4,   0x07,
-    0x03,   0x8C,   0xCC,   0xAC,   0x3C,   0x5C,   0xFC,   0x0F
+    0x00,   0x73,   0xD5,   0xB6,   0x44,   0x65,   0xE7,   0x0A,
+    0x05,   0x78,   0xDA,   0xBB,   0x49,   0x6A,   0xEC,   0x0F
 };
 
 //Color Modo Texto Rapido
-static unsigned char gb_color_text_cga[16]={ 
+static const uint8_t gb_color_text_cga[16]={ 
 // BLACK    BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
-    0x00,   0x84,   0xC4,   0x99,   0x44,   0x54,   0xF4,   0x07,
-    0x03,   0x87,   0xC7,   0x9B,   0x47,   0x57,   0xF7,   0x0F
+    0x00,   0x73,   0xD5,   0xB6,   0x44,   0x65,   0xE7,   0x0A,
+    0x05,   0x78,   0xDA,   0xBB,   0x49,   0x6A,   0xEC,   0x0F
 };
 
 static struct render {
@@ -622,17 +621,42 @@ void draw()
 {
   render.frameCount++;
   dumpers[render.dumper]();
+  // switch (render.dumper)
+  // {
+  // case 0:
+  // case 1:
+  //  dump40x25_font8x8();
+  //  break;
+  // case 2: // text modes
+  // case 3:
+  // case 7:
+  // case 0x82:
+  //  if (gb_font_8x8 == 1)
+  //   dump80x25_font8x8();
+  //  else
+  //   dump80x25_font4x8();
+  //  break;
+  // case 4:
+  // case 5:
+  //  dump320x200();
+  //  break;
+  // case 6:
+  //  dump640x200();
+  //  break;
+  // default:
+  //  break;
+  // }
 }
 
 //******************************************
 void InitPaletaCGA()
 {
- memcpy(palette,paletteGRYdim,16);
+ memcpy(palette,paletteGraphicGRYdim,16);
 }
 
 void InitPaletaCGA2()
 {
- memcpy(palette,paletteCMWdim,16);
+ memcpy(palette,paletteGraphicCMWdim,16);
 }
 
 void InitPaletaCGAgray()
@@ -722,19 +746,6 @@ void renderSetColumnCount(uint32_t columnCount)
   render.colCount = columnCount;
 }
 
-static void bar(int orgX, int orgY, int height, int width, uint8_t color)
-{
-  for (int y = 0; y < height; y++)
-  {
-    int scanline = orgY + y + VERTICAL_OFFSET;
-    for (int x = 0; x < width; x++)
-    {
-      int col = orgX + x;
-      gb_buffer_vga[scanline][col] = color;
-    }
-  }
-}
-
 void renderUpdateColorSettings(uint32_t paletteIndex, uint32_t color)
 {
   render.paletteIndex = paletteIndex;
@@ -749,14 +760,14 @@ void renderUpdateColorSettings(uint32_t paletteIndex, uint32_t color)
       break;
     case GRAPH_LO:
       if(paletteIndex == 0)
-        memcpy(palette, paletteGRYdim, 4);
+        memcpy(palette, paletteGraphicGRYdim, 4);
       else if(paletteIndex == 1)
-        memcpy(palette, paletteGRYbright, 4);
+        memcpy(palette, paletteGraphicGRYbright, 4);
       else if(paletteIndex == 2)
-        memcpy(palette, paletteCMWdim, 4);
+        memcpy(palette, paletteGraphicCMWdim, 4);
       else if(paletteIndex == 3)
-        memcpy(palette, paletteCMWbright, 4);
-      palette[0] = gb_color_text_cga[color];
+        memcpy(palette, paletteGraphicCMWbright, 4);
+      palette[0] = color;
       break;
     case GRAPH_HI:
       palette[0] = 0;
@@ -781,7 +792,20 @@ void renderUpdateDumper(uint32_t dumper)
   }
 }
 
-void ShowColorTable()
+static void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
+{
+  for (int y = 0; y < height; y++)
+  {
+    int scanline = orgY + y + VERTICAL_OFFSET;
+    for (int x = 0; x < width; x++)
+    {
+      int col = orgX + x;
+      gb_buffer_vga[scanline][col] = color;
+    }
+  }
+}
+
+void svcShowColorTable()
 {
   static const int WIDTH = 20;
   static const int HEIGHT = 10;
@@ -792,7 +816,7 @@ void ShowColorTable()
       int orgX = luma * WIDTH;
       int orgY = hue * HEIGHT;
       uint8_t color = ((uint8_t)hue << 4) | ((uint8_t)luma & 0x0F);
-      bar(orgX, orgY, HEIGHT, WIDTH, color);
+      svcBar(orgX, orgY, HEIGHT, WIDTH, color);
     }
   }
 }
