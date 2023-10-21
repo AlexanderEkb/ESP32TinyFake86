@@ -97,32 +97,29 @@
 #define MC6845_REG_LPEN_MSB         (16)
 #define MC6845_REG_LPEN_LSB         (17)
 
-static void     write3D4h(uint32_t portnum, uint8_t value);
-static void     write3D5h(uint32_t portnum, uint8_t value);
 static uint8_t  read3D5h(uint32_t portnum);
 static void     write3D8h(uint32_t portnum, uint8_t value);
 static void     write3D9h(uint32_t portnum, uint8_t value);
 static uint8_t  read3DAh(uint32_t portnum);
+static uint8_t  readDummy(uint32_t portnum);
+static void write3D4h(uint32_t portnum, uint8_t value);
+static void write3D5h(uint32_t portnum, uint8_t value);
 
-IOPort port_3D4h = IOPort(0x3D4, 0xFF, nullptr,   write3D4h);
+IOPort port_3D4h = IOPort(0x3D4, 0xFF, nullptr, write3D4h);
 IOPort port_3D5h = IOPort(0x3D5, 0xFF, read3D5h,  write3D5h);
 IOPort port_3D8h = IOPort(0x3D8, 0xFF, nullptr,   write3D8h);
 IOPort port_3D9h = IOPort(0x3D9, 0xFF, nullptr,   write3D9h);
 IOPort port_3DAh = IOPort(0x3DA, 0xFF, read3DAh,  nullptr);
+IOPort port_3DBh = IOPort(0x3DB, 0xFF, readDummy, nullptr);
+IOPort port_3DCh = IOPort(0x3DC, 0xFF, readDummy, nullptr);
 
-static uint8_t    port3da = 0; // Some sort of local cache
-static uint8_t    mc6845RegSelector; // 3D4h port writes modifies this var
-
-void setVideoParameters(uint32_t modeDesc)
-{
-    if(((modeDesc & VIDEO_MODE_GRAPH) && (modeDesc & VIDEO_MODE_640_PX)) || (modeDesc & VIDEO_MODE_80_COLS))
-      renderSetColumnCount(80);
-    else
-      renderSetColumnCount(40);
-
-		const bool enableColour = (modeDesc & VIDEO_MODE_COLOR);
-		renderSetColorEnabled(enableColour);
-}
+static const uint32_t MC6845_REG_TOTAL    = 18;
+static const uint32_t MC6845_REG_READABLE = 0x0D;
+static uint8_t        port3D8h = 0; // Some sort of local cache
+static uint8_t        port3D9h = 0;    // Some sort of local cache
+static uint8_t        port3DAh = 0;    // Some sort of local cache
+static uint8_t        mc6845RegSelector; // 3D4h port writes modifies this var
+static uint8_t        mc6845Registers[MC6845_REG_TOTAL];
 
 static void write3D4h (uint32_t portnum, uint8_t value)
 {
@@ -133,7 +130,9 @@ static void write3D4h (uint32_t portnum, uint8_t value)
 static void write3D5h (uint32_t portnum, uint8_t value)
 {
 	(void)portnum;
-  switch(mc6845RegSelector)
+  if(mc6845RegSelector < MC6845_REG_TOTAL)
+    mc6845Registers[mc6845RegSelector] = value;
+  switch (mc6845RegSelector)
   {
     case MC6845_REG_CURSOS_START:
       cursor.updateStart(value);
@@ -152,81 +151,38 @@ static void write3D5h (uint32_t portnum, uint8_t value)
 
 uint8_t read3D5h (uint32_t portnum)
 {
-	if (portnum > (gb_max_portram-1))
-	 return 0;        
-	switch (portnum) {
-			case 0x3D5:
-				return 0;
-		}
-	//JJ puerto return (portram[portnum]); //this won't be reached, but without it the compiler gives a warning
-	return (0xFF); //this won't be reached, but without it the compiler gives a warning
+  (void)portnum;
+  uint8_t result;
+  if(mc6845RegSelector < MC6845_REG_READABLE)
+    result = 0;
+  else
+    result = mc6845Registers[mc6845RegSelector];
+	return result;
 }
 
 static uint8_t read3DAh(uint32_t portnum)
 {
   (void)portnum;
-  return (port3da);
+  return (port3DAh);
 }
 
 static void write3D8h(uint32_t portnum, uint8_t value)
 {
   (void)portnum;
-  LOG("3D8h: %02xh\n", value);
-  uint8_t _mode = value & 0x17;
-  switch(_mode)
-  {
-  case 0x00: // 40x25 text color
-    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_COLOR);
-    renderUpdateDumper(DUMPER_40x25_8x8);
-    break;
-  case 0x01: // 80x25 text color
-    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_COLOR);
-    renderUpdateDumper(DUMPER_80x25_4x8);
-    break;
-  case 0x02: // 320x200 graphics color
-    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_COLOR);
-    renderUpdateDumper(DUMPER_320x200);
-    break;
-  case 0x04: // 40x25 text monochrome
-    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_40_COLS | VIDEO_MODE_GRAY);
-    renderUpdateDumper(DUMPER_40x25_8x8);
-    break;
-  case 0x05: // 80x25 text monochrome
-    setVideoParameters(VIDEO_MODE_TEXT | VIDEO_MODE_80_COLS | VIDEO_MODE_GRAY);
-    renderUpdateDumper(DUMPER_80x25_4x8);
-    break;
-  case 0x06: // 320x200 graphics monochrome
-    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_320_PX | VIDEO_MODE_GRAY);
-    renderUpdateDumper(DUMPER_320x200);
-    break;
-  case 0x12:
-  case 0x13: // 640x200 graphics monochrome
-    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX | VIDEO_MODE_COLOR);
-    renderUpdateDumper(DUMPER_640x200);
-    break;
-  case 0x16:
-  case 0x17: // 640x200 graphics monochrome
-    setVideoParameters(VIDEO_MODE_GRAPH | VIDEO_MODE_640_PX);
-    renderUpdateDumper(DUMPER_640x200);
-    break;
-  default:
-    break;
-  }
+  port3D8h = value;
+  renderUpdateSettings(port3D8h, port3D9h);
 }
 
 static void write3D9h(uint32_t portnum, uint8_t value)
 {
   (void)portnum;
-  static const uint8_t COLOR_MASK = 0x0F;
-  static const uint8_t PALETTE_POS = 4;
-  static const uint8_t PALETTE_MASK = 0x03;
-  uint32_t color    = value & COLOR_MASK;
-  uint32_t palette  = (value >> PALETTE_POS) & PALETTE_MASK;
-  renderUpdateColorSettings(palette, color);
+  port3D9h = value;
+  renderUpdateSettings(port3D8h, port3D9h);
 }
 
-void initVideoPorts() 
+static uint8_t readDummy(uint32_t portnum)
 {
+  return 0;
 }
 
 /// @brief Handles CGA retrace bits in 3DAh port. Gets called each 32th CPU instruction executed.
@@ -241,11 +197,11 @@ void videoExecCpu(void)
   {
     _counter++;
     if (_counter > 479)
-      port3da = CGA_VERTICAL_RETRACE;
+      port3DAh = CGA_VERTICAL_RETRACE;
     else
-      port3da = 0;
+      port3DAh = 0;
     if (_counter & 1)
-      port3da |= CGA_HORIZONTAL_RETRACE;
+      port3DAh |= CGA_HORIZONTAL_RETRACE;
     if (_counter > 525)
       _counter = 0;
   }

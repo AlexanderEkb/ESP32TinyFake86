@@ -25,7 +25,6 @@
 #include "render.h"
 #include "sdcard.h"
 #include "soc/timer_group_struct.h"
-#include "timing.h"
 #include "video.h"
 #include "stats.h"
 #include "speaker.h"
@@ -176,8 +175,6 @@ void inithardware() {
     LOG("  - Intel 8237 DMA controller: ");
     init8237();
     LOG("OK\n");
-    initVideoPorts();
-    inittiming();
     initscreen();
 }
 
@@ -234,7 +231,6 @@ void setup() {
     sdcard.Init();
     CreateRAM();
     ClearRAM();
-    updateBIOSDataArea(); // Al inicio
     FuerzoParityRAM();    // Fuerzo que Parity sea en RAM
 
     renderInit();

@@ -950,7 +950,9 @@ void getea (uint8_t rmval)
 void reset86() {
 	segregs[regcs] = 0xFFFF;
 	ip = 0x0000;
-	//regs.wordregs[regsp] = 0xFFFE;
+  updateBIOSDataArea(); // Al inicio
+
+  //regs.wordregs[regsp] = 0xFFFE;
 }
 
 #ifdef use_lib_fast_readrm16
@@ -1609,7 +1611,7 @@ extern float	timercomp;
 uint64_t	timerticks = 0, realticks = 0;
 uint64_t	lastcountertimer = 0, counterticks = 10000;
 extern uint8_t	nextintr();
-extern void	simulateCGARetrace();
+extern void	i8253Exec();
 
 void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 {
@@ -1631,7 +1633,7 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 			if ( (totalexec & 31) == 0)
       {
         videoExecCpu();
-        simulateCGARetrace();
+        i8253Exec();
       }
 
             //if ( (totalexec & 0x07) == 0)
@@ -1653,7 +1655,10 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 			docontinue = 0;
 			firstip = ip;
 
-			if ( (segregs[regcs] == 0xF000) && (ip == 0xE066) ) didbootstrap = 0; //detect if we hit the BIOS entry point to clear didbootstrap because we've rebooted
+			if ( (segregs[regcs] == 0xF000) && (ip == 0xE066) ) {
+        didbootstrap = 0; //detect if we hit the BIOS entry point to clear didbootstrap because we've rebooted
+        updateBIOSDataArea();
+      }
 
 			while (!docontinue) {
 					segregs[regcs] = segregs[regcs] & 0xFFFF;

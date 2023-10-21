@@ -41,44 +41,51 @@
 
 typedef void (* dumper_t)(void);
 
-static void dump160x100_font4x8(void);
+// static void dump160x100_font4x8(void);
 static void dump80x25_font4x8(void);
-static void dump160x100_font8x8(void);
-static void dump80x25_font8x8(void);
+// static void dump160x100_font8x8(void);
+// static void dump80x25_font8x8(void);
 static void dump40x25_font8x8(void);
 static void dump320x200(void);
 static void dump640x200(void);
 
 static void SDLprintChar_c(char car,int x,int y,unsigned char color,unsigned char backcolor);
 static void SDLprintChar(char car,int x,int y,unsigned char color,unsigned char backcolor);
-static void SDLprintChar160x100_font4x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
+// static void SDLprintChar160x100_font4x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
 static void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
-static void SDLprintChar160x100_font8x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
+// static void SDLprintChar160x100_font8x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
 
 static const uint32_t DUMPER_COUNT = 7;
 
-static const uint32_t MODE_COUNT = 7;
+static const uint32_t MODE_COUNT = 8;
 
-typedef enum {COLOR_SHOW, COLOR_JAM} color_t;
 typedef struct {
-  dumper_t  dumper;
-  uint32_t  textWidth;
-  uint32_t  palette;
-  color_t   color;
+  uint32_t textWidth;
+  dumper_t dumper;
 } videoMode_t;
+/*
+2: graph dot resolution
+1: graph
+0: 80-col
 
+0x0: text 40 col
+0x1: text 80 col
+0x2: graph 320 px
+0x3: graph 320 px
+0x4: text 40 col
+0x5: text 80 col
+0x6: graph 640 col
+0x7: graph 640 col
+*/
 const videoMode_t modes[MODE_COUNT] = {
-  {}
-};
-
-const dumper_t dumpers[DUMPER_COUNT] = {
-  dump160x100_font4x8,
-  dump80x25_font4x8,
-  dump160x100_font8x8,
-  dump80x25_font8x8,
-  dump40x25_font8x8,
-  dump320x200,
-  dump640x200
+  {40, dump40x25_font8x8},
+  {80, dump80x25_font4x8},
+  {40, dump320x200},
+  {40, dump320x200},
+  {40, dump40x25_font8x8},
+  {80, dump80x25_font4x8},
+  {80, dump640x200},
+  {80, dump640x200}
 };
 
 cursor_t cursor;
@@ -86,29 +93,32 @@ static uint32_t scanlineBuffer[80];
 
 static const uint32_t VERTICAL_OFFSET = 20;
 
-const unsigned char paletteGraphicGRYdim[16]={ 
-//  Black   Green   Red     Yellow - others don't matter
-    0x00,   0xD5,   0x44,   0xE7,   0x00,   0x00,   0x00,   0x00,
-    0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00
+static const uint8_t paletteBasic[16]={ 
+// BLACK    BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
+    0x00,   0x73,   0xD5,   0xB6,   0x44,   0x65,   0xE7,   0x0A,
+    0x05,   0x78,   0xDA,   0xBB,   0x49,   0x6A,   0xEC,   0x0F
 };
 
-const unsigned char paletteGraphicGRYbright[16]={ 
-//  Black   Green   Red     Yellow - others don't matter
-    0x00,   0xDA,   0x49,   0xEC,   0x00,   0x00,   0x00,   0x00,
-    0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00
-};
+static const uint32_t GRAPH_PALETTE_COUNT = 4;
+static const uint32_t GRAPH_PALETTE_SIZE = 4;
+//                                                           Black  Green   Red     Yellow
+const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]    = {0x00,  0xD5,   0x44,   0xE7};
 
-//cga 2
-const unsigned char paletteGraphicCMWdim[16] = {
-//  Black   Cyan    Magenta White - others don't matter
-    0x00,   0xB6,   0x65,   0x0A,   0x00,   0x00,   0x00,   0x00,
-    0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00
-};
+//                                                           Black  Green   Red     Yellow
+const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE] = {0x00,  0xDA,   0x49,   0xEC};
 
-const unsigned char paletteGraphicCMWbright[16] = {
-//  Black   Cyan    Magenta White - others don't matter
-    0x00,   0xBB,   0x6A,   0x0F,   0x00,   0x00,   0x00,   0x00,
-    0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00,   0x00
+//                                                           Black   Cyan   Magenta White
+const uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]    = {0x00,  0xB6,   0x65,   0x0A};
+
+//                                                           Black   Cyan   Magenta White
+const uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE] = {0x00,   0xBB,   0x6A,   0x0F};
+
+static uint8_t const * graphPalettes[GRAPH_PALETTE_COUNT] =
+{
+  paletteGraphicGRYdim,
+  paletteGraphicGRYbright,
+  paletteGraphicCMWdim,
+  paletteGraphicCMWbright
 };
 
 static unsigned char palette[16]={
@@ -116,15 +126,8 @@ static unsigned char palette[16]={
     0x05,   0x78,   0xDA,   0xBB,   0x49,   0x6A,   0xEC,   0x0F
 };
 
-//Color Modo Texto Rapido
-static const uint8_t paletteBasic[16]={ 
-// BLACK    BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
-    0x00,   0x73,   0xD5,   0xB6,   0x44,   0x65,   0xE7,   0x0A,
-    0x05,   0x78,   0xDA,   0xBB,   0x49,   0x6A,   0xEC,   0x0F
-};
-
 static struct render {
-  uint32_t dumper = 0;
+  dumper_t dumper = dump80x25_font4x8;
   uint32_t colCount = 80;
   uint32_t frameCount = 0;
   uint32_t paletteIndex = 0;
@@ -258,23 +261,23 @@ void VideoThreadPoll()
 }
 
 //*****************************************
-static void dump160x100_font4x8()
-{
- unsigned char aColor,aBgColor,aChar;
- unsigned int bFourPixelsOffset=0;     
- for (int y=0;y<100;y++)
- {  
-  for (unsigned char x=0;x<80;x++) //Modo 80x25
-  {
-   aChar= gb_video_cga[bFourPixelsOffset];
-   bFourPixelsOffset++;
-   aColor = gb_video_cga[bFourPixelsOffset]&0x0F;
-   aBgColor = ((gb_video_cga[bFourPixelsOffset]>>4)&0x0F);   
-   SDLprintChar160x100_font4x8(aChar,(x<<2),(y*2),aColor,aBgColor);  //40x25
-   bFourPixelsOffset++;
-  } 
- }
-}
+// static void dump160x100_font4x8()
+// {
+//  unsigned char aColor,aBgColor,aChar;
+//  unsigned int bFourPixelsOffset=0;     
+//  for (int y=0;y<100;y++)
+//  {  
+//   for (unsigned char x=0;x<80;x++) //Modo 80x25
+//   {
+//    aChar= gb_video_cga[bFourPixelsOffset];
+//    bFourPixelsOffset++;
+//    aColor = gb_video_cga[bFourPixelsOffset]&0x0F;
+//    aBgColor = ((gb_video_cga[bFourPixelsOffset]>>4)&0x0F);   
+//    SDLprintChar160x100_font4x8(aChar,(x<<2),(y*2),aColor,aBgColor);  //40x25
+//    bFourPixelsOffset++;
+//   } 
+//  }
+// }
 
 static void dump80x25_font4x8()
 {
@@ -309,48 +312,48 @@ static void dump80x25_font4x8()
  }
 }
 
-static void dump160x100_font8x8()
-{
- unsigned char aColor,aBgColor,aChar;
- unsigned int bFourPixelsOffset=0;     
- for (int y=0;y<100;y++)
- {  
-  for (unsigned char x=0;x<80;x++) //Modo 40x25
-  {
-   aChar= gb_video_cga[bFourPixelsOffset];
-   bFourPixelsOffset++;
-   aColor = gb_video_cga[bFourPixelsOffset]&0x0F;   
-   aBgColor = ((gb_video_cga[bFourPixelsOffset]>>4)&0x0F);   
-   SDLprintChar160x100_font8x8(aChar,(x<<3),(y*2),aColor,aBgColor);  //40x25
-   bFourPixelsOffset++;
-  }
-  bFourPixelsOffset+= 80; //40x25  
- }
-}
-
-static void dump80x25_font8x8()
-{
-//  if ((port_3D8->value == 9) && (port_3D4->value == 9))
-//  {
-//   SDLdump160x100_font8x8();
-//   return;
+// static void dump160x100_font8x8()
+// {
+//  unsigned char aColor,aBgColor,aChar;
+//  unsigned int bFourPixelsOffset=0;     
+//  for (int y=0;y<100;y++)
+//  {  
+//   for (unsigned char x=0;x<80;x++) //Modo 40x25
+//   {
+//    aChar= gb_video_cga[bFourPixelsOffset];
+//    bFourPixelsOffset++;
+//    aColor = gb_video_cga[bFourPixelsOffset]&0x0F;   
+//    aBgColor = ((gb_video_cga[bFourPixelsOffset]>>4)&0x0F);   
+//    SDLprintChar160x100_font8x8(aChar,(x<<3),(y*2),aColor,aBgColor);  //40x25
+//    bFourPixelsOffset++;
+//   }
+//   bFourPixelsOffset+= 80; //40x25  
 //  }
+// }
 
- unsigned char aColor, aBgColor, aChar;
- uint32_t bOffset = 0;
- for (uint32_t y = 0; y < 25; y++)
- {
-  for (uint32_t x = 0; x < 80; x++)
-  {
-   aChar = gb_video_cga[bOffset];
-   bOffset++;
-   aColor = gb_video_cga[bOffset] & 0x0F;
-   aBgColor = ((gb_video_cga[bOffset] >> 4) & 0x07);
-   SDLprintChar(aChar, (x << 3), (y << 3), aColor, aBgColor); // Sin capturadora
-   bOffset++;
-  }
- }
-}
+// static void dump80x25_font8x8()
+// {
+// //  if ((port_3D8->value == 9) && (port_3D4->value == 9))
+// //  {
+// //   SDLdump160x100_font8x8();
+// //   return;
+// //  }
+
+//  unsigned char aColor, aBgColor, aChar;
+//  uint32_t bOffset = 0;
+//  for (uint32_t y = 0; y < 25; y++)
+//  {
+//   for (uint32_t x = 0; x < 80; x++)
+//   {
+//    aChar = gb_video_cga[bOffset];
+//    bOffset++;
+//    aColor = gb_video_cga[bOffset] & 0x0F;
+//    aBgColor = ((gb_video_cga[bOffset] >> 4) & 0x07);
+//    SDLprintChar(aChar, (x << 3), (y << 3), aColor, aBgColor); // Sin capturadora
+//    bOffset++;
+//   }
+//  }
+// }
 
 static void dump40x25_font8x8()
 {
@@ -524,32 +527,32 @@ static void SDLprintChar(char code, int x, int y, unsigned char color, unsigned 
   }
 }
 
-static void SDLprintChar160x100_font4x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
-{
- unsigned char bFourPixels;
- unsigned char bFourPixelsBit,bFourPixelsColor;
- unsigned char aColor;
- unsigned char nibble0;
- unsigned char nibble1;
- switch (car)
- {
-  case 221: nibble0=color; nibble1=backcolor; break;
-  case 222: nibble0=backcolor; nibble1=color; break;
-  default: nibble0=0; nibble1=0; break;  
- }
- for (unsigned char j=0;j<2;j++)
- {
-  //bFourPixels = gb_sdl_font_8x8[bFourPixelsId + j];  
-  for (int i=0;i<2;i++)
-  {//4 primeros pixels
-         gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + i)] = paletteBasic[nibble0];
-  }
-  for (int i=2;i<4;i++)
-  {//4 segundos pixels
-         gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + i)] = paletteBasic[nibble1];
-  }  
- }
-}     
+// static void SDLprintChar160x100_font4x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
+// {
+//  unsigned char bFourPixels;
+//  unsigned char bFourPixelsBit,bFourPixelsColor;
+//  unsigned char aColor;
+//  unsigned char nibble0;
+//  unsigned char nibble1;
+//  switch (car)
+//  {
+//   case 221: nibble0=color; nibble1=backcolor; break;
+//   case 222: nibble0=backcolor; nibble1=color; break;
+//   default: nibble0=0; nibble1=0; break;  
+//  }
+//  for (unsigned char j=0;j<2;j++)
+//  {
+//   //bFourPixels = gb_sdl_font_8x8[bFourPixelsId + j];  
+//   for (int i=0;i<2;i++)
+//   {//4 primeros pixels
+//          gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + i)] = paletteBasic[nibble0];
+//   }
+//   for (int i=2;i<4;i++)
+//   {//4 segundos pixels
+//          gb_buffer_vga[(y + j) + VERTICAL_OFFSET][(x + i)] = paletteBasic[nibble1];
+//   }  
+//  }
+// }     
 
 static void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
 { 
@@ -567,62 +570,37 @@ static void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned ch
  }
 }
 
-static void SDLprintChar160x100_font8x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
-{
- unsigned char bFourPixels;
- unsigned char bFourPixelsBit,bFourPixelsColor;
- unsigned char aColor;
- unsigned char nibble0;
- unsigned char nibble1; 
- switch (car)
- {
-  case 221: nibble0=color; nibble1=backcolor; break;
-  case 222: nibble0=backcolor; nibble1=color; break;
-  default: nibble0=0; nibble1=0; break;  
- }
- for (unsigned char j=0;j<2;j++)
- {
-  //bFourPixels = gb_sdl_font_8x8[bFourPixelsId + j];  
-  for (int i=0;i<4;i++)
-  {//4 primeros pixels      
-   gb_buffer_vga[(y+j) + VERTICAL_OFFSET][(x+i)]= paletteBasic[nibble0];
-  }
-  for (int i=4;i<8;i++)
-  {//4 segundos pixels
-   gb_buffer_vga[(y+j) + VERTICAL_OFFSET][(x+i)]= paletteBasic[nibble1];
-  }  
- }     
-}
+// static void SDLprintChar160x100_font8x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
+// {
+//  unsigned char bFourPixels;
+//  unsigned char bFourPixelsBit,bFourPixelsColor;
+//  unsigned char aColor;
+//  unsigned char nibble0;
+//  unsigned char nibble1; 
+//  switch (car)
+//  {
+//   case 221: nibble0=color; nibble1=backcolor; break;
+//   case 222: nibble0=backcolor; nibble1=color; break;
+//   default: nibble0=0; nibble1=0; break;  
+//  }
+//  for (unsigned char j=0;j<2;j++)
+//  {
+//   //bFourPixels = gb_sdl_font_8x8[bFourPixelsId + j];  
+//   for (int i=0;i<4;i++)
+//   {//4 primeros pixels      
+//    gb_buffer_vga[(y+j) + VERTICAL_OFFSET][(x+i)]= paletteBasic[nibble0];
+//   }
+//   for (int i=4;i<8;i++)
+//   {//4 segundos pixels
+//    gb_buffer_vga[(y+j) + VERTICAL_OFFSET][(x+i)]= paletteBasic[nibble1];
+//   }  
+//  }     
+// }
 
 void draw()
 {
   render.frameCount++;
-  dumpers[render.dumper]();
-  // switch (render.dumper)
-  // {
-  // case 0:
-  // case 1:
-  //  dump40x25_font8x8();
-  //  break;
-  // case 2: // text modes
-  // case 3:
-  // case 7:
-  // case 0x82:
-  //  if (gb_font_8x8 == 1)
-  //   dump80x25_font8x8();
-  //  else
-  //   dump80x25_font4x8();
-  //  break;
-  // case 4:
-  // case 5:
-  //  dump320x200();
-  //  break;
-  // case 6:
-  //  dump640x200();
-  //  break;
-  // default:
-  //  break;
-  // }
+  render.dumper();
 }
 
 //******************************************
@@ -692,60 +670,41 @@ void renderSetBlitter(unsigned int blitter)
   }
 }
 
-void renderSetColorEnabled(bool bEnabled)
+void renderUpdateSettings(uint8_t settings, uint8_t colors)
 {
-  render.pendingColorburstValue = bEnabled?PENDING_COLORBURST_TRUE:PENDING_COLORBURST_FALSE;
-  LOG("SetColorEnabled(%i)\n", bEnabled);
-}
+  uint8_t _mode = (settings & 0x3) | ((settings >> 2) & 0x04);
+  render.dumper = modes[_mode].dumper;
+  render.colCount = modes[_mode].textWidth;
+  const bool colorEnabled = !(settings & 0x04) || (settings & 10);
+  render.pendingColorburstValue = colorEnabled ? PENDING_COLORBURST_TRUE : PENDING_COLORBURST_FALSE;
 
-void renderSetColumnCount(uint32_t columnCount)
-{
-  render.colCount = columnCount;
-}
-
-void renderUpdateColorSettings(uint32_t paletteIndex, uint32_t color)
-{
+  // Colors
+  static const uint8_t COLOR_MASK = 0x0F;
+  static const uint8_t PALETTE_POS = 4;
+  static const uint8_t PALETTE_MASK = 0x03;
+  uint32_t specialColor = colors & COLOR_MASK;
+  uint32_t paletteIndex = (colors >> PALETTE_POS) & PALETTE_MASK;
   render.paletteIndex = paletteIndex;
-  render.specialColor = color;
+  render.specialColor = specialColor;
 
-  LOG("updateColorSettings(%02x, %02x)\n", paletteIndex, color);
-  enum mode {TEXT, GRAPH_LO, GRAPH_HI} mode = (render.dumper <= 4)?TEXT:((render.dumper == 5)?GRAPH_LO:GRAPH_HI);
-  switch(mode)
+  LOG("updateColorSettings(%02x, %02x)\n", paletteIndex, specialColor);
+  enum mode {TEXT, GRAPH_LO, GRAPH_HI} mode = !(settings & 0x02) ? TEXT : ((settings & 0x10) ? GRAPH_HI : GRAPH_LO);
+  switch (mode)
   {
-    case TEXT:
-      memcpy(palette, paletteBasic, 16);
-      break;
-    case GRAPH_LO:
-      if(paletteIndex == 0)
-        memcpy(palette, paletteGraphicGRYdim, 4);
-      else if(paletteIndex == 1)
-        memcpy(palette, paletteGraphicGRYbright, 4);
-      else if(paletteIndex == 2)
-        memcpy(palette, paletteGraphicCMWdim, 4);
-      else if(paletteIndex == 3)
-        memcpy(palette, paletteGraphicCMWbright, 4);
-      palette[0] = paletteBasic[color];
-      break;
-    case GRAPH_HI:
-      palette[0] = 0;
-      palette[1] = color;
-      break;
-  }
-
-}
-
-void renderUpdateDumper(uint32_t dumper)
-{
-  if(render.dumper != dumper)
-  {
-    if(dumper < DUMPER_COUNT)
-    {
-      renderUpdateColorSettings(render.paletteIndex, render.specialColor);
-      render.dumper = dumper;
-      LOG("Dumper #%i\n", dumper);
-    }
-    else
-      LOG("Dumper #%i - FAIL!\n", dumper);
+  case TEXT:
+    LOG("Text\n");
+    memcpy(palette, paletteBasic, 16);
+    break;
+  case GRAPH_LO:
+    LOG("GRAPH_LO\n");
+    memcpy(palette, graphPalettes[paletteIndex], GRAPH_PALETTE_SIZE);
+    palette[0] = paletteBasic[specialColor];
+    break;
+  case GRAPH_HI:
+    LOG("GRAPH_HI\n");
+    palette[0] = 0;
+    palette[1] = paletteBasic[specialColor];
+    break;
   }
 }
 

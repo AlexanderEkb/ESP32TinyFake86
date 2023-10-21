@@ -32,6 +32,7 @@
 struct i8253_s i8253;
 
 extern uint64_t hostfreq, curtick, totalexec;
+unsigned int jj_cur_ms_tick, jj_last_ms_tick;
 
 static void out8253(uint32_t portnum, uint8_t value);
 static uint8_t in8253(uint32_t portnum);
@@ -120,6 +121,49 @@ uint8_t in8253(uint32_t portnum)
 void init8253()
 {
   memset(&i8253, 0, sizeof(i8253));
-  // set_port_write_redirector (0x40, 0x43, (void *)&out8253);
-  // set_port_read_redirector (0x40, 0x43, (void *)&in8253);
+  jj_last_ms_tick = jj_cur_ms_tick = millis();
+}
+
+void i8253Exec()
+{
+  // Fuerzo siempre 54 ms 18.2 ticks
+  // auxCurTick= (jj_last_ms_tick - jj_cur_ms_tick);
+  // if (auxCurTick >= 54)
+  jj_cur_ms_tick = millis();
+  unsigned int auxCurTick = (jj_last_ms_tick - jj_cur_ms_tick);
+  if (auxCurTick >= gb_timers_poll_milis)
+  {
+    jj_last_ms_tick = jj_cur_ms_tick;
+    void updateBIOSDataArea();
+    updateBIOSDataArea(); // Cada 54 milis
+    if (i8253.active[0])
+    {
+      doirq(0);
+    }
+
+    for (uint32_t i8253chan = 0; i8253chan < 3; i8253chan++)
+    {
+      if (i8253.active[i8253chan])
+      {
+        if (i8253.counter[i8253chan] < 10)
+          i8253.counter[i8253chan] = i8253.chandata[i8253chan];
+        i8253.counter[i8253chan] -= 10;
+      }
+    }
+  }
+
+  // auxCurTick= (jj_lasti8253_ms_tick - jj_cur_ms_tick);
+  // if (auxCurTick >= 54)
+  //{
+  //  jj_lasti8253_ms_tick = jj_cur_ms_tick;
+  //  for (i8253chan=0; i8253chan<3; i8253chan++)
+  //  {
+  //   if (i8253.active[i8253chan])
+  //   {
+  //    if (i8253.counter[i8253chan] < 10)
+  //     i8253.counter[i8253chan] = i8253.chandata[i8253chan];
+  //    i8253.counter[i8253chan] -= 10;
+  //   }
+  //  }
+  // }
 }

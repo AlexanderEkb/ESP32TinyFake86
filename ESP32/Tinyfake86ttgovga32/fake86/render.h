@@ -36,10 +36,7 @@ class cursor_t {
  void renderClearScreen(void);
  void renderPrintCharOSD(char character, int col, int row, unsigned char color, unsigned char backcolor);
  void renderSetBlitter(unsigned int blitter);
- void renderSetColumnCount(uint32_t columnCount);
- void renderSetColorEnabled(bool bEnabled);
- void renderUpdateColorSettings(uint32_t palette, uint32_t color);
- void renderUpdateDumper(uint32_t dumper);
+ void renderUpdateSettings(uint8_t settings, uint8_t colors);
  
  unsigned char initscreen ();
  
