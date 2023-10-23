@@ -220,7 +220,7 @@ void renderClearScreen()
 {
   for (int y = 0; y < 200; y++)
     for (int x = 0; x < 320; x++)
-      gb_buffer_vga[y + VERTICAL_OFFSET][x] = 0;
+      gb_buffer_vga[y + VERTICAL_OFFSET][x + 8] = 0;
 }
 
 void renderPrintCharOSD(char character, int col, int row, unsigned char color, unsigned char backcolor)
@@ -420,9 +420,8 @@ static void dump320x200()
 }
 
 
-//cga6 rapido
 static void dump640x200()
-{//640x200 1 bit Escalado a la mitad
+{
  unsigned short int cont=0;
  unsigned int yDest; 
  unsigned int x;
@@ -503,6 +502,25 @@ static void SDLprintChar_c(char code,int x,int y,unsigned char color,unsigned ch
  }
 }
 
+static void SDLprintChar4x8_c(char code, int x, int y, unsigned char color, unsigned char backcolor)
+{
+ int nBaseOffset = code << 3;
+ const bool cbTime = render.frameCount & 0x04;
+ for (unsigned int row = 0; row < 8; row++)
+ {
+  const bool cbFill = (row >= cursor.getStart()) && (row <= cursor.getEnd()) && cbTime;
+  unsigned char bLine = ((row >= 6) && (cbTime)) ? 0xFF : gb_sdl_font_4x8[nBaseOffset + row];
+  
+  for (int col = 4; col < 8; col++)
+  {
+      unsigned char Pixel = ((bLine >> col) & 0x01);
+      const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
+      const uint32_t vgaCol = x - col + 15;
+      gb_buffer_vga[vgaLine][vgaCol] = paletteBasic[(Pixel != 0) ? color : backcolor];
+  }
+ }
+}
+
 static void SDLprintChar(char code, int x, int y, unsigned char color, unsigned char backcolor)
 {
   if((x == (cursor.getCol() << 3)) && (y == (cursor.getRow() << 3)))
@@ -555,19 +573,25 @@ static void SDLprintChar(char code, int x, int y, unsigned char color, unsigned 
 // }     
 
 static void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
-{ 
-// unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
- int nBaseOffset = car << 3; //*8
- for (unsigned char row=0;row<8;row++)
- {  
-  uint8_t Line = gb_sdl_font_4x8[nBaseOffset + row];  
-  for (int i=4;i<8;i++)
+{
+  if ((x == (cursor.getCol() << 2)) && (y == (cursor.getRow() << 3)))
   {
-   uint8_t Pixel = ((Line>>i) & 0x01);
-   //jj_fast_putpixel(x+(7-i),y+j,(bFourPixelsColor==1)?color:backcolor);
-   gb_buffer_vga[(y+row) + VERTICAL_OFFSET][(x+(7-i)) + 8]= paletteBasic[((Pixel == 0)?color:backcolor)];
+    SDLprintChar_c(car, x, y, color, backcolor);
   }
- }
+  else
+  {
+    int nBaseOffset = car << 3; //*8
+    for (unsigned char row = 0; row < 8; row++)
+    {
+      uint8_t Line = gb_sdl_font_4x8[nBaseOffset + row];
+      for (int i = 4; i < 8; i++)
+      {
+        uint8_t Pixel = ((Line >> i) & 0x01);
+        // jj_fast_putpixel(x+(7-i),y+j,(bFourPixelsColor==1)?color:backcolor);
+        gb_buffer_vga[(y + row) + VERTICAL_OFFSET][(x + (7 - i)) + 8] = paletteBasic[((Pixel == 0) ? color : backcolor)];
+      }
+    }
+  }
 }
 
 // static void SDLprintChar160x100_font8x8(char car,int x,int y,unsigned char color,unsigned char backcolor)
