@@ -1,7 +1,7 @@
-#include "speaker.h"
+#include "io/speaker.h"
 #include "esp32-hal-gpio.h"
-#include "hardware.h"
-#include "ports.h"
+#include "config/hardware.h"
+#include "cpu/ports.h"
 
 volatile unsigned int gb_pulsos_onda = 0;
 volatile unsigned int gb_cont_my_callbackfunc = 0;

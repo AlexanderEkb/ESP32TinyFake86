@@ -18,22 +18,19 @@
 //   it is a bit messy. i plan to rework much of this in the future. i am also
 //   going to add hardware accelerated scaling soon.
 
-#include "gbConfig.h"
-//#include <SDL/SDL.h>
+#include "config/gbConfig.h"
 #include <stdio.h>
 #include <Arduino.h>
-//JJ #include "mutex.h"
 #include "gbGlobals.h"
-#include "cpu.h"
-#include "ports.h"
-#include "render.h"
+#include "cpu/cpu.h"
+#include "cpu/ports.h"
+#include "video/render.h"
 #include "fake86.h"
-#include "gb_sdl_font8x8.h"
-#include "gb_sdl_font4x8.h"
-#include "render.h"
+#include "video/gb_sdl_font8x8.h"
+#include "video/gb_sdl_font4x8.h"
 
 #define SUPPORT_NTSC 1
-#include "CompositeColorOutput.h"
+#include "video/CompositeColorOutput.h"
 
 #define PENDING_COLORBURST_NO     (0x00)
 #define PENDING_COLORBURST_TRUE   (0x01)

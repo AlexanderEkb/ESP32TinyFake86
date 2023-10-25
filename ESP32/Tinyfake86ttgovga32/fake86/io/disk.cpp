@@ -16,16 +16,16 @@
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // disk.c: disk emulation routines for Fake86. works at the BIOS interrupt 13h level.
 
-#include "gbConfig.h"
+#include "config/gbConfig.h"
+#include "cpu/cpu.h"
+#include "gbGlobals.h"
+#include "io/disk.h"
+#include "io/sdcard.h"
+#include <Arduino.h>
+#include <esp_heap_caps.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "disk.h"
-#include "cpu.h"
-#include "gbGlobals.h"
 #include <string.h>
-#include <esp_heap_caps.h>
-#include <Arduino.h>
-#include "sdcard.h"
 
 #define RESULT_OK               (0x00)
 #define RESULT_WRONG_PARAM      (0x01)

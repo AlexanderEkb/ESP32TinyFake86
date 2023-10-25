@@ -1,5 +1,5 @@
-#include "keyboard.h"
-#include "ports.h"
+#include "io/keyboard.h"
+#include "cpu/ports.h"
 
 IOPort port_060h = IOPort(0x060, 0x00, nullptr, nullptr);
 IOPort port_063h = IOPort(0x063, 0x00, nullptr, nullptr);
