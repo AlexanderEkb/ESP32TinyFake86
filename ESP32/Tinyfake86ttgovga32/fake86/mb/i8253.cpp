@@ -23,16 +23,15 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "i8253.h"
+#include "mb/i8253.h"
 #include "gbGlobals.h"
-#include "ports.h"
+#include "cpu/ports.h"
 #include <Arduino.h>
 #include <string.h>
 
 struct i8253_s i8253;
 
 extern uint64_t hostfreq, curtick, totalexec;
-unsigned int jj_cur_ms_tick, jj_last_ms_tick;
 
 static void out8253(uint32_t portnum, uint8_t value);
 static uint8_t in8253(uint32_t portnum);
@@ -44,7 +43,6 @@ IOPort port_043h = IOPort(0x043, 0xFF, in8253, out8253);
 
 void out8253(uint32_t portnum, uint8_t value)
 {
-  uint8_t curbyte;
   portnum &= 3;
   switch (portnum)
   {
@@ -52,17 +50,10 @@ void out8253(uint32_t portnum, uint8_t value)
   case 1:
   case 2: // channel data
     if ((i8253.accessmode[portnum] == PIT_MODE_LOBYTE) || ((i8253.accessmode[portnum] == PIT_MODE_TOGGLE) && (i8253.bytetoggle[portnum] == 0)))
-      curbyte = 0;
+      i8253.chandata[portnum] = (i8253.chandata[portnum] & 0xFF00) | value;                   // Lower byte
     else if ((i8253.accessmode[portnum] == PIT_MODE_HIBYTE) || ((i8253.accessmode[portnum] == PIT_MODE_TOGGLE) && (i8253.bytetoggle[portnum] == 1)))
-      curbyte = 1;
-    if (curbyte == 0)
-    { // low byte
-      i8253.chandata[portnum] = (i8253.chandata[portnum] & 0xFF00) | value;
-    }
-    else
-    { // high byte
-      i8253.chandata[portnum] = (i8253.chandata[portnum] & 0x00FF) | ((uint16_t)value << 8);
-    }
+      i8253.chandata[portnum] = (i8253.chandata[portnum] & 0x00FF) | ((uint16_t)value << 8);  // Upper byte
+
     if (i8253.chandata[portnum] == 0)
       i8253.effectivedata[portnum] = 65536;
     else
@@ -121,19 +112,18 @@ uint8_t in8253(uint32_t portnum)
 void init8253()
 {
   memset(&i8253, 0, sizeof(i8253));
-  jj_last_ms_tick = jj_cur_ms_tick = millis();
 }
 
 void i8253Exec()
 {
-  // Fuerzo siempre 54 ms 18.2 ticks
-  // auxCurTick= (jj_last_ms_tick - jj_cur_ms_tick);
-  // if (auxCurTick >= 54)
-  jj_cur_ms_tick = millis();
-  unsigned int auxCurTick = (jj_last_ms_tick - jj_cur_ms_tick);
-  if (auxCurTick >= gb_timers_poll_milis)
+  static uint32_t timestamp = millis();
+  
+
+  uint32_t now  = millis();
+  uint32_t delta = (now - timestamp);
+  if (delta >= gb_timers_poll_milis)
   {
-    jj_last_ms_tick = jj_cur_ms_tick;
+    timestamp = now;
     void updateBIOSDataArea();
     updateBIOSDataArea(); // Cada 54 milis
     if (i8253.active[0])

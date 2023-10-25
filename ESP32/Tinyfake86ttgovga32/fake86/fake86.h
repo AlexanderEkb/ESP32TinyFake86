@@ -1,8 +1,8 @@
 #ifndef _FAKE86_H
  #define _FAKE86_H
 
- #include "gbConfig.h"
- #include "hardware.h"
+ #include "config/gbConfig.h"
+ #include "config/hardware.h"
  
  // Declared methods
  void do_keyboard();

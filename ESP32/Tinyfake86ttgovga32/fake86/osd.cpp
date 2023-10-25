@@ -1,27 +1,18 @@
-#include <string.h>
-#include "gbConfig.h"
+#include "config/gbConfig.h"
 #include "fake86.h"
 #include "osd.h"
 #include "dataFlash/gbcom.h"
 #include "gbGlobals.h"
-#include "gb_sdl_font8x8.h"
-#include "render.h"
-#include "cpu.h"
-#include "ports.h"
-#include "keys.h"
-#include "keyboard.h"
+//#include "video/gb_sdl_font8x8.h"
+#include "video/render.h"
+#include "cpu/cpu.h"
+#include "cpu/ports.h"
+#include "io/keys.h"
+#include "io/keyboard.h"
 #include <Esp.h>
-#include "sdcard.h"
-#include "render.h"
-
-//#define BLACK   0
-//#define BLUE    4
-//#define RED     1
-//#define MAGENTA 5
-//#define GREEN   2
-//#define CYAN    6
-//#define YELLOW  3
-//#define WHITE   15
+#include "io/sdcard.h"
+#include "video/render.h"
+#include <string.h>
 
 #ifdef COLOR_3B           //       BGR 
  #define BLACK   0x08      // 0000 1000

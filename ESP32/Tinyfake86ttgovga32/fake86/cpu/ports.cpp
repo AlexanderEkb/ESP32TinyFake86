@@ -18,14 +18,13 @@
 //   as functions for emulated hardware components to register their
 //   read/write callback functions across the port address range.
 
-#include "ports.h"
-#include "cpu.h"
-#include "gbConfig.h"
+#include "cpu/ports.h"
+#include "cpu/cpu.h"
+#include "config/gbConfig.h"
 #include "gbGlobals.h"
-#include "speaker.h"
+#include "io/speaker.h"
 #include <Arduino.h>
 #include <stdio.h>
-#include "ports.h"
 
 IOPortSpace IOPortSpace::instance;
 IOPort *    IOPortSpace::root = nullptr;

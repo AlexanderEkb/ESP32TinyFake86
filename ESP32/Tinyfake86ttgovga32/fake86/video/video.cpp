@@ -53,14 +53,14 @@
  * bit 0: display enable. VRAM may be accesed with no afraid of "snow" effect.
  * 
 */
-#include "gbConfig.h"
+#include "video/video.h"
+#include "config/gbConfig.h"
+#include "cpu/cpu.h"
+#include "cpu/ports.h"
+#include "video/render.h"
 #include <stdint.h>
 #include <stdio.h>
-#include "video.h"
-#include "cpu.h"
-#include "ports.h"
 #include <string.h>
-#include "render.h"
 
 #define PORT_3D8_BLINKING			(0x20)
 #define PORT_3D8_HIRES_GRAPH	(0x10)

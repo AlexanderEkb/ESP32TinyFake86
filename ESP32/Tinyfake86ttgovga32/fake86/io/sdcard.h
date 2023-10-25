@@ -2,7 +2,7 @@
 #define SDCARD_H
 
 #include "Arduino.h"
-#include "hardware.h"
+#include "config/hardware.h"
 #include <dirent.h>
 #include <driver/sdmmc_host.h>
 #include <driver/sdspi_host.h>

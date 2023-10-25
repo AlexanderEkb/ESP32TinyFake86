@@ -1,9 +1,9 @@
 #ifndef _GB_GLOBALS_H
  #define _GB_GLOBALS_H
  #include <stdint.h>
- #include "gbConfig.h"
+ #include "config/gbConfig.h"
  #include <stdio.h>
- #include "keyboard.h" 
+ #include "io/keyboard.h" 
 
 #ifdef use_lib_log_serial
 #define LOG(...) Serial.printf(__VA_ARGS__)

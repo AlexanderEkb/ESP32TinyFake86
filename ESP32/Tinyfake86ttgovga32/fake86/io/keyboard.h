@@ -2,11 +2,11 @@
 #define KEYBOARD_H
 
 #include "fake86.h"
-#include "gbConfig.h"
+#include "config/gbConfig.h"
 #include "gbGlobals.h"
-#include "hardware.h"
-#include "i8259.h"
-#include "keys.h"
+#include "config/hardware.h"
+#include "mb/i8259.h"
+#include "io/keys.h"
 #include <Arduino.h>
 
 void IRAM_ATTR kb_interruptHandler(void);

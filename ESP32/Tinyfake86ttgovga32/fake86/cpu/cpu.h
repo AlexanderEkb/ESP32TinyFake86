@@ -133,121 +133,121 @@ void ExternalSetCF(unsigned char valor);
 
 void my_callback_speaker_func(void);
 
-#ifndef use_lib_fast_push
- void push (unsigned short int pushval);
-#endif
+// #ifndef use_lib_fast_push
+//  void push (unsigned short int pushval);
+// #endif
 
-#ifndef use_lib_fast_pop
- unsigned short int pop(void);
-#endif
+// #ifndef use_lib_fast_pop
+//  unsigned short int pop(void);
+// #endif
 
-#ifndef use_lib_fast_op_add16
- void op_add16(void);
-#endif
+// #ifndef use_lib_fast_op_add16
+//  void op_add16(void);
+// #endif
 
-#ifndef use_lib_fast_op_sub16
- void op_sub16(void);
-#endif
+// #ifndef use_lib_fast_op_sub16
+//  void op_sub16(void);
+// #endif
 
-#ifndef use_lib_fast_op_and8
- void op_and8(void);
-#endif
+// #ifndef use_lib_fast_op_and8
+//  void op_and8(void);
+// #endif
 
-#ifndef use_lib_fast_op_add8
- void op_add8(void);
-#endif
+// #ifndef use_lib_fast_op_add8
+//  void op_add8(void);
+// #endif
 
-#ifndef use_lib_fast_op_writew86
- void writew86 (unsigned int addr32, unsigned short int value);
-#endif
+// #ifndef use_lib_fast_op_writew86
+//  void writew86 (unsigned int addr32, unsigned short int value);
+// #endif
 
-#ifndef use_lib_fast_op_xor8
- void op_xor8(void);
-#endif
+// #ifndef use_lib_fast_op_xor8
+//  void op_xor8(void);
+// #endif
 
-#ifndef use_lib_fast_op_or16
- void op_or16(void);
-#endif
+// #ifndef use_lib_fast_op_or16
+//  void op_or16(void);
+// #endif
 
-#ifndef use_lib_fast_op_or8
- void op_or8(void);
-#endif
+// #ifndef use_lib_fast_op_or8
+//  void op_or8(void);
+// #endif
 
-#ifndef use_lib_fast_op_and16
- void op_and16(void);
-#endif
+// #ifndef use_lib_fast_op_and16
+//  void op_and16(void);
+// #endif
 
-#ifndef use_lib_fast_flag_log8
- void flag_log8 (unsigned char value);
-#endif
+// #ifndef use_lib_fast_flag_log8
+//  void flag_log8 (unsigned char value);
+// #endif
 
-#ifndef use_lib_fast_flag_log16
- void flag_log16 (unsigned short int value);
-#endif
+// #ifndef use_lib_fast_flag_log16
+//  void flag_log16 (unsigned short int value);
+// #endif
 
-#ifndef use_lib_fast_flag_adc8
- void flag_adc8 (unsigned char v1, unsigned char v2, unsigned char v3);
-#endif 
+// #ifndef use_lib_fast_flag_adc8
+//  void flag_adc8 (unsigned char v1, unsigned char v2, unsigned char v3);
+// #endif 
 
-#ifndef use_lib_fast_flag_adc16
- void flag_adc16 (uint16_t v1, uint16_t v2, uint16_t v3);
-#endif
+// #ifndef use_lib_fast_flag_adc16
+//  void flag_adc16 (uint16_t v1, uint16_t v2, uint16_t v3);
+// #endif
 
-#ifndef use_lib_fast_op_xor16
- void op_xor16(void);
-#endif
+// #ifndef use_lib_fast_op_xor16
+//  void op_xor16(void);
+// #endif
 
-#ifndef use_lib_fast_readw86
- unsigned short int readw86 (unsigned int addr32);
-#endif
+// #ifndef use_lib_fast_readw86
+//  unsigned short int readw86 (unsigned int addr32);
+// #endif
 
-#ifndef use_lib_fast_flag_szp8
- void flag_szp8(unsigned char value);
-#endif
+// #ifndef use_lib_fast_flag_szp8
+//  void flag_szp8(unsigned char value);
+// #endif
 
-#ifndef use_lib_fast_flag_szp16
- void flag_szp16(unsigned short int value);
-#endif
+// #ifndef use_lib_fast_flag_szp16
+//  void flag_szp16(unsigned short int value);
+// #endif
 
-#ifndef use_lib_fast_op_adc8
- void op_adc8(void);
-#endif
+// #ifndef use_lib_fast_op_adc8
+//  void op_adc8(void);
+// #endif
 
-#ifndef use_lib_fast_op_adc16
- void op_adc16(void);
-#endif
+// #ifndef use_lib_fast_op_adc16
+//  void op_adc16(void);
+// #endif
 
-#ifndef use_lib_fast_op_sbb8
- void op_sbb8(void);
-#endif
+// #ifndef use_lib_fast_op_sbb8
+//  void op_sbb8(void);
+// #endif
 
-#ifndef use_lib_fast_op_sbb16
- void op_sbb16(void);
-#endif 
+// #ifndef use_lib_fast_op_sbb16
+//  void op_sbb16(void);
+// #endif 
 
-#ifndef use_lib_fast_modregrm
- void modregrm(void);
-#endif
+// #ifndef use_lib_fast_modregrm
+//  void modregrm(void);
+// #endif
 
-#ifndef use_lib_fast_readrm16
- unsigned short int readrm16 (unsigned char rmval);
-#endif
+// #ifndef use_lib_fast_readrm16
+//  unsigned short int readrm16 (unsigned char rmval);
+// #endif
 
-#ifndef use_lib_fast_readrm8
- unsigned char readrm8 (unsigned char rmval);
-#endif
+// #ifndef use_lib_fast_readrm8
+//  unsigned char readrm8 (unsigned char rmval);
+// #endif
 
-#ifndef use_lib_fast_writerm16
- void writerm16 (unsigned char rmval, unsigned short int value);
-#endif
+// #ifndef use_lib_fast_writerm16
+//  void writerm16 (unsigned char rmval, unsigned short int value);
+// #endif
 
-#ifndef use_lib_fast_writerm8
- void writerm8 (unsigned char rmval, unsigned char value);
-#endif 
+// #ifndef use_lib_fast_writerm8
+//  void writerm8 (unsigned char rmval, unsigned char value);
+// #endif 
 
-#ifndef use_lib_fast_op_div8
- void op_div8 (unsigned short int valdiv, unsigned char divisor);
-#endif 
+// #ifndef use_lib_fast_op_div8
+//  void op_div8 (unsigned short int valdiv, unsigned char divisor);
+// #endif 
 
 #endif
 

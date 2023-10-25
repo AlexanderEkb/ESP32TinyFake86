@@ -29,22 +29,22 @@
 //
 // cpu.c: functions to emulate the 8086/V20 CPU in software. the heart of Fake86.
 
-#include "gbConfig.h"
-#include "hardware.h"
+#include "cpu.h"
+#include "config.h"
+#include "config/gbConfig.h"
+#include "config/hardware.h"
 #include "dataFlash/bios/biospcxt.h"
 #include "dataFlash/rom/rombasic.h"
 #include "dataFlash/rom/videorom.h"
-#include "config.h"
+#include "io/disk.h"
+#include "gbGlobals.h"
+#include "mb/i8253.h"
+#include "mb/i8259.h"
+#include "cpu/ports.h"
+#include "video/video.h"
+#include <Arduino.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "cpu.h"
-#include "i8259.h"
-#include "i8253.h"
-#include "disk.h"
-#include "gbGlobals.h"
-#include "ports.h"
-#include <Arduino.h>
-#include "video.h"
 
 extern struct i8253_s i8253;
 
