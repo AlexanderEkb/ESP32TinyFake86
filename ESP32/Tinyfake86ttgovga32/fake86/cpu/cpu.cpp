@@ -46,6 +46,21 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define StepIP(x) ip += x
+#define getmem8(x, y) read86(segbase(x) + y)
+#define getmem16(x, y) readw86(segbase(x) + y)
+#define putmem8(x, y, z) write86(segbase(x) + y, z)
+#define putmem16(x, y, z) writew86(segbase(x) + y, z)
+#define signext(value) (int16_t)(int8_t)(value)
+#define signext32(value) (int32_t)(int16_t)(value)
+#define getreg16(regid) regs.wordregs[regid]
+#define getreg8(regid) regs.byteregs[byteregtable[regid]]
+#define putreg16(regid, writeval) regs.wordregs[regid] = writeval
+#define putreg8(regid, writeval) regs.byteregs[byteregtable[regid]] = writeval
+#define getsegreg(regid) segregs[regid]
+#define putsegreg(regid, writeval) segregs[regid] = writeval
+#define segbase(x) ((uint32_t)x << 4)
+
 extern struct i8253_s i8253;
 
 extern struct structpic i8259;
@@ -54,18 +69,7 @@ uint64_t curtimer, lasttimer, timerfreq;
 static unsigned char byteregtable[8] = { regal, regcl, regdl, regbl, regah, regch, regdh, regbh };
 unsigned short int segregs[4];
 
-//static const uint8_t parity[0x100] = {
-//	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
-//	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
-//	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
-//	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
-//	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
-//	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
-//	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
-//	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1
-//};
-
-static unsigned char parity[0x100] = {
+static const uint8_t parity[0x100] = {
 	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
 	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
 	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
@@ -75,11 +79,6 @@ static unsigned char parity[0x100] = {
 	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
 	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1
 };
-
-void FuerzoParityRAM()
-{
- parity[0]=1; //Fuerzo a que se cree en RAM
-}
 
 static unsigned char opcode, segoverride, reptype;
 static unsigned short int savecs, saveip, ip, useseg, oldsp;
@@ -107,40 +106,6 @@ void ExternalSetCF(unsigned char valor)
 }
 
 void intcall86 (unsigned char intnum);
-
-unsigned char GetRegAL(){ return regs.byteregs[regal]; }
-unsigned char GetRegAH(){ return regs.byteregs[regah]; }
-unsigned char GetRegBL(){ return regs.byteregs[regbl]; }
-unsigned char GetRegBH(){ return regs.byteregs[regbh]; }
-unsigned char GetRegCL(){ return regs.byteregs[regcl]; }
-unsigned char GetRegCH(){ return regs.byteregs[regch]; }
-unsigned char GetRegDL(){ return regs.byteregs[regdl]; }
-unsigned char GetRegDH(){ return regs.byteregs[regdh]; }
-
-unsigned short int GetRegCS(){ return segregs[regcs]; }
-unsigned short int GetRegDS(){ return segregs[regds]; }
-unsigned short int GetRegSS(){ return segregs[regss]; }
-unsigned short int GetRegES(){ return segregs[reges]; }
-
-unsigned short int GetRegIP(){ return ip; }
-unsigned short int GetRegSP(){ return regs.wordregs[regsp]; }
-unsigned short int GetRegBP(){ return regs.wordregs[regbp]; }
-unsigned short int GetRegSI(){ return regs.wordregs[regsi]; }
-unsigned short int GetRegDI(){ return regs.wordregs[regdi]; }
-
-unsigned short int GetCF(){ return cf; }
-
-
-
-
-void SetRegAL(unsigned char a){ regs.byteregs[regal]= a ; }
-void SetRegAH(unsigned char a){ regs.byteregs[regah]= a; }
-void SetRegBL(unsigned char a){ regs.byteregs[regbl]= a; }
-void SetRegBH(unsigned char a){ regs.byteregs[regbh]= a; }
-void SetRegCL(unsigned char a){ regs.byteregs[regcl]= a; }
-void SetRegCH(unsigned char a){ regs.byteregs[regch]= a; }
-void SetRegDL(unsigned char a){ regs.byteregs[regdl]= a; }
-void SetRegDH(unsigned char a){ regs.byteregs[regdh]= a; }
 
 void SetRegCS(unsigned short int a){ segregs[regcs]= a; }
 void SetRegDS(unsigned short int a){ segregs[regds]= a; }

@@ -8,27 +8,27 @@
 #ifndef use_lib_speaker_cpu
 #include <Ticker.h>
 #endif
+#include "config/gbConfig.h"
 #include "cpu/cpu.h"
 #include "dataFlash/gbcom.h"
-#include "io/disk.h"
 #include "driver/timer.h"
 #include "fake86.h"
-#include "config/gbConfig.h"
 #include "gbGlobals.h"
+#include "io/disk.h"
 // #include "gb_sdl_font8x8.h"
 #include "config/hardware.h"
+#include "cpu/ports.h"
+#include "io/keyboard.h"
+#include "io/sdcard.h"
+#include "io/speaker.h"
 #include "mb/i8237.h"
 #include "mb/i8253.h"
 #include "mb/i8259.h"
-#include "io/keyboard.h"
 #include "osd.h"
-#include "video/render.h"
-#include "io/sdcard.h"
 #include "soc/timer_group_struct.h"
-#include "video/video.h"
 #include "stats.h"
-#include "io/speaker.h"
-#include "cpu/ports.h"
+#include "video/render.h"
+#include "video/video.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////// Local macros
 
@@ -146,129 +146,141 @@ extern void draw(void);
 
 uint32_t speed = 0;
 
-void LoadCOMFlash(const unsigned char *ptr, int auxSize, int seg_load) {
-    int dir_load = seg_load * 16;
-    for (int i = 0; i < auxSize; i++) {
-        write86((dir_load + 0x100 + i), ptr[i]);
-    }
-    SetRegCS(seg_load);
-    SetRegDS(seg_load);
-    SetRegES(seg_load);
-    SetRegSS(seg_load);
-    SetRegIP(0x100); // 0x100;
+void LoadCOMFlash(const unsigned char *ptr, int auxSize, int seg_load)
+{
+  int dir_load = seg_load * 16;
+  for (int i = 0; i < auxSize; i++)
+  {
+    write86((dir_load + 0x100 + i), ptr[i]);
+  }
+  SetRegCS(seg_load);
+  SetRegDS(seg_load);
+  SetRegES(seg_load);
+  SetRegSS(seg_load);
+  SetRegIP(0x100); // 0x100;
 
-    SetRegSP(0);
-    SetRegBP(0);
-    SetRegSI(0);
-    SetRegDI(0);
-    SetCF(0);
+  SetRegSP(0);
+  SetRegBP(0);
+  SetRegSI(0);
+  SetRegDI(0);
+  SetCF(0);
 }
 
-void inithardware() {
-    LOG("Initializing emulated hardware:\n");
-    LOG("  - Intel 8253 timer: ");
-    init8253();
-    LOG("OK\n");
-    LOG("  - Intel 8259 interrupt controller: ");
-    init8259();
-    LOG("OK\n");
-    LOG("  - Intel 8237 DMA controller: ");
-    init8237();
-    LOG("OK\n");
-    initscreen();
+void inithardware()
+{
+  LOG("Initializing emulated hardware:\n");
+  LOG("  - Intel 8253 timer: ");
+  init8253();
+  LOG("OK\n");
+  LOG("  - Intel 8259 interrupt controller: ");
+  init8259();
+  LOG("OK\n");
+  LOG("  - Intel 8237 DMA controller: ");
+  init8237();
+  LOG("OK\n");
+  initscreen();
 }
 
-void PerformSpecialActions() {
-    if (gb_reset == 1) {
-        gb_reset = 0;
-        ClearRAM();
-        memset(gb_video_cga, 0, 16384);
-        keyboard->Reset();
-        running = 1;
-        reset86();
-        inithardware();
-        return;
-    }
-    if (gb_force_load_com == 1) {
-        gb_force_load_com = 0;
-        int auxOffs = 0;
-        if (gb_list_seg_load[gb_id_cur_com] == 0)
-            auxOffs = 0x07C0;
-        else
-            auxOffs = 0x0051;
-        LoadCOMFlash(gb_list_com_data[gb_id_cur_com], gb_list_com_size[gb_id_cur_com], auxOffs);
-        return;
-    }
-    renderExec();
+void PerformSpecialActions()
+{
+  if (gb_reset == 1)
+  {
+    gb_reset = 0;
+    ClearRAM();
+    memset(gb_video_cga, 0, 16384);
+    keyboard->Reset();
+    running = 1;
+    reset86();
+    inithardware();
+    return;
+  }
+  if (gb_force_load_com == 1)
+  {
+    gb_force_load_com = 0;
+    int auxOffs = 0;
+    if (gb_list_seg_load[gb_id_cur_com] == 0)
+      auxOffs = 0x07C0;
+    else
+      auxOffs = 0x0051;
+    LoadCOMFlash(gb_list_com_data[gb_id_cur_com], gb_list_com_size[gb_id_cur_com], auxOffs);
+    return;
+  }
+  renderExec();
 }
 
 //****************************
-void ClearRAM() {
-    int i;
-    for (i = 0; i < gb_max_ram; i++) {
-        write86(i, 0);
-    }
+void ClearRAM()
+{
+  int i;
+  for (i = 0; i < gb_max_ram; i++)
+  {
+    write86(i, 0);
+  }
 }
 
 //****************************
-void CreateRAM() {
-    for (uint32_t nIndex = 0; nIndex < PAGE_COUNT; nIndex++) {
-        unsigned char *pPage = (unsigned char *)heap_caps_malloc(PAGE_SIZE, MALLOC_CAP_SPIRAM);
-        memset(pPage, 0, PAGE_SIZE);
-        gb_ram_bank[nIndex] = pPage;
-    }
+void CreateRAM()
+{
+  for (uint32_t nIndex = 0; nIndex < PAGE_COUNT; nIndex++)
+  {
+    unsigned char *pPage = (unsigned char *)heap_caps_malloc(PAGE_SIZE, MALLOC_CAP_SPIRAM);
+    memset(pPage, 0, PAGE_SIZE);
+    gb_ram_bank[nIndex] = pPage;
+  }
 }
 
 // Setup principal
-void setup() {
-    pinMode(SPEAKER_PIN, OUTPUT);
-    digitalWrite(SPEAKER_PIN, LOW);
+void setup()
+{
+  pinMode(SPEAKER_PIN, OUTPUT);
+  digitalWrite(SPEAKER_PIN, LOW);
 
 #ifdef use_lib_log_serial
-    Serial.begin(115200);
-    Serial.printf("\nHEAP BEGIN %d\n", ESP.getFreeHeap());
+  Serial.begin(115200);
+  Serial.printf("\nHEAP BEGIN %d\n", ESP.getFreeHeap());
 #endif
-    sdcard.Init();
-    CreateRAM();
-    ClearRAM();
-    FuerzoParityRAM();    // Fuerzo que Parity sea en RAM
+  sdcard.Init();
+  CreateRAM();
+  ClearRAM();
 
-    renderInit();
-    LOG("VGA %d\n", ESP.getFreeHeap());
-    keyboard->Init();
+  renderInit();
+  LOG("VGA %d\n", ESP.getFreeHeap());
+  keyboard->Init();
 
-    running = 1;
-    reset86();
-    LOG("OK!\n");
+  running = 1;
+  reset86();
+  LOG("OK!\n");
 
-    inithardware();
+  inithardware();
 
 #ifndef use_lib_singlecore
-    // BEGIN TASK video
-    vidQueue = xQueueCreate(1, sizeof(uint16_t *));
-    xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
+  // BEGIN TASK video
+  vidQueue = xQueueCreate(1, sizeof(uint16_t *));
+  xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
 // END Task video
 #endif
 
 #ifndef use_lib_speaker_cpu
-    float auxTimer = (float)1.0 / (float)SAMPLE_RATE;
-    gb_ticker_callback.attach(auxTimer, my_callback_speaker_func);
+  float auxTimer = (float)1.0 / (float)SAMPLE_RATE;
+  gb_ticker_callback.attach(auxTimer, my_callback_speaker_func);
 #endif
 
-    diskInit();
+  diskInit();
 
-    LOG("END SETUP %d\n", ESP.getFreeHeap());
+  LOG("END SETUP %d\n", ESP.getFreeHeap());
 }
 
 #ifndef use_lib_singlecore
 //******************************
-void videoTask(void *unused) {
-    uint16_t *param;
-    while (1) {
-        xQueueReceive(vidQueue, &param, portMAX_DELAY);
-        draw();
-    }
-    vTaskDelete(NULL);
+void videoTask(void *unused)
+{
+  uint16_t *param;
+  while (1)
+  {
+    xQueueReceive(vidQueue, &param, portMAX_DELAY);
+    draw();
+  }
+  vTaskDelete(NULL);
 }
 #endif
 
@@ -280,89 +292,81 @@ unsigned int tiene_que_tardar = 0;
 // Loop main
 void loop()
 {
-    static uint32_t gb_cpu_timer_before;
-
-    stats.StartIteration();
-    execCPU();
-    stats.CountCPUTime();
-    execKeyboard();
-    execMisc();
-    execVideo();
-
-    const uint32_t gb_cpu_timer_cur = millis();
-    if ((gb_cpu_timer_cur - gb_cpu_timer_before) > 1000)
-    {
-        gb_cpu_timer_before = gb_cpu_timer_cur;
-        stats.PrintAndReset();
-    }
+  stats.startIteration();
+  execCPU();
+  stats.countCPUTime();
+  execKeyboard();
+  execMisc();
+  execVideo();
+  stats.exec();
 
 #ifndef use_lib_singlecore
-    // TASK video BEGIN
-    TIMERG0.wdt_wprotect = TIMG_WDT_WKEY_VALUE;
-    TIMERG0.wdt_feed = 1;
-    TIMERG0.wdt_wprotect = 0;
-    vTaskDelay(0); // important to avoid task watchdog timeouts - change this to slow down emu
+  // TASK video BEGIN
+  TIMERG0.wdt_wprotect = TIMG_WDT_WKEY_VALUE;
+  TIMERG0.wdt_feed = 1;
+  TIMERG0.wdt_wprotect = 0;
+  vTaskDelay(0); // important to avoid task watchdog timeouts - change this to slow down emu
 #endif
 }
 
 void execCPU()
 {
 #ifdef use_lib_singlecore
-    static bool gb_cpunoexe = false;
-    static uint32_t gb_cpunoexe_timer_ini;
-    static uint32_t tiene_que_tardar = 0;
+  static bool gb_cpunoexe = false;
+  static uint32_t gb_cpunoexe_timer_ini;
+  static uint32_t tiene_que_tardar = 0;
 
-    if (!gb_cpunoexe)
-    {
-        exec86(10000);
-        gb_cpunoexe = 1;
-        gb_cpunoexe_timer_ini = millis();
-        tiene_que_tardar = gb_delay_tick_cpu_milis;
-    }
-    else if ((millis() - gb_cpunoexe_timer_ini) >= tiene_que_tardar)
-    {
-        gb_cpunoexe = 0;
-    }
+  if (!gb_cpunoexe)
+  {
+    exec86(10000);
+    gb_cpunoexe = 1;
+    gb_cpunoexe_timer_ini = millis();
+    tiene_que_tardar = gb_delay_tick_cpu_milis;
+  }
+  else if ((millis() - gb_cpunoexe_timer_ini) >= tiene_que_tardar)
+  {
+    gb_cpunoexe = 0;
+  }
 
 #else
-    exec86(10000); // Tarda 22 milis usar 2 cores
+  exec86(10000); // Tarda 22 milis usar 2 cores
 #endif
 }
 
 void execKeyboard()
 {
-    static uint32_t before;
-    const uint32_t now = millis();
-    if ((now - before) > gb_keyboard_poll_milis)
+  static uint32_t before;
+  const uint32_t now = millis();
+  if ((now - before) > gb_keyboard_poll_milis)
+  {
+    before = now;
+    const uint8_t scancode = keyboard->Poll();
+    if (scancode != 0)
     {
-        before = now;
-        const uint8_t scancode = keyboard->Poll();
-        if (scancode != 0)
-        {
-            IOPortSpace::getInstance().get(0x060)->value = scancode;
-            uint8_t val = IOPortSpace::getInstance().get(0x064)->value;
-            IOPortSpace::getInstance().get(0x064)->value = val |= 2;
-            doirq(1);
-            Serial.printf("key: 0x%02x\n", scancode);
-        }
+      IOPortSpace::getInstance().get(0x060)->value = scancode;
+      uint8_t val = IOPortSpace::getInstance().get(0x064)->value;
+      IOPortSpace::getInstance().get(0x064)->value = val |= 2;
+      doirq(1);
+      Serial.printf("key: 0x%02x\n", scancode);
     }
+  }
 }
 
 void execVideo()
 {
 #ifdef use_lib_singlecore
-    static uint32_t gb_ini_vga, gb_cur_vga;
-    gb_cur_vga = millis();
-    if ((gb_cur_vga - gb_ini_vga) >= gb_vga_poll_milis)
-    {
-        draw();
-        gb_ini_vga = gb_cur_vga;
-    }
+  static uint32_t gb_ini_vga, gb_cur_vga;
+  gb_cur_vga = millis();
+  if ((gb_cur_vga - gb_ini_vga) >= gb_vga_poll_milis)
+  {
+    draw();
+    gb_ini_vga = gb_cur_vga;
+  }
 #else
   static uint32_t nextActivation = 0;
 
   uint32_t now = millis();
-  if(now > nextActivation)
+  if (now > nextActivation)
   {
     static uint16_t *param;
     xQueueSend(vidQueue, &param, portMAX_DELAY);
@@ -373,11 +377,11 @@ void execVideo()
 
 void execMisc()
 {
-    static uint32_t before;
-    const uint32_t now = millis();
-    if ((now - before) > gb_keyboard_poll_milis)
-    {
-        PerformSpecialActions();
-        do_tinyOSD();
-    }
+  static uint32_t before;
+  const uint32_t now = millis();
+  if ((now - before) > gb_keyboard_poll_milis)
+  {
+    PerformSpecialActions();
+    do_tinyOSD();
+  }
 }

@@ -1,8 +1,8 @@
 #ifndef STATS_H
 #define STATS_H
 
-#include <stdint.h>
 #include "esp32-hal.h"
+#include <stdint.h>
 
 #ifdef use_lib_log_serial
 #define LOG(...) Serial.printf(__VA_ARGS__)
@@ -10,48 +10,58 @@
 #define LOG(...) (void)
 #endif
 
-class Stats {
+class Stats
+{
   public:
-    Stats()
+  Stats(){
+
+  };
+
+  void initialize(){
+
+  };
+
+  void exec()
+  {
+    const uint32_t now = millis();
+    if ((now - timestampExec_ms) > PERIOD_ms)
     {
-
-    };
-
-    void Initialize() {
-
-    };
-
-    void StartIteration() {jj_ini_cpu = micros();};
-
-    void CountCPUTime() {
-      jj_end_cpu = micros();
-      gb_cur_cpu_ticks = (jj_end_cpu - jj_ini_cpu);
-      uint32_t total_tiempo_ms_cpu = gb_cur_cpu_ticks / 1000;
-      if (gb_cur_cpu_ticks > gb_max_cpu_ticks)
-          gb_max_cpu_ticks = gb_cur_cpu_ticks;
-      if (gb_cur_cpu_ticks < gb_min_cpu_ticks)
-          gb_min_cpu_ticks = gb_cur_cpu_ticks;
-    };
-
-    void PrintAndReset() {
-      // LOG("c:%u m:%u mx:%u\n", gb_cur_cpu_ticks, gb_min_cpu_ticks, gb_max_cpu_ticks);
-      gb_min_cpu_ticks = 1000000;
-      gb_max_cpu_ticks = 0;
-      gb_cur_cpu_ticks = 0;
+      timestampExec_ms = now;
+      printAndReset();
     }
+  };
+
+  void startIteration() { timestamp = micros(); };
+
+  void countCPUTime()
+  {
+    uint32_t now = micros();
+    CPU_TIME.instant = (now - timestamp);
+    if (CPU_TIME.instant > CPU_TIME.max)
+      CPU_TIME.max = CPU_TIME.instant;
+    if (CPU_TIME.instant < CPU_TIME.min)
+      CPU_TIME.min = CPU_TIME.instant;
+  };
+
+  void printAndReset()
+  {
+    // c before: 27E3..37E3
+    LOG("c:%u m:%u mx:%u\n", CPU_TIME.instant, CPU_TIME.min, CPU_TIME.max);
+    CPU_TIME.min = 1000000;
+    CPU_TIME.max = 0;
+    CPU_TIME.instant = 0;
+  }
 
   private:
-    uint32_t jj_ini_cpu;
-    uint32_t jj_end_cpu;
-    uint32_t jj_ini_vga;
-    uint32_t jj_end_vga;
-    uint32_t gb_max_cpu_ticks;
-    uint32_t gb_min_cpu_ticks;
-    uint32_t gb_cur_cpu_ticks;
-    uint32_t gb_max_vga_ticks;
-    uint32_t gb_min_vga_ticks;
-    uint32_t gb_cur_vga_ticks;
-
+  static const uint32_t PERIOD_ms = 1000;
+  struct CPU_TIME
+  {
+    uint32_t instant;
+    uint32_t max;
+    uint32_t min;
+  } CPU_TIME;
+  uint32_t timestamp;
+  uint32_t timestampExec_ms;
 };
 
 #endif /** STATS_H */

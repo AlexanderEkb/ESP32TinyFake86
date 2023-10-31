@@ -142,7 +142,7 @@ void diskhandler()
   const uint16_t head = regs.byteregs[regdh];
   const uint16_t sectorCount = regs.byteregs[regal];
   DISK_ADDR diskAddr = DISK_ADDR(drive, cylinder, head, sector, sectorCount);
-  MEM_ADDR buffer = {segregs[reges], getreg16 (regbx)};
+  MEM_ADDR buffer = {segregs[reges], regs.wordregs[regbx]};
   const uint8_t serviceNum = regs.byteregs[regah];
  //Solo una disquetera
 	switch (serviceNum)
