@@ -52,7 +52,8 @@
       "utility": "cpp",
       "typeinfo": "cpp",
       "string_view": "cpp",
-      "optional": "cpp"
+      "optional": "cpp",
+      "*.inc": "cpp"
     },
     "merge-conflict.codeLens.enabled": false,
     "editor.codeLens": false,
