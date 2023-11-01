@@ -64,28 +64,6 @@
   #define gb_max_portram 0x3FF
   #define use_lib_limit_portram
 
-  //#define gb_max_ram 0x100000
-  //1024 KB
-  //#define gb_max_ram 0x100000
-  //96 KB 
-  //#define gb_max_ram 98304
-  //98 KB
-  //#define gb_max_ram 100352
-  //100 KB
-  //#define gb_max_ram 102400
-  //128 KB arranca alley cat boot
-  //#define gb_max_ram 131072
-  //160 KB Para MADMIX
-  #define gb_max_ram 655360
-  //192 KB
-  //#define gb_max_ram 196608
-  //224 KB Para MADMIX2
-  //#define gb_max_ram 229376 
-  //256 KB
-  //#define gb_max_ram 262144
-  //640 KB 
-  //#define gb_max_ram 655360 
-
   //#define use_lib_not_use_callback_port
   #define use_lib_fast_boot
 
@@ -96,16 +74,6 @@
   #define use_lib_force_sdl_blit
   #define use_lib_force_sdl_direct_vga
   #define use_lib_force_sdl_8bpp
-
-
-  //options debug
-  //#define use_lib_debug_interrupt
-
-
-
-
-
-
   //milisegundos espera en cada frame
   #define use_lib_delay_tick_cpu_auto 0
   #define use_lib_delay_tick_cpu_milis 0

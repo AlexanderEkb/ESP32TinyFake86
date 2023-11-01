@@ -74,9 +74,7 @@ extern unsigned long int gb_jj_cont_timer;
  extern unsigned char gb_video_cga[16384];
  //extern unsigned char gb_video_hercules[16384];
  
- static const uint32_t   PAGE_COUNT  = 20;
- static const size_t     PAGE_SIZE   = 32768;
- extern unsigned char *gb_ram_bank[PAGE_COUNT];
+ static const size_t      RAM_SIZE  = 736 * 1024;
  
 // extern const unsigned char gb_reserved_memory[16];
  extern volatile unsigned char oldKeymap[256];

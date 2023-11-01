@@ -36,6 +36,7 @@
 
 extern SdCard sdcard;
 extern union _bytewordregs_ regs;
+extern uint8_t * ram;
 
 extern uint8_t read86 (uint32_t addr32);
 extern void write86 (uint32_t addr32, uint8_t value);
@@ -183,6 +184,6 @@ void diskhandler()
 
 	if (regs.byteregs[regdl] & 0x80)
   {
-	  gb_ram_bank[0][0x474]= regs.byteregs[regah];
+	  ram[0x474]= regs.byteregs[regah];
   }
 }

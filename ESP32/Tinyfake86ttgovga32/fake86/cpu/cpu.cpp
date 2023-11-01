@@ -62,7 +62,7 @@
 #define segbase(x) ((uint32_t)x << 4)
 
 extern struct i8253_s i8253;
-
+extern uint8_t * ram;
 extern struct structpic i8259;
 uint64_t curtimer, lasttimer, timerfreq;
 
@@ -175,22 +175,13 @@ void updateBIOSDataArea()
 { 
 	if (!didbootstrap)
 	{
-		gb_ram_bank[0][0x410]= 0x61;	// Equipment word: no FPU, no mouse, two floppies, EGA or better
-		gb_ram_bank[0][0x475]= 0;			// Number of HDDs intalled
+		ram[0x410]= 0x61;	// Equipment word: no FPU, no mouse, two floppies, EGA or better
+		ram[0x475]= 0;			// Number of HDDs intalled
 
-		unsigned char gb_ram_truco_low = 0x80; // 128 KB
-		unsigned char gb_ram_truco_high = 0x20;
-		switch (gb_max_ram)
-		{
-			case 131072: gb_ram_truco_low= 0x80; gb_ram_truco_high= 0x00; break; //128 KB
-			case 163840: gb_ram_truco_low= 0xA0; gb_ram_truco_high= 0x00; break; //160 KB
-			case 196608: gb_ram_truco_low= 0xC0; gb_ram_truco_high= 0x00; break; //192 KB
-			case 229376: gb_ram_truco_low= 0xE0; gb_ram_truco_high= 0x00; break; //224 KB
-			case 262144: gb_ram_truco_low= 0x00; gb_ram_truco_high= 0x01; break; //256 KB
-			case 655360: gb_ram_truco_low= 0x80; gb_ram_truco_high= 0x02; break; //640 KB
-		}
-		gb_ram_bank[0][0x413]= gb_ram_truco_low;	// Amount of RAM, in Kbytes
-		gb_ram_bank[0][0x414]= gb_ram_truco_high;    
+		unsigned char ram_size_low  = (static_cast<uint8_t>((RAM_SIZE / 1024) >> 0));
+		unsigned char ram_size_high = (static_cast<uint8_t>((RAM_SIZE / 1024) >> 8));
+		ram[0x413] = ram_size_low;	// Amount of RAM, in Kbytes
+		ram[0x414] = ram_size_high;    
  }
 }
 
@@ -211,56 +202,17 @@ void write86 (unsigned int addr32, unsigned char value)
  }
 
  //Segundo memoria
- if ((addr32>=0) && (addr32<gb_max_ram))
+ if ((addr32>=0) && (addr32<RAM_SIZE))
  {
-  idRAM= (addr32>>15);
-  auxOffs = (addr32 & 32767);
-  gb_ram_bank[idRAM][auxOffs]= value;
-  //switch (idRAM)
-  //{
-  // case 0: gb_ram_00[auxOffs]= value; break;
-  // case 1: gb_ram_01[auxOffs]= value; break;
-  // case 2: gb_ram_02[auxOffs]= value; break;
-  // case 3: gb_ram_03[auxOffs]= value; break;
-  // default: return;   
-  //}     
- }
- //BIOS ADDR NOT WRITE
- //if ((addr32 >= 0xFE000) && (addr32 < (0xFE000 + gb_size_rom_bios_pcxt)))
- if ((addr32 >= 0xFE000) && (addr32 < 0x100000))
- {
-  return;
- }
- //if ((addr32 >= 0xF6000) && (addr32 < (0xF6000 + gb_size_rom_basic)))
- if ((addr32 >= 0xF6000) && (addr32 < 0xFE000))
- {
-  return;
- }
- //Video ROM y demas
- if (addr32 >= 0xC0000)
- {
-  return;
- } 
-
- //Ultimo Hercules
- //if ((addr32 >= 0xB0000) && (addr32 < (0xB0000+16384)))
- if ((addr32 >= 0xB0000) && (addr32 < 0xB4000))
- {//FIX Error 04 en el Post Boot
-  //gb_video_hercules[auxOffs]= value;
-  gb_video_cga[(addr32-0xB0000)]= value; //Mezclo CGA y hercules para ahorrar memoria
-  //updatedscreen = 1;
+  ram[addr32]= value;
   return;
  }
 
  if (addr32 > 1048575)
  {
-  //printf("WRITE86 FIX EXPAND 0x%08X\n",addr32);
-  //fflush(stdout);
   addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
 
-  idRAM= (addr32>>15);
-  auxOffs = (addr32 & 32767);
-  gb_ram_bank[idRAM][auxOffs]= value;  
+  ram[addr32] = value;  
  }
 
 }
@@ -295,48 +247,10 @@ unsigned char read86 (unsigned int addr32)
  } 
 
  //Segundo memoria RAM
- if ((addr32>=0) && (addr32<gb_max_ram))
+ if ((addr32>=0) && (addr32<RAM_SIZE))
  {
-  idRAM= (addr32>>15);
-  auxOffs = (addr32 & 32767);
-  return (gb_ram_bank[idRAM][auxOffs]);
-  //switch (idRAM)
-  //{
-  // case 0: return gb_ram_00[auxOffs]; break;
-  // case 1: return gb_ram_01[auxOffs]; break;
-  // case 2: return gb_ram_02[auxOffs]; break;
-  // case 3: return gb_ram_03[auxOffs]; break;
-  // default: return 0;   
-  //}  
-  ////JJ return (RAM[addr32]);
+  return (ram[addr32]);
  }
- //else
- //{
-  //if ((addr32 == 0xC9FEA) || (addr32 == 0x000C9FEB))
-  //{
-  // printf("addr 0x%08X\n",addr32);
-  // fflush(stdout);
-  // return 1;
-  //}
- //}
-
-  ////System Identification
-  //if (addr32==0xFFFFE)
-  //{
-  ////Serial.printf("System Id 0x%08X\n",addr32);
-  ////fflush(stdout);  
-  //return 0xFE;
-  //}
- 
-  //if(addr32==0xFFFFF)
-  //{
-  // //printf("System Id 0x%08X\n",addr32);
-  // //fflush(stdout);                      
-  // return 0xE9;
-  //}
- 
- 
- 
  //if ((addr32 >= 0xFE000) && (addr32 < (0xFE000 + gb_size_rom_bios_pcxt)))
  if ((addr32 >= 0xFE000) && (addr32 < 0x100000))
  {
@@ -352,34 +266,11 @@ unsigned char read86 (unsigned int addr32)
  {
   return gb_rom_videorom[(addr32-0xC0000)];
  }
-
-
- //Ultimo Hercules B0000
- //if ((addr32 >= 0xB0000) && (addr32 < (0xB0000+16384)))
- if ((addr32 >= 0xB0000) && (addr32 < 0xB4000))
- {//FIX Error 04 en el Post Boot
-  //auxOffs= addr32-0xB0000;   
-  //return (gb_video_hercules[auxOffs]);
-  return (gb_video_cga[(addr32-0xB0000)]); //Mezclo cga y hercules para ahorrar memoria
- }
-
  if (addr32 > 1048575)
  {
-  //printf("READ86 FIX EXPAND 0x%08X\n",addr32);
-  //fflush(stdout);
-  addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME  
-
-  idRAM= (addr32>>15);
-  auxOffs = (addr32 & 32767);  
-  return (gb_ram_bank[idRAM][auxOffs]);  
+  addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
+  return (ram[addr32]);
  }
-
- //if (!didbootstrap)
- //{
- // return (gb_check_memory_before);
- //} 
- //printf("read86 over 0x%08X\n",addr32);
- //fflush(stdout);                
  return 0; 
 }
 

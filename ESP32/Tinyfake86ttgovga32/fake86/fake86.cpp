@@ -59,7 +59,7 @@ KeyboardDriver *keyboard = new KeyboardDriverAT(); // stm32keyboard();
 SdCard sdcard;
 Stats stats;
 
-unsigned char *gb_ram_bank[PAGE_COUNT];
+uint8_t     * ram;
 unsigned char gb_video_cga[16384];
 unsigned char bootdrive = 0;
 unsigned char gb_force_load_com = 0;
@@ -212,7 +212,7 @@ void PerformSpecialActions()
 void ClearRAM()
 {
   int i;
-  for (i = 0; i < gb_max_ram; i++)
+  for (i = 0; i < RAM_SIZE; i++)
   {
     write86(i, 0);
   }
@@ -221,11 +221,10 @@ void ClearRAM()
 //****************************
 void CreateRAM()
 {
-  for (uint32_t nIndex = 0; nIndex < PAGE_COUNT; nIndex++)
+  ram = (uint8_t *)heap_caps_malloc(RAM_SIZE, MALLOC_CAP_SPIRAM);
+  if(ram == nullptr)
   {
-    unsigned char *pPage = (unsigned char *)heap_caps_malloc(PAGE_SIZE, MALLOC_CAP_SPIRAM);
-    memset(pPage, 0, PAGE_SIZE);
-    gb_ram_bank[nIndex] = pPage;
+    LOG("Error allocating RAM!!!\n");
   }
 }
 
