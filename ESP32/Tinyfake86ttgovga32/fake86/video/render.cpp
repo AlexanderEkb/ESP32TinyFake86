@@ -303,97 +303,106 @@ static void dump40x25_font8x8()
 
 static void dump320x200()
 {
-    unsigned short int cont=0;
-  for (uint32_t y=0; y<100; y++)
-  {        
-		uint32_t yDest= (y<<1);
-        uint32_t *pLine = (uint32_t *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
-        for (uint32_t x=0;x<80;x++)   
-		{//Lineas impares
-			unsigned char bFourPixels = gb_video_cga[cont];   
-			unsigned char bPixel3 = (bFourPixels & 0x03); //empieza izquierda derecha pixel
-            unsigned char bPixel2 = ((bFourPixels >> 2) & 0x03);
-            unsigned char bPixel1 = ((bFourPixels >> 4) & 0x03);
-            unsigned char bPixel0 = ((bFourPixels >> 6) & 0x03);
+  static const uint32_t INITIAL_OFFSET = 0;
+  static uint8_t line[700];
+  unsigned short int cont = 0;
+  for (uint32_t y = 0; y < 100; y++)
+  {
+    uint32_t yDest = (y << 1);
+    uint32_t *pLine = (uint32_t *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
+    uint32_t offset = INITIAL_OFFSET;
+    for (uint32_t x = 0; x < 80; x++)
+    {
+      unsigned char bFourPixels = gb_video_cga[cont];
+      unsigned char bPixel3 = (bFourPixels & 0x03);
+      unsigned char bPixel2 = ((bFourPixels >> 2) & 0x03);
+      unsigned char bPixel1 = ((bFourPixels >> 4) & 0x03);
+      unsigned char bPixel0 = ((bFourPixels >> 6) & 0x03);
 
-            uint32_t a32= (palette[bPixel0]) | (palette[bPixel1]<<8) | (palette[bPixel2]<<16) | (palette[bPixel3]<<24);
-			//ptr32[x]= a32;
-			scanlineBuffer[x]= a32;
-
-			cont++;
-   }
-   memcpy(pLine+2,scanlineBuffer,320);
+      line[offset++] = palette[bPixel0];
+      line[offset++] = palette[bPixel1];
+      line[offset++] = palette[bPixel2];
+      line[offset++] = palette[bPixel3];
+      cont++;
+    }
+    memcpy(pLine + 2, line, 320);
   } 
 
   cont = 0x2000;   
   for (uint32_t y=0;y<100;y++)
   {      
-   uint32_t yDest= (y<<1)+1;
-   uint32_t *pLine = (uint32_t *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
-   for (uint32_t x=0;x<80;x++)
-   {
-            unsigned char bFourPixels = gb_video_cga[cont];
-            unsigned char bPixel3 = (bFourPixels & 0x03); // empieza izquierda derecha pixel
-            unsigned char bPixel2 = ((bFourPixels >> 2) & 0x03);
-            unsigned char bPixel1 = ((bFourPixels >> 4) & 0x03);
-            unsigned char bPixel0 = ((bFourPixels >> 6) & 0x03);
+    uint32_t yDest= (y<<1)+1;
+    uint32_t *pLine = (uint32_t *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
+    uint32_t offset = INITIAL_OFFSET;
+    for (uint32_t x = 0; x < 80; x++)
+    {
+      unsigned char bFourPixels = gb_video_cga[cont];
+      unsigned char bPixel3 = (bFourPixels & 0x03); // empieza izquierda derecha pixel
+      unsigned char bPixel2 = ((bFourPixels >> 2) & 0x03);
+      unsigned char bPixel1 = ((bFourPixels >> 4) & 0x03);
+      unsigned char bPixel0 = ((bFourPixels >> 6) & 0x03);
 
-            uint32_t a32 = (palette[bPixel0]) | (palette[bPixel1] << 8) | (palette[bPixel2] << 16) |
-                           (palette[bPixel3] << 24);
-            scanlineBuffer[x] = a32;
-
-            cont++;
-   }
-   memcpy(pLine+2, scanlineBuffer,320);
-  } 
+      line[offset++] = palette[bPixel0];
+      line[offset++] = palette[bPixel1];
+      line[offset++] = palette[bPixel2];
+      line[offset++] = palette[bPixel3];
+      cont++;
+    }
+    memcpy(pLine + 2, line, 320);
+  }
 }
-
 
 static void dump640x200()
 {
- unsigned short int cont=0;
- unsigned int yDest; 
- unsigned int x;
- unsigned int *ptr32;
- unsigned int a32;
-   
+  static uint8_t line[700];
+  static uint32_t *dest;
+  static const uint32_t INITIAL_OFFSET = 1;
+  unsigned short int srcAddr;
+  unsigned int yDest; 
+  unsigned int x;
+  unsigned int a32;
 
-  for (uint32_t y=0;y<100;y++)
-  {        
-   yDest= (y<<1);
-   ptr32= (unsigned int *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
-   for (x=0;x<80;x++)   
-   {
-    unsigned char src = gb_video_cga[cont];
-    uint8_t a7 = (src & 0x01); src >>= 1;
-    uint8_t a6 = (src & 0x01); src >>= 1;
-    uint8_t a5 = (src & 0x01); src >>= 1;
-    uint8_t a4 = (src & 0x01); src >>= 1;
-    uint8_t a3 = (src & 0x01); src >>= 1;
-    uint8_t a2 = (src & 0x01); src >>= 1;
-    uint8_t a1 = (src & 0x01); src >>= 1;
-    uint8_t a0 = (src & 0x01);
+  srcAddr = 0x0000;
+  for (uint32_t y = 0; y < 100; y++)
+  {
+    yDest= (y<<1);
+    uint32_t offset = INITIAL_OFFSET;
+    for (x=0;x<80;x++)   
+    {
+      unsigned char src = gb_video_cga[srcAddr];
+      uint8_t a7 = (src & 0x01); src >>= 1;
+      uint8_t a6 = (src & 0x01); src >>= 1;
+      uint8_t a5 = (src & 0x01); src >>= 1;
+      uint8_t a4 = (src & 0x01); src >>= 1;
+      uint8_t a3 = (src & 0x01); src >>= 1;
+      uint8_t a2 = (src & 0x01); src >>= 1;
+      uint8_t a1 = (src & 0x01); src >>= 1;
+      uint8_t a0 = (src & 0x01);
 
-    uint32_t off = x << 1;
-    a32 = (palette[a0]) | (palette[a1] << 8) | (palette[a2] << 16) | (palette[a3] << 24);
-    scanlineBuffer[off]= a32;
-    off++;
-    a32 = (palette[a4]) | (palette[a5] << 8) | (palette[a6] << 16) | (palette[a7] << 24);
-    scanlineBuffer[off] = a32;
+      uint32_t off = x << 1;
+      line[offset++] = palette[a0];
+      line[offset++] = palette[a1];
+      line[offset++] = palette[a2];
+      line[offset++] = palette[a3];
+      line[offset++] = palette[a4];
+      line[offset++] = palette[a5];
+      line[offset++] = palette[a6];
+      line[offset++] = palette[a7];
 
-    cont++;
-   }
-   memcpy(ptr32 + 4,scanlineBuffer,640);
+      srcAddr++;
+    }
+    dest = (uint32_t *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
+    memcpy(dest + 4, line, 640);
   } 
 
-  cont = 0x2000;   
+  srcAddr = 0x2000;   
   for (uint32_t y=0;y<100;y++)
   {      
-   yDest= (y<<1) + 1;
-   ptr32= (unsigned int *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
-   for (x=0;x<80;x++)   
-   {
-    unsigned char src = gb_video_cga[cont];
+    yDest= (y<<1) + 1;
+    uint32_t offset = INITIAL_OFFSET;
+    for (x = 0; x < 80; x++)
+    {
+    unsigned char src = gb_video_cga[srcAddr];
     uint8_t a7 = (src & 0x01); src >>= 1;
     uint8_t a6 = (src & 0x01); src >>= 1;
     uint8_t a5 = (src & 0x01); src >>= 1;
@@ -404,15 +413,19 @@ static void dump640x200()
     uint8_t a0 = (src & 0x01);
 
     uint32_t off = x << 1;
-    a32 = (palette[a0]) | (palette[a1] << 8) | (palette[a2] << 16) | (palette[a3] << 24);
-    scanlineBuffer[off]= a32;
-    off++;
-    a32 = (palette[a4]) | (palette[a5] << 8) | (palette[a6] << 16) | (palette[a7] << 24);
-    scanlineBuffer[off] = a32;
+    line[offset++] = palette[a0];
+    line[offset++] = palette[a1];
+    line[offset++] = palette[a2];
+    line[offset++] = palette[a3];
+    line[offset++] = palette[a4];
+    line[offset++] = palette[a5];
+    line[offset++] = palette[a6];
+    line[offset++] = palette[a7];
 
-    cont++;
-   }
-   memcpy(ptr32 + 4,scanlineBuffer,640);
+    srcAddr++;
+    }
+    dest = (unsigned int *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
+    memcpy(dest + 4, line, 640);
   } 
 }
 
