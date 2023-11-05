@@ -41,16 +41,13 @@ typedef void (* dumper_t)(void);
 // static void dump160x100_font4x8(void);
 // static void dump80x25_font4x8(void);
 // static void dump160x100_font8x8(void);
-static void dump80x25_font8x8(void);
-static void dump40x25_font8x8(void);
+static void dump80x25(void);
+static void dump40x25(void);
 static void dump320x200(void);
 static void dump640x200(void);
 
-static void SDLprintChar_c(char car,int x,int y,unsigned char color,unsigned char backcolor);
-static void SDLprintChar(char car,int x,int y,unsigned char color,unsigned char backcolor);
-// static void SDLprintChar160x100_font4x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
-static void SDLprintChar4x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
-// static void SDLprintChar160x100_font8x8(char car,int x,int y,unsigned char color,unsigned char backcolor);
+static void SDLprintChar_c(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t backcolor);
+static void SDLprintChar(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t backcolor);
 
 static const uint32_t DUMPER_COUNT = 7;
 
@@ -76,12 +73,12 @@ typedef struct {
 0x7: graph 640 col
 */
 const videoMode_t modes[MODE_COUNT] = {
-  {40, dump40x25_font8x8, 1},
-  {80, dump80x25_font8x8, 0},
+  {40, dump40x25, 1},
+  {80, dump80x25, 0},
   {40, dump320x200,       1},
   {40, dump320x200,       1},
-  {40, dump40x25_font8x8, 1},
-  {80, dump80x25_font8x8, 0},
+  {40, dump40x25, 1},
+  {80, dump80x25, 0},
   {80, dump640x200,       0},
   {80, dump640x200,       0}
 };
@@ -131,12 +128,17 @@ static unsigned char palette[16]={
 };
 
 static struct render {
-  dumper_t dumper = dump80x25_font8x8;
+  dumper_t dumper = dump80x25;
   uint32_t colCount = 80;
   uint32_t frameCount = 0;
   uint32_t paletteIndex = 0;
   uint32_t specialColor = 0;
   uint32_t pendingColorburstValue = PENDING_COLORBURST_NO;
+
+  uint32_t charHeight = 8;
+  uint32_t lineCount = 25;
+
+  uint32_t startAddr = 0;
 } render;
 
 
@@ -209,6 +211,9 @@ void renderInit() {
   void IRAM_ATTR blitter_0(uint8_t * src, uint16_t * dst);
   void IRAM_ATTR blitter_1(uint8_t * src, uint16_t * dst);
   composite.init(&gb_buffer_vga, &blitter_1);
+
+  render.charHeight = 8;
+  render.lineCount = 25;
 }
 
 void renderExec()
@@ -266,37 +271,37 @@ void VideoThreadPoll()
 
 //*****************************************
 
-static void dump80x25_font8x8()
+static void dump80x25()
 {
- unsigned char aColor, aBgColor, aChar;
- uint32_t bOffset = 0;
- for (uint32_t y = 0; y < 25; y++)
+ uint8_t aColor, aBgColor, aChar;
+ uint32_t src = render.startAddr;
+ for (uint32_t y = 0; y < render.lineCount; y++)
  {
   for (uint32_t x = 0; x < 80; x++)
   {
-   aChar = gb_video_cga[bOffset];
-   bOffset++;
-   aColor = gb_video_cga[bOffset] & 0x0F;
-   aBgColor = ((gb_video_cga[bOffset] >> 4) & 0x07);
-   SDLprintChar(aChar, (x << 3), (y << 3), aColor, aBgColor); // Sin capturadora
-   bOffset++;
+   aChar = gb_video_cga[src];
+   src++;
+   aColor = gb_video_cga[src] & 0x0F;
+   aBgColor = ((gb_video_cga[src] >> 4) & 0x07);
+   SDLprintChar(aChar, (x << 3), (y * render.charHeight), aColor, aBgColor); // Sin capturadora
+   src++;
   }
  }
 }
 
-static void dump40x25_font8x8()
+static void dump40x25()
 {
- uint32_t bOffset = 0;
- for (uint32_t y = 0; y < 25; y++)
+ uint32_t src = render.startAddr;
+ for (uint32_t y = 0; y < render.lineCount; y++)
  {
   for (uint32_t x = 0; x < 40; x++)
   {
-    uint8_t aChar = gb_video_cga[bOffset];
-    bOffset++;
-    uint8_t aColor = gb_video_cga[bOffset] & 0x0F;
-    uint8_t aBgColor = ((gb_video_cga[bOffset] >> 4) & 0x07);
-    SDLprintChar(aChar, (x << 3), (y << 3), aColor, aBgColor); // Sin capturadora
-    bOffset++;
+    uint8_t aChar = gb_video_cga[src];
+    src++;
+    uint8_t aColor = gb_video_cga[src] & 0x0F;
+    uint8_t aBgColor = ((gb_video_cga[src] >> 4) & 0x07);
+    SDLprintChar(aChar, (x << 3), (y * render.charHeight), aColor, aBgColor); // Sin capturadora
+    src++;
   }
  }
 }
@@ -309,15 +314,14 @@ static void dump320x200()
   for (uint32_t y = 0; y < 100; y++)
   {
     uint32_t yDest = (y << 1);
-    uint32_t *pLine = (uint32_t *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
-      unsigned char bFourPixels = gb_video_cga[cont];
-      unsigned char bPixel3 = (bFourPixels & 0x03);
-      unsigned char bPixel2 = ((bFourPixels >> 2) & 0x03);
-      unsigned char bPixel1 = ((bFourPixels >> 4) & 0x03);
-      unsigned char bPixel0 = ((bFourPixels >> 6) & 0x03);
+      uint8_t src = gb_video_cga[cont];
+      uint8_t bPixel3 = (src & 0x03); src >>= 2;
+      uint8_t bPixel2 = (src & 0x03); src >>= 2;
+      uint8_t bPixel1 = (src & 0x03); src >>= 2;
+      uint8_t bPixel0 = (src & 0x03);
 
       line[offset++] = palette[bPixel0];
       line[offset++] = palette[bPixel1];
@@ -325,22 +329,22 @@ static void dump320x200()
       line[offset++] = palette[bPixel3];
       cont++;
     }
-    memcpy(pLine + 2, line, 320);
+    uint32_t *dest = (uint32_t *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
+    memcpy(dest + 2, line, 320);
   } 
 
   cont = 0x2000;   
   for (uint32_t y=0;y<100;y++)
   {      
     uint32_t yDest= (y<<1)+1;
-    uint32_t *pLine = (uint32_t *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
-      unsigned char bFourPixels = gb_video_cga[cont];
-      unsigned char bPixel3 = (bFourPixels & 0x03); // empieza izquierda derecha pixel
-      unsigned char bPixel2 = ((bFourPixels >> 2) & 0x03);
-      unsigned char bPixel1 = ((bFourPixels >> 4) & 0x03);
-      unsigned char bPixel0 = ((bFourPixels >> 6) & 0x03);
+      uint8_t src = gb_video_cga[cont];
+      uint8_t bPixel3 = (src & 0x03); src >>= 2;
+      uint8_t bPixel2 = (src & 0x03); src >>= 2;
+      uint8_t bPixel1 = (src & 0x03); src >>= 2;
+      uint8_t bPixel0 = (src & 0x03);
 
       line[offset++] = palette[bPixel0];
       line[offset++] = palette[bPixel1];
@@ -348,7 +352,8 @@ static void dump320x200()
       line[offset++] = palette[bPixel3];
       cont++;
     }
-    memcpy(pLine + 2, line, 320);
+    uint32_t *dest = (uint32_t *)gb_buffer_vga[yDest + VERTICAL_OFFSET];
+    memcpy(dest + 2, line, 320);
   }
 }
 
@@ -430,11 +435,11 @@ static void dump640x200()
 }
 
 //*************************************************************************************
-static void SDLprintChar_c(char code,int x,int y,unsigned char color,unsigned char backcolor)
+static void SDLprintChar_c(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t backcolor)
 { 
  int nBaseOffset = code << 3;
  const bool cbTime = render.frameCount & 0x04;
- for (unsigned int row=0; row<8; row++)
+ for (unsigned int row=0; row<render.charHeight; row++)
  {
     const bool cbFill = (row >= cursor.getStart()) && (row <= cursor.getEnd()) && cbTime;
      unsigned char bLine = ((row >= 6) && (cbTime))?0xFF:gb_sdl_font_8x8[nBaseOffset + row];
@@ -447,7 +452,7 @@ static void SDLprintChar_c(char code,int x,int y,unsigned char color,unsigned ch
  }
 }
 
-static void SDLprintChar(char code, int x, int y, unsigned char color, unsigned char backcolor)
+static void SDLprintChar(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t backcolor)
 {
   if((x == (cursor.getCol() << 3)) && (y == (cursor.getRow() << 3)))
   {
@@ -457,7 +462,7 @@ static void SDLprintChar(char code, int x, int y, unsigned char color, unsigned 
   {
     // unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
     int nBaseOffset = code << 3; //*8
-    for (unsigned int row = 0; row < 8; row++)
+    for (unsigned int row = 0; row < render.charHeight; row++)
     {
       unsigned char bLine = gb_sdl_font_8x8[nBaseOffset + row];
       for (int col = 0; col < 8; col++)
@@ -497,6 +502,12 @@ void IRAM_ATTR blitter_0(uint8_t *src, uint16_t *dst)
   }
 }
 
+void renderSetCharHeight(uint8_t height)
+{
+  render.charHeight = height + 1;
+  render.lineCount  = 200 / render.charHeight;
+}
+
 void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
 {
   const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
@@ -525,6 +536,11 @@ void renderSetBlitter(unsigned int blitter)
       composite.setBlitter(blitter_1);
       break;
   }
+}
+
+void renderSetStartAddr(uint32_t addr)
+{
+  render.startAddr = addr * 2;
 }
 
 void renderUpdateSettings(uint8_t settings, uint8_t colors)

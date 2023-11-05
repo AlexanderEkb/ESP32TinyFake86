@@ -37,7 +37,9 @@ class cursor_t {
  void renderPrintCharOSD(char character, int col, int row, unsigned char color, unsigned char backcolor);
  void renderSetBlitter(unsigned int blitter);
  void renderUpdateSettings(uint8_t settings, uint8_t colors);
- 
+ void renderSetCharHeight(uint8_t height);
+ void renderSetStartAddr(uint32_t addr);
+
  unsigned char initscreen ();
  
  void svcShowColorTable();

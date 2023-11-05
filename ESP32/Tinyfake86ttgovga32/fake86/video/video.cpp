@@ -134,18 +134,45 @@ static void write3D5h (uint32_t portnum, uint8_t value)
     mc6845Registers[mc6845RegSelector] = value;
   switch (mc6845RegSelector)
   {
-    case MC6845_REG_CURSOS_START:
-      cursor.updateStart(value);
-      break;
-    case MC6845_REG_CURSOR_END:
-      cursor.updateEnd(value);
-      break;
-    case MC6845_REG_CURSOR_ADDR_MSB:
-      cursor.updateMSB(value);
-      break;
-    case MC6845_REG_CURSOR_ADDR_LSB:
-      cursor.updateLSB(value);
-      break;
+  case MC6845_REG_HTOTAL:
+    break;
+  case MC6845_REG_HDISP:
+    break;
+  case MC6845_REG_HSYNC:
+    break;
+  case MC6845_REG_VTOTAL:
+    break;
+  case MC6845_REG_VTOTAL_ADJUST:
+    break;
+  case MC6845_REG_VDISP_POS:
+    break;
+  case MC6845_REG_VSYNC_POS:
+    break;
+  case MC6845_REG_MAX_ROWS:
+    renderSetCharHeight(value);
+    break;
+  case MC6845_REG_CURSOS_START:
+    cursor.updateStart(value);
+    break;
+  case MC6845_REG_CURSOR_END:
+    cursor.updateEnd(value);
+    break;
+  case MC6845_REG_START_ADDR_MSB:
+    renderSetStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
+    break;
+  case MC6845_REG_START_ADDR_LSB:
+    renderSetStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
+    break;
+  case MC6845_REG_CURSOR_ADDR_MSB:
+    cursor.updateMSB(value);
+    break;
+  case MC6845_REG_CURSOR_ADDR_LSB:
+    cursor.updateLSB(value);
+    break;
+  case MC6845_REG_LPEN_MSB:
+    break;
+  case MC6845_REG_LPEN_LSB:
+    break;
   }
 }
 
