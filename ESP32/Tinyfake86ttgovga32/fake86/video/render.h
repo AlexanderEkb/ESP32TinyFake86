@@ -11,6 +11,8 @@
 #define DUMPER_320x200      (5)
 #define DUMPER_640x200      (6)
 
+static const uint32_t DEFAULT_BORDER = 0x77;
+static const uint32_t VERTICAL_OFFSET = 20;
 
 class cursor_t {
   public:
@@ -31,18 +33,21 @@ class cursor_t {
     static void updatePosition();
 };
 
- void renderInit();
- void renderExec();
- void renderClearScreen(void);
+ void renderInit(void);
+ void renderExec(void);
+ void renderClearScreen(uint8_t color);
+ void renderSaveBlitter(void);
+ void renderRestoreBlitter(void);
  void renderPrintCharOSD(char character, int col, int row, unsigned char color, unsigned char backcolor);
  void renderSetBlitter(unsigned int blitter);
  void renderUpdateSettings(uint8_t settings, uint8_t colors);
  void renderSetCharHeight(uint8_t height);
  void renderSetStartAddr(uint32_t addr);
 
- unsigned char initscreen ();
+ unsigned char initscreen (void);
  
- void svcShowColorTable();
+ void svcBar(int orgX, int orgY, int height, int width, uint8_t color);
+ void svcShowColorTable(void);
 
 extern cursor_t cursor;
 #endif

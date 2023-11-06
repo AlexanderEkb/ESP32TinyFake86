@@ -1,9 +1,7 @@
 #include "config/gbConfig.h"
 #include "fake86.h"
 #include "osd.h"
-#include "dataFlash/gbcom.h"
 #include "gbGlobals.h"
-//#include "video/gb_sdl_font8x8.h"
 #include "video/render.h"
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
@@ -14,29 +12,32 @@
 #include "video/render.h"
 #include <string.h>
 
-#ifdef COLOR_3B           //       BGR 
- #define BLACK   0x08      // 0000 1000
- #define BLUE    0x0C      // 0000 1100
- #define RED     0x09      // 0000 1001
- #define MAGENTA 0x0D      // 0000 1101
- #define GREEN   0x0A      // 0000 1010
- #define CYAN    0x0E      // 0000 1110
- #define YELLOW  0x0B      // 0000 1011
- #define WHITE   0x0F      // 0000 1111
-#endif
+static unsigned char palette[16] = {
+    0x00, 0x73, 0xC3, 0xB6, 0x44, 0x65, 0x17, 0x0A,
+    0x05, 0x78, 0xC8, 0xBB, 0x49, 0x6A, 0x1C, 0x0F};
 
+#define BLACK         0x00
+#define BLUE          0x73
+#define RED           0x44
+#define MAGENTA       0x65
+#define GREEN         0xC3
+#define CYAN          0xB6
+#define YELLOW        0x17
+#define WHITE         0x0A
+#define GRAY          0x05
+#define LIGHTBLUE     0x78
+#define LIGHTRED      0x49
+#define LIGHTMAGENTA  0x6A
+#define LIGHTGREEN    0xC8
+#define LIGHTCYAN     0xBB
+#define LIGHTYELLOW   0x1C
+#define LIGHTWHITE    0x0F
 
-//extern int gb_screen_xIni;
-//extern int gb_screen_yIni;
-//extern unsigned char gb_cache_zxcolor[8];
+static const uint8_t SCREEN_BACKGROUND = 0x60;
 
-
-unsigned char gb_show_osd_main_menu=0;
-
-//extern SDL_Surface * gb_screen;
-//extern SDL_Event gb_event;
-
-
+static struct osd {
+  bool active       = false;
+} osd;
 
 #define max_gb_delay_cpu_menu 50
 const char * gb_delay_cpu_menu[max_gb_delay_cpu_menu]={ 
@@ -53,9 +54,8 @@ const char * gb_sound_menu[max_gb_sound_menu]={
  ,"Sound OFF"
 };
 
-#define max_gb_main_menu 8
+#define max_gb_main_menu 7
 const char *gb_main_menu[max_gb_main_menu] = {
-    "Load COM",
     "Drive A:",
     "Drive B:",
     "Reset",
@@ -64,12 +64,9 @@ const char *gb_main_menu[max_gb_main_menu] = {
     "Sound",
     "Return"};
 
-#define max_gb_video_menu 4
+#define max_gb_video_menu 1
 const char * gb_video_menu[max_gb_video_menu]={
  "Colors",
- "Font 4x8",
- "Font 8x8",  
- "Invert Color"
 };
 
 #define max_gb_speed_menu 4
@@ -116,12 +113,14 @@ const char * gb_reset_menu[max_gb_reset_menu]={
 };
 
 
-#define gb_pos_x_menu 50
-#define gb_pos_y_menu 20
-#define gb_osd_max_rows 10
+#define gb_pos_x_menu 10
+#define gb_pos_y_menu 25
+#define gb_osd_max_rows 20
+
+static void osdLeave();
 
 //*************************************************************************************
-void SDLprintText(const char *cad,int x, int y, unsigned char color,unsigned char backcolor)
+void SDLprintText(const char *cad, int x, int y, unsigned char color, unsigned char backcolor)
 {
 //SDL_Surface *surface,
 // gb_sdl_font_6x8
@@ -131,37 +130,40 @@ void SDLprintText(const char *cad,int x, int y, unsigned char color,unsigned cha
  for (int i=0;i<auxLen;i++)
  {
   renderPrintCharOSD(cad[i],x,y,color,backcolor);
-  x+=7;
+  x+=8;
  }
 }
 
-void OSDMenuRowsDisplayScroll(const char **ptrValue,unsigned char currentId,unsigned char aMax)
+void OSDMenuRowsDisplayScroll(const char **ptrValue, unsigned char currentId, unsigned char aMax, uint32_t width, uint32_t pos)
 {//Dibuja varias lineas
+  const uint32_t MAX_WIDTH = 64;
+  if(width > MAX_WIDTH) width = MAX_WIDTH;
+  char lineOfSpaces[MAX_WIDTH + 1];
+  memset(lineOfSpaces, ' ', MAX_WIDTH + 1);
+  lineOfSpaces[width] = 0x00;
+
  for (int i=0;i<gb_osd_max_rows;i++)
-  SDLprintText("                    ",gb_pos_x_menu,gb_pos_y_menu+8+(i<<3),0,0);
+  SDLprintText(lineOfSpaces,pos,gb_pos_y_menu+8+(i<<3),0,DEFAULT_BORDER);
  
  for (int i=0;i<gb_osd_max_rows;i++)
  {
   if (currentId >= aMax)
    break;
-  //SDLprintText(gb_osd_sdl_surface,ptrValue[currentId],gb_pos_x_menu,gb_pos_y_menu+8+(i<<3),((i==0)?CYAN:WHITE),((i==0)?BLUE:BLACK),1);
-  SDLprintText(ptrValue[currentId],gb_pos_x_menu,gb_pos_y_menu+8+(i<<3),((i==0)?0:WHITE),((i==0)?WHITE:0));  
+  SDLprintText(ptrValue[currentId],pos, gb_pos_y_menu+8+(i<<3),((i==0)?DEFAULT_BORDER:SCREEN_BACKGROUND),((i==0)?SCREEN_BACKGROUND:DEFAULT_BORDER));  
   currentId++;
  }     
 }
 
 //Maximo 256 elementos
-unsigned char ShowTinyMenu(const char *cadTitle,const char **ptrValue,unsigned char aMax)
+uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char aMax, uint32_t width, uint32_t pos)
 {
   unsigned char aReturn=0;
   bool bExit = false;
-  renderClearScreen();
-  SDLprintText("Port Fake86 by Ackerman",gb_pos_x_menu-(4<<3),gb_pos_y_menu-16,WHITE,0);
-  for (int i=0;i<20;i++)
-    renderPrintCharOSD(' ',gb_pos_x_menu+(i<<3),gb_pos_y_menu,0,WHITE);
-  SDLprintText(cadTitle,gb_pos_x_menu,gb_pos_y_menu,0,WHITE);
+  for (int i = 0; i < width; i++)
+  renderPrintCharOSD(' ', pos + (i << 3), gb_pos_y_menu, 0, WHITE);
+  SDLprintText(cadTitle,pos,gb_pos_y_menu,0,WHITE);
 
-  OSDMenuRowsDisplayScroll(ptrValue,0,aMax);
+  OSDMenuRowsDisplayScroll(ptrValue,0,aMax, width, pos);
 
   while (!bExit)
   {
@@ -171,20 +173,20 @@ unsigned char ShowTinyMenu(const char *cadTitle,const char **ptrValue,unsigned c
     {
     case (KEY_CURSOR_LEFT):
       if (aReturn>10) aReturn-=10;
-      OSDMenuRowsDisplayScroll(ptrValue,aReturn,aMax);       
+      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos);
       break;
     case (KEY_CURSOR_RIGHT):
       if (aReturn<(aMax-10)) aReturn+=10;
-      OSDMenuRowsDisplayScroll(ptrValue,aReturn,aMax);       
+      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos);
       break;     
 
     case (KEY_CURSOR_UP):
       if (aReturn>0) aReturn--;
-      OSDMenuRowsDisplayScroll(ptrValue,aReturn,aMax);
+      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos);
       break;
     case (KEY_CURSOR_DOWN):
       if (aReturn < (aMax-1)) aReturn++;
-      OSDMenuRowsDisplayScroll(ptrValue,aReturn,aMax);
+      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos);
       break;
     case (KEY_ENTER):
       bExit = true;
@@ -196,7 +198,6 @@ unsigned char ShowTinyMenu(const char *cadTitle,const char **ptrValue,unsigned c
       break;
     }
  } 
- gb_show_osd_main_menu= 0;
  return aReturn;
 }
 
@@ -213,15 +214,16 @@ void ShowTinyDSKMenu(uint32_t drive)
     while(pResult[count].name[0] != 0)
     {
       arItems[count] = &pResult[count].name[0];
+      // if (sdcard.isMounted(drive, &pResult[count].name[1]))
+      //   pResult[count].name[0] = '+';
       count++;
     }
 
-    uint32_t selection = ShowTinyMenu("DSK", (const char **)arItems, count);
+    uint32_t selection = ShowTinyMenu("> Select image:", (const char **)arItems, count, 24, 90);
 
     if (selection > (count - 1))
       selection = count - 1;
     sdcard.OpenImage(drive, arItems[selection]);
-    // running= 0;
 
     free((void *)pResult);
   }
@@ -231,7 +233,7 @@ void ShowTinyDSKMenu(uint32_t drive)
 void ShowTinyCPUDelayMenu()
 {
  unsigned char aSelNum;
- aSelNum = ShowTinyMenu("Delay CPU ms",gb_delay_cpu_menu,max_gb_delay_cpu_menu);
+ aSelNum = ShowTinyMenu("> Delay CPU ms",gb_delay_cpu_menu,max_gb_delay_cpu_menu, 14, 202);
  if (aSelNum == 255)
   return;
  gb_delay_tick_cpu_milis = aSelNum;  
@@ -240,7 +242,7 @@ void ShowTinyCPUDelayMenu()
 void ShowTinyTimerDelayMenu()
 {
  unsigned char aSelNum;
- aSelNum = ShowTinyMenu("Timers poll ms",gb_timers_poll_menu,max_gb_timers_poll_menu);
+ aSelNum = ShowTinyMenu("> Timers poll",gb_timers_poll_menu,max_gb_timers_poll_menu, 14, 202);
  switch (aSelNum)
  {
   case 0: gb_timers_poll_milis= 216; break;
@@ -256,7 +258,7 @@ void ShowTinyTimerDelayMenu()
 void ShowTinyVGApollMenu()
 {
  unsigned char aSelNum;
- aSelNum = ShowTinyMenu("VGA poll ms",gb_vga_poll_menu,max_gb_vga_poll_menu);
+ aSelNum = ShowTinyMenu("> VGA poll ms",gb_vga_poll_menu,max_gb_vga_poll_menu, 14, 202);
  switch (aSelNum)
  {
   case 0: gb_vga_poll_milis= 20; break;
@@ -269,7 +271,7 @@ void ShowTinyVGApollMenu()
 void ShowTinyKeyboardPollMenu()
 {
  unsigned char aSelNum;
- aSelNum = ShowTinyMenu("Keyboard poll ms",gb_keyboard_poll_menu,max_gb_keyboard_poll_menu);
+ aSelNum = ShowTinyMenu("> Keyboard poll",gb_keyboard_poll_menu,max_gb_keyboard_poll_menu, 15, 202);
  switch (aSelNum)
  {
   case 0: gb_keyboard_poll_milis= 10; break;
@@ -284,7 +286,7 @@ void ShowTinyKeyboardPollMenu()
 void ShowTinySpeedMenu()
 {
  unsigned char aSelNum;
- aSelNum = ShowTinyMenu("Speed",gb_speed_menu,max_gb_speed_menu);
+ aSelNum = ShowTinyMenu("> Speed",gb_speed_menu,max_gb_speed_menu, 14, 90);
  switch (aSelNum)
  {
   case 0: ShowTinyCPUDelayMenu(); break;
@@ -298,7 +300,7 @@ void ShowTinySpeedMenu()
 void ShowTinySoundMenu()
 {
  unsigned char aSelNum;
- aSelNum = ShowTinyMenu("Sound",gb_sound_menu,max_gb_sound_menu);
+ aSelNum = ShowTinyMenu("Sound",gb_sound_menu,max_gb_sound_menu, 10, 90);
  gb_silence= (aSelNum==0)?0:1;
 }
 
@@ -306,7 +308,7 @@ void ShowTinySoundMenu()
 void ShowTinyResetMenu()
 {
  unsigned char aSelNum;
- aSelNum= ShowTinyMenu("Reset",gb_reset_menu,max_gb_reset_menu);
+ aSelNum= ShowTinyMenu("Reset",gb_reset_menu,max_gb_reset_menu, 10, 90);
  if (aSelNum == 1)
  {
   ESP.restart();
@@ -317,21 +319,10 @@ void ShowTinyResetMenu()
  } 
 }
 
-void ShowTinyCOMMenu()
-{
- unsigned char aSelNum;     
- aSelNum = ShowTinyMenu("COM",gb_list_com_title,max_list_com);
-
- //gb_cartfilename= (char *)gb_list_rom_title[aSelNum];
- gb_force_load_com= 1;
- gb_id_cur_com= aSelNum;
- //running= 0;
-}
-
 void ShowTinyVideoMenu()
 {
  unsigned char aSelNum;
- aSelNum = ShowTinyMenu("Video",gb_video_menu,max_gb_video_menu);
+ aSelNum = ShowTinyMenu("Video",gb_video_menu,max_gb_video_menu, 10, 90);
  switch (aSelNum)
  {
    case 0: 
@@ -361,19 +352,11 @@ void ShowTinyVideoMenu()
       }
     }
     break;
-   case 1: gb_font_8x8= 0; break; //font 4x8
-   case 2: gb_font_8x8= 1; break; //font 8x8 
-   case 3: gb_invert_color= ((~gb_invert_color)&0x01); break; //Invertir color
  }
 }
 
 
 //*******************************************
-void SDLActivarOSDMainMenu()
-{     
- gb_show_osd_main_menu= 1;   
-}
-
 //Very small tiny osd
 void do_tinyOSD() 
 {
@@ -384,47 +367,52 @@ void do_tinyOSD()
  uint8_t scancode = keyboard->getLastKey();
  if (scancode == KEY_F12)
  {
-  gb_show_osd_main_menu= 1;
+  osd.active = true;
   return;
  }
 
- if (gb_show_osd_main_menu == 1)
+ if (osd.active)
  {
+  renderSaveBlitter();
+  renderSetBlitter(1);
+  renderClearScreen(SCREEN_BACKGROUND);
+  svcBar(8, 0, 21, 320, 0x81);
+  SDLprintText("Port Fake86 by Ackerman", 12, 2, 0x87, 0x81);
+  SDLprintText("Extensions by Ochlamonster", 12, 12, 0xF9, 0x81);
+
   auxVol= gb_volumen01;
   auxFrec= gb_frecuencia01;
   gb_volumen01= gb_frecuencia01=0;
 
-  aSelNum = ShowTinyMenu("MAIN MENU",gb_main_menu,max_gb_main_menu);
+  aSelNum = ShowTinyMenu("MAIN MENU",gb_main_menu,max_gb_main_menu, 10, 10);
   switch (aSelNum)
   {
    case 0:
-    ShowTinyCOMMenu();
-    gb_show_osd_main_menu=0;
+    ShowTinyDSKMenu(0);
+    osdLeave();
     break;
    case 1:
-    ShowTinyDSKMenu(0);
-    gb_show_osd_main_menu=0;
+    ShowTinyDSKMenu(1);
+    osdLeave();
     break;
    case 2:
-    ShowTinyDSKMenu(1);
-    gb_show_osd_main_menu = 0;
+    ShowTinyResetMenu();
+    osdLeave();
     break;
    case 3:
-    ShowTinyResetMenu();
-    gb_show_osd_main_menu=0;    
+    ShowTinySpeedMenu();
+    osdLeave();
     break;
-   case 4:
-    ShowTinySpeedMenu(); 
-    gb_show_osd_main_menu=0;   
+   case 4: ShowTinyVideoMenu();
+    osdLeave();
     break;
-   case 5: ShowTinyVideoMenu(); 
-    gb_show_osd_main_menu=0;
-    break;   
-   case 6:
-    ShowTinySoundMenu();        
-    gb_show_osd_main_menu=0; 
+   case 5:
+    ShowTinySoundMenu();
+    osdLeave();
     break;
-   default: break;
+   default:
+    osdLeave();
+    break;
   }
 
   gb_volumen01= auxVol;
@@ -434,5 +422,12 @@ void do_tinyOSD()
  #ifdef use_lib_sound_ay8912
   gb_silence_all_channels = 0;
  #endif 
+}
+
+static void osdLeave()
+{
+  osd.active = false;
+  renderClearScreen(DEFAULT_BORDER);
+  renderRestoreBlitter();
 }
 

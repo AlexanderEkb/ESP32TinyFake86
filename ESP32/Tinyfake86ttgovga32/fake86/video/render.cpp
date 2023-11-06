@@ -36,7 +36,7 @@
 #define PENDING_COLORBURST_TRUE   (0x01)
 #define PENDING_COLORBURST_FALSE  (0x02)
 
-typedef void (* dumper_t)(void);
+typedef void(*dumper_t)(void);
 
 // static void dump160x100_font4x8(void);
 // static void dump80x25_font4x8(void);
@@ -85,8 +85,6 @@ const videoMode_t modes[MODE_COUNT] = {
 
 cursor_t cursor;
 static uint32_t scanlineBuffer[CompositeColorOutput::XRES * 2];
-
-static const uint32_t VERTICAL_OFFSET = 20;
 
 static const uint8_t paletteBasic[16]={ 
 // BLACK    BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
@@ -205,7 +203,7 @@ void renderInit() {
   for (int y = 0; y < CompositeColorOutput::YRES; y++)
   {
     gb_buffer_vga[y] = (char *)malloc(CompositeColorOutput::XRES * 2);
-    memset(gb_buffer_vga[y], 0x77, CompositeColorOutput::XRES * 2);
+    memset(gb_buffer_vga[y], DEFAULT_BORDER, CompositeColorOutput::XRES * 2);
   }
 
   void IRAM_ATTR blitter_0(uint8_t * src, uint16_t * dst);
@@ -225,16 +223,21 @@ void renderExec()
   }
 }
 
-void renderClearScreen()
+void renderClearScreen(uint8_t color)
 {
   for (int y = 0; y < 200; y++)
+  {
+    for (int x = 0; x < 8; x++)
+      gb_buffer_vga[y + VERTICAL_OFFSET][x] = DEFAULT_BORDER;
     for (int x = 0; x < 320; x++)
-      gb_buffer_vga[y + VERTICAL_OFFSET][x + 8] = 0;
+      gb_buffer_vga[y + VERTICAL_OFFSET][x + 8] = color ;
+    for (int x = 0; x < 8; x++)
+      gb_buffer_vga[y + VERTICAL_OFFSET][x + 328] = DEFAULT_BORDER;
+  }
 }
 
 void renderPrintCharOSD(char character, int col, int row, unsigned char color, unsigned char backcolor)
 {
-  // unsigned char aux = gb_sdl_font_6x8[(car-64)];
   int auxId = character << 3; //*8
   unsigned char pixel;
   for (uint32_t y = 0; y < 8; y++)
@@ -253,11 +256,11 @@ void renderPrintCharOSD(char character, int col, int row, unsigned char color, u
 //uint8_t initscreen (uint8_t *ver) 
 unsigned char initscreen() 
 {
-	memcpy(palette,paletteGraphicGRYdim,16);
- 	//JJ no SDL SDL_WM_SetCaption ("ESP32 Fake86", NULL);
-	#ifdef use_lib_log_serial
-	 Serial.printf("initscreen SDL_SetVideoMode\n");
-	#endif 
+	// memcpy(palette,paletteGraphicGRYdim,16);
+ 	// //JJ no SDL SDL_WM_SetCaption ("ESP32 Fake86", NULL);
+	// #ifdef use_lib_log_serial
+	//  Serial.printf("initscreen SDL_SetVideoMode\n");
+	// #endif 
 	return (1);
 }
 
@@ -460,7 +463,6 @@ static void SDLprintChar(char code, uint32_t x, uint32_t y, uint8_t color, uint8
   }
   else
   {
-    // unsigned char bFourPixels = gb_sdl_font_6x8[(car-64)];
     int nBaseOffset = code << 3; //*8
     for (unsigned int row = 0; row < render.charHeight; row++)
     {
@@ -525,6 +527,16 @@ void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
   }
 }
 
+void renderSaveBlitter()
+{
+  composite.saveBlitter();
+}
+
+void renderRestoreBlitter()
+{
+  composite.restoreBlitter();
+}
+
 void renderSetBlitter(unsigned int blitter)
 {
   switch(blitter)
@@ -583,7 +595,7 @@ void renderUpdateSettings(uint8_t settings, uint8_t colors)
   }
 }
 
-static void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
+void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
 {
   for (int y = 0; y < height; y++)
   {
@@ -607,7 +619,7 @@ void svcShowColorTable()
       int orgX = luma * WIDTH;
       int orgY = hue * HEIGHT;
       uint8_t color = ((uint8_t)hue << 4) | ((uint8_t)luma & 0x0F);
-      svcBar(orgX, orgY, HEIGHT, WIDTH, color);
+      svcBar(orgX + 8, orgY, HEIGHT, WIDTH, color);
     }
   }
 }

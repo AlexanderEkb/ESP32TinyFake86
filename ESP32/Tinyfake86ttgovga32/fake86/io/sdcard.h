@@ -158,10 +158,12 @@ class SdCard {
         const bool result = (floppies[drive].pImage != nullptr);
         if(result)
         {
+            // strncpy(floppies[drive].imageName, pFilename, 256);
             Serial.printf("OK\n");
         }
         else
         {
+            // memset(floppies[drive].imageName, 0x00, 256);
             Serial.printf("FAILED!\n");
         }
         return result;
@@ -223,6 +225,7 @@ class SdCard {
             uint32_t length = strlen(basename);
             char *extension = &basename[length - 4];
             if (strncmp(extension, ".img", 4))
+              // if (strncmp(extension, ".ima", 4))
                 continue;
 
             if (count + 1 >= capacity) {
@@ -236,7 +239,8 @@ class SdCard {
             }
 
             scandir_t *result = &results[count++];
-
+            // result->name[0] = ' ';
+            // strncpy(&result->name[1], basename, sizeof(result->name) - 1);
             strncpy(result->name, basename, sizeof(result->name) - 1);
         }
         memset(&results[count], 0, sizeof(scandir_t));
@@ -244,7 +248,10 @@ class SdCard {
         closedir(dir);
         return results;
     }
-
+    // bool isMounted(uint32_t drive, char * imageName)
+    // {
+    //   return !strncmp(floppies[drive].imageName, imageName, 256);
+    // }
   private:
     typedef struct DRIVE_DESC
     {
@@ -253,6 +260,7 @@ class SdCard {
         uint32_t    sectors;
         uint32_t    sectorSize;
         FILE *      pImage;
+        // char        imageName[256];
     };
     DRIVE_DESC floppies[FLOPPY_COUNT];
     bool disk_mounted;

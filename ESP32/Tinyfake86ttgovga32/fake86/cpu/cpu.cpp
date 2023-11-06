@@ -1591,8 +1591,5 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
           opcode0xF0, opcodeInv , opcodeStub, opcodeStub, opcode0xF4, opcode0xF5, opcode0xF6, opcode0xF7, opcode0xF8, opcode0xF9, opcode0xFA, opcode0xFB, opcode0xFC, opcode0xFD, opcode0xFE, opcode0xFF,
       };
       opcodes[opcode]();
-      if (!running) {
-					return;
-				}
 		}
 }

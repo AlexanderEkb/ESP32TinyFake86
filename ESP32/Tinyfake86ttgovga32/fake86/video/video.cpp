@@ -135,32 +135,44 @@ static void write3D5h (uint32_t portnum, uint8_t value)
   switch (mc6845RegSelector)
   {
   case MC6845_REG_HTOTAL:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_HDISP:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_HSYNC:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_VTOTAL:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_VTOTAL_ADJUST:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_VDISP_POS:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_VSYNC_POS:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_MAX_ROWS:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     renderSetCharHeight(value);
     break;
   case MC6845_REG_CURSOS_START:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     cursor.updateStart(value);
     break;
   case MC6845_REG_CURSOR_END:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     cursor.updateEnd(value);
     break;
   case MC6845_REG_START_ADDR_MSB:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     renderSetStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
     break;
   case MC6845_REG_START_ADDR_LSB:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     renderSetStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
     break;
   case MC6845_REG_CURSOR_ADDR_MSB:
@@ -170,8 +182,10 @@ static void write3D5h (uint32_t portnum, uint8_t value)
     cursor.updateLSB(value);
     break;
   case MC6845_REG_LPEN_MSB:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_LPEN_LSB:
+    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   }
 }

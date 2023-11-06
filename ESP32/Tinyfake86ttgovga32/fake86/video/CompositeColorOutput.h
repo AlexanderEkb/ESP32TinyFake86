@@ -1060,4 +1060,16 @@ class CompositeColorOutput {
         void setBlitter(blitter_t blitter) {
           RawCompositeVideoBlitter::_blitter = blitter;
         }
+
+        void saveBlitter(void)
+        {
+          storedBlitter = RawCompositeVideoBlitter::_blitter;
+        }
+
+        void restoreBlitter(void)
+        {
+          RawCompositeVideoBlitter::_blitter = storedBlitter;
+        }
+    private:
+        blitter_t storedBlitter;
 };

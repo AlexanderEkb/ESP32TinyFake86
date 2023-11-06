@@ -10,7 +10,6 @@
 #endif
 #include "config/gbConfig.h"
 #include "cpu/cpu.h"
-#include "dataFlash/gbcom.h"
 #include "driver/timer.h"
 #include "fake86.h"
 #include "gbGlobals.h"
@@ -43,17 +42,12 @@ TaskHandle_t videoTaskHandle;
 Ticker gb_ticker_callback;
 #endif
 
-unsigned char gb_invert_color = 0;
-
 unsigned char gb_delay_tick_cpu_milis = use_lib_delay_tick_cpu_milis;
 unsigned char gb_vga_poll_milis = use_lib_vga_poll_milis;
 unsigned char gb_keyboard_poll_milis = use_lib_keyboard_poll_milis;
 unsigned char gb_timers_poll_milis = use_lib_timers_poll_milis;
 
-unsigned char gb_font_8x8 = 1;
-
 unsigned char gb_reset = 0;
-unsigned char gb_id_cur_com = 0;
 
 KeyboardDriver *keyboard = new KeyboardDriverAT(); // stm32keyboard();
 SdCard sdcard;
@@ -65,7 +59,6 @@ unsigned char bootdrive = 0;
 unsigned char gb_force_load_com = 0;
 
 unsigned char cf;
-unsigned char running = 0;
 
 static void ClearRAM();
 static void execCPU();
@@ -189,20 +182,8 @@ void PerformSpecialActions()
     ClearRAM();
     memset(gb_video_cga, 0, 16384);
     keyboard->Reset();
-    running = 1;
     reset86();
     inithardware();
-    return;
-  }
-  if (gb_force_load_com == 1)
-  {
-    gb_force_load_com = 0;
-    int auxOffs = 0;
-    if (gb_list_seg_load[gb_id_cur_com] == 0)
-      auxOffs = 0x07C0;
-    else
-      auxOffs = 0x0051;
-    LoadCOMFlash(gb_list_com_data[gb_id_cur_com], gb_list_com_size[gb_id_cur_com], auxOffs);
     return;
   }
   renderExec();
@@ -246,7 +227,6 @@ void setup()
   LOG("VGA %d\n", ESP.getFreeHeap());
   keyboard->Init();
 
-  running = 1;
   reset86();
   LOG("OK!\n");
 
