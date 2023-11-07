@@ -37,13 +37,17 @@ typedef struct __attribute__((packed)) {
 class SdCard {
   static const uint32_t FLOPPY_COUNT = 2;
   public:
-    SdCard() { disk_mounted = false; }
+    SdCard() {
+      disk_mounted = false;
+      imgList = nullptr;
+      for(uint32_t i=0; i<FLOPPY_COUNT; i++)
+        floppies[i].imgIndex = -1;
+    }
     bool Init() {
         if (disk_mounted)
             Deinit();
 
         int error_code = -1;
-
 #if RG_STORAGE_DRIVER == 0 // Host (stdlib)
 
         error_code = 0;
@@ -138,7 +142,16 @@ class SdCard {
 
         if (!error_code) {
             RG_LOGI("Storage mounted at %s. driver=%d\n", RG_STORAGE_ROOT, RG_STORAGE_DRIVER);
-            OpenImage(0, "boot.img");
+            scandir();
+            uint32_t count = 0;
+            while (imgList[count].name[0] != 0)
+            {
+              if(!strcmp(imgList[count].name, "boot.img"))
+              {
+                OpenImage(0, count);
+              }
+              count++;
+            }
         } else
             RG_LOGE("Storage mounting failed. driver=%d, err=0x%x\n", RG_STORAGE_DRIVER, error_code);
 
@@ -146,28 +159,33 @@ class SdCard {
         return disk_mounted;
     }
 
-    bool OpenImage(uint32_t drive, char * pFilename)
+    bool OpenImage(uint32_t drive, int32_t index)
     {
-        if (floppies[drive].pImage != nullptr)
-            fclose(floppies[drive].pImage);
-        static const uint32_t LENGTH = 256;
-        char fullpath[LENGTH];
-        snprintf(fullpath, LENGTH, "%s/%s", RG_STORAGE_ROOT, pFilename);
-        Serial.printf("Opening image '%s', drive #%i...", fullpath, drive);
-        floppies[drive].pImage = fopen(fullpath, "r+");
-        const bool result = (floppies[drive].pImage != nullptr);
-        if(result)
-        {
-            // strncpy(floppies[drive].imageName, pFilename, 256);
-            Serial.printf("OK\n");
-        }
-        else
-        {
-            // memset(floppies[drive].imageName, 0x00, 256);
-            Serial.printf("FAILED!\n");
-        }
-        return result;
+      if(index < 0)
+        return false;
+      if (floppies[drive].pImage != nullptr)
+          fclose(floppies[drive].pImage);
+      static const uint32_t LENGTH = 256;
+      char fullpath[LENGTH];
+      snprintf(fullpath, LENGTH, "%s/%s", RG_STORAGE_ROOT, imgList[index].name);
+      Serial.printf("Opening image '%s', drive #%i...", fullpath, drive);
+      floppies[drive].pImage = fopen(fullpath, "r+");
+      const bool result = (floppies[drive].pImage != nullptr);
+      Serial.printf(result?"OK\n":"FAILED!\n");
+      floppies[drive].imgIndex = result?index:-1;
+      return result;
     }
+
+    scandir_t *getList()
+    {
+      return imgList;
+    }
+
+    int32_t getImageIndex(uint32_t drive)
+    {
+      return floppies[drive].imgIndex;
+    }
+
     bool Read(uint32_t drive, void * pDest, uint32_t offset, uint32_t size)
     {
         if(floppies[drive].pImage != nullptr)
@@ -197,75 +215,24 @@ class SdCard {
             return false;
         }
     }
-    scandir_t *scandir() {
-        RG_LOGI("Scanning...\r\n");
-        DIR *dir = opendir(RG_STORAGE_ROOT);
-        if (!dir)
-            return NULL;
-
-        scandir_t *results = (scandir_t *)calloc(1, sizeof(scandir_t));
-        size_t capacity = 0;
-        size_t count = 0;
-        struct dirent *ent;
-        struct stat statbuf;
-
-        char fullpath[RG_PATH_MAX + 1] = {0};
-        char *basename = fullpath + sprintf(fullpath, "/");
-        size_t basename_len = RG_PATH_MAX - (basename - fullpath);
-
-        while ((ent = readdir(dir))) {
-            strncpy(basename, ent->d_name, basename_len);
-
-            if (basename[0] == '.') // For backwards compat we'll ignore all hidden files...
-                continue;
-
-            if (ent->d_type != DT_REG)
-                continue;
-
-            uint32_t length = strlen(basename);
-            char *extension = &basename[length - 4];
-            if (strncmp(extension, ".img", 4))
-              // if (strncmp(extension, ".ima", 4))
-                continue;
-
-            if (count + 1 >= capacity) {
-                capacity += 100;
-                void *temp = realloc(results, (capacity + 1) * sizeof(scandir_t));
-                if (!temp) {
-                    RG_LOGW("Not enough memory to finish scan!\n");
-                    break;
-                }
-                results = (scandir_t *)temp;
-            }
-
-            scandir_t *result = &results[count++];
-            // result->name[0] = ' ';
-            // strncpy(&result->name[1], basename, sizeof(result->name) - 1);
-            strncpy(result->name, basename, sizeof(result->name) - 1);
-        }
-        memset(&results[count], 0, sizeof(scandir_t));
-        RG_LOGI("%i entries found.\r\n", count);
-        closedir(dir);
-        return results;
-    }
-    // bool isMounted(uint32_t drive, char * imageName)
-    // {
-    //   return !strncmp(floppies[drive].imageName, imageName, 256);
-    // }
   private:
     typedef struct DRIVE_DESC
     {
+        static const uint32_t MAX_NAME_LENGTH = 256;
         uint32_t    heads;
         uint32_t    cylinders;
         uint32_t    sectors;
         uint32_t    sectorSize;
         FILE *      pImage;
-        // char        imageName[256];
+        int32_t     imgIndex;
     };
     DRIVE_DESC floppies[FLOPPY_COUNT];
+    scandir_t * imgList;
     bool disk_mounted;
     void Deinit(void) {
         int error_code = 0;
+        if(imgList != nullptr)
+          free((void *)imgList);
 #if RG_STORAGE_DRIVER == 1 || RG_STORAGE_DRIVER == 2
         esp_err_t err = esp_vfs_fat_sdmmc_unmount();
         error_code = err;
@@ -295,6 +262,60 @@ class SdCard {
         //     rg_system_set_led(0);
 
         return ret;
+    }
+    scandir_t *scandir()
+    {
+        RG_LOGI("Scanning...\r\n");
+        DIR *dir = opendir(RG_STORAGE_ROOT);
+        if (!dir)
+            return NULL;
+        if (imgList != nullptr)
+            free((void *)imgList);
+        imgList = (scandir_t *)calloc(1, sizeof(scandir_t));
+        size_t capacity = 0;
+        size_t count = 0;
+        struct dirent *ent;
+        struct stat statbuf;
+
+        char fullpath[RG_PATH_MAX + 1] = {0};
+        char *basename = fullpath + sprintf(fullpath, "/");
+        size_t basename_len = RG_PATH_MAX - (basename - fullpath);
+
+        while ((ent = readdir(dir)))
+        {
+            strncpy(basename, ent->d_name, basename_len);
+
+            if (basename[0] == '.') // For backwards compat we'll ignore all hidden files...
+              continue;
+
+            if (ent->d_type != DT_REG)
+              continue;
+
+            uint32_t length = strlen(basename);
+            char *extension = &basename[length - 4];
+            if (strncmp(extension, ".img", 4))
+              // if (strncmp(extension, ".ima", 4))
+              continue;
+
+            if (count + 1 >= capacity)
+            {
+              capacity += 100;
+              void *temp = realloc(imgList, (capacity + 1) * sizeof(scandir_t));
+              if (!temp)
+              {
+                RG_LOGW("Not enough memory to finish scan!\n");
+                break;
+              }
+              imgList = (scandir_t *)temp;
+            }
+
+            scandir_t *result = &imgList[count++];
+            strncpy(result->name, basename, sizeof(result->name) - 1);
+        }
+        memset(&imgList[count], 0, sizeof(scandir_t));
+        RG_LOGI("%i entries found.\r\n", count);
+        closedir(dir);
+        return imgList;
     }
 };
 

@@ -134,7 +134,7 @@ void SDLprintText(const char *cad, int x, int y, unsigned char color, unsigned c
  }
 }
 
-void OSDMenuRowsDisplayScroll(const char **ptrValue, unsigned char currentId, unsigned char aMax, uint32_t width, uint32_t pos)
+void OSDMenuRowsDisplayScroll(const char **ptrValue, unsigned char currentId, unsigned char aMax, uint32_t width, uint32_t pos, int32_t highlight = -1)
 {//Dibuja varias lineas
   const uint32_t MAX_WIDTH = 64;
   if(width > MAX_WIDTH) width = MAX_WIDTH;
@@ -142,20 +142,27 @@ void OSDMenuRowsDisplayScroll(const char **ptrValue, unsigned char currentId, un
   memset(lineOfSpaces, ' ', MAX_WIDTH + 1);
   lineOfSpaces[width] = 0x00;
 
- for (int i=0;i<gb_osd_max_rows;i++)
-  SDLprintText(lineOfSpaces,pos,gb_pos_y_menu+8+(i<<3),0,DEFAULT_BORDER);
- 
- for (int i=0;i<gb_osd_max_rows;i++)
+  const int rowCount = (aMax > gb_osd_max_rows) ? gb_osd_max_rows : aMax;
+  for (int i = 0; i < rowCount; i++)
+  {
+    SDLprintText(lineOfSpaces,pos,gb_pos_y_menu+8+(i<<3),0,DEFAULT_BORDER);
+    if (currentId < aMax)
+    {
+      uint8_t foreground = (currentId == highlight) ? 0x35 : ((i == 0) ? DEFAULT_BORDER : SCREEN_BACKGROUND);
+      uint8_t background = ((i == 0) ? SCREEN_BACKGROUND : DEFAULT_BORDER);
+
+      SDLprintText(ptrValue[currentId], pos + 1, gb_pos_y_menu + 8 + (i << 3), foreground, background);
+      currentId++;
+    }
+  }
+
+ for (int i=0;i<rowCount;i++)
  {
-  if (currentId >= aMax)
-   break;
-  SDLprintText(ptrValue[currentId],pos, gb_pos_y_menu+8+(i<<3),((i==0)?DEFAULT_BORDER:SCREEN_BACKGROUND),((i==0)?SCREEN_BACKGROUND:DEFAULT_BORDER));  
-  currentId++;
  }     
 }
 
 //Maximo 256 elementos
-uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char aMax, uint32_t width, uint32_t pos)
+uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char aMax, uint32_t width, uint32_t pos, int32_t highlight = -1)
 {
   unsigned char aReturn=0;
   bool bExit = false;
@@ -163,7 +170,7 @@ uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char 
   renderPrintCharOSD(' ', pos + (i << 3), gb_pos_y_menu, 0, WHITE);
   SDLprintText(cadTitle,pos,gb_pos_y_menu,0,WHITE);
 
-  OSDMenuRowsDisplayScroll(ptrValue,0,aMax, width, pos);
+  OSDMenuRowsDisplayScroll(ptrValue,0,aMax, width, pos, highlight);
 
   while (!bExit)
   {
@@ -173,25 +180,24 @@ uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char 
     {
     case (KEY_CURSOR_LEFT):
       if (aReturn>10) aReturn-=10;
-      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos);
+      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos, highlight);
       break;
     case (KEY_CURSOR_RIGHT):
       if (aReturn<(aMax-10)) aReturn+=10;
-      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos);
+      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos, highlight);
       break;     
 
     case (KEY_CURSOR_UP):
       if (aReturn>0) aReturn--;
-      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos);
+      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos, highlight);
       break;
     case (KEY_CURSOR_DOWN):
       if (aReturn < (aMax-1)) aReturn++;
-      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos);
+      OSDMenuRowsDisplayScroll(ptrValue, aReturn, aMax, width, pos, highlight);
       break;
     case (KEY_ENTER):
       bExit = true;
       break;
-    //case SDLK_KP_ENTER: case SDLK_RETURN: bExit= 1;break;
     case (KEY_ESC):
       bExit = true; 
       aReturn= 255;    
@@ -205,27 +211,24 @@ uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char 
 void ShowTinyDSKMenu(uint32_t drive)
 {
   extern SdCard sdcard;
-  scandir_t * pResult = sdcard.scandir();
-  if(pResult != nullptr)
+  scandir_t * list = sdcard.getList();
+  if(list != nullptr)
   {
+    const int32_t imgIndex = sdcard.getImageIndex(drive);
     static const uint32_t LENGTH = 256;
     static char * arItems[LENGTH];
     static uint32_t count = 0;
-    while(pResult[count].name[0] != 0)
+    while(list[count].name[0] != 0)
     {
-      arItems[count] = &pResult[count].name[0];
-      // if (sdcard.isMounted(drive, &pResult[count].name[1]))
-      //   pResult[count].name[0] = '+';
+      arItems[count] = &list[count].name[0];
       count++;
     }
 
-    uint32_t selection = ShowTinyMenu("> Select image:", (const char **)arItems, count, 24, 90);
+    uint32_t selection = ShowTinyMenu("> Select image:", (const char **)arItems, count, 24, 90, imgIndex);
 
-    if (selection > (count - 1))
-      selection = count - 1;
-    sdcard.OpenImage(drive, arItems[selection]);
+    if (selection != 0xFF)
+      sdcard.OpenImage(drive, selection);
 
-    free((void *)pResult);
   }
 }
 
