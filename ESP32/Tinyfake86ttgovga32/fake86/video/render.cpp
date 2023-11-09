@@ -95,13 +95,13 @@ static const uint8_t paletteBasic[16]={
 static const uint32_t GRAPH_PALETTE_COUNT = 4;
 static const uint32_t GRAPH_PALETTE_SIZE = 4;
 //                                                             Black  Green   Red     Yellow
-const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00,  0xC3,   0x43,   0x17};
+const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00,  0xD3,   0x43,   0x17};
 
 //                                                             Black  Green   Red     Yellow
 const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00,  0xC3,   0x43,   0x17};
 
 //                                                             Black  Green   Red     Yellow
-const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00,  0xC8,   0x48,   0x1C};
+const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00,  0xD8,   0x48,   0x1C};
 
 //                                                             Black  Green   Red     Yellow
 const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00,  0xC8,   0x48,   0x1C};
@@ -527,6 +527,26 @@ void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
   }
 }
 
+void IRAM_ATTR blitter_2(uint8_t *src, uint16_t *dst)
+{
+  static uint32_t line[RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH];
+  const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
+  static const uint32_t STEP = 4;
+
+  uint32_t *d = line;
+  for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP) // 84 steps, 4 pixels per step
+  {
+    d[0] = destPalette[src[0]];
+    d[1] = destPalette[src[1]] << 8;
+    d[2] = destPalette[src[2]];
+    d[3] = destPalette[src[3]] << 8;
+    d += STEP;
+    src += STEP;
+  }
+  uint8_t *dest = (uint8_t *)((uint32_t *)dst + 16) + 7;
+  memcpy(dest, line, RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH * sizeof(uint32_t));
+}
+
 void renderSaveBlitter()
 {
   composite.saveBlitter();
@@ -546,6 +566,9 @@ void renderSetBlitter(unsigned int blitter)
       break;
     case 1:
       composite.setBlitter(blitter_1);
+      break;
+    case 2:
+      composite.setBlitter(blitter_2);
       break;
   }
 }
