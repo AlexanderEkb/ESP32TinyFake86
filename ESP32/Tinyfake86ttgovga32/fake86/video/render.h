@@ -43,12 +43,14 @@ class cursor_t {
  void renderUpdateSettings(uint8_t settings, uint8_t colors);
  void renderSetCharHeight(uint8_t height);
  void renderSetStartAddr(uint32_t addr);
-
- unsigned char initscreen (void);
+ void renderSetPixelOffset(uint32_t const offset);
  
+ unsigned char initscreen(void);
+
  void svcBar(int orgX, int orgY, int height, int width, uint8_t color);
+ void svcDrawTableLoRes(uint32_t p);
  void svcShowColorTable(void);
+ uint8_t* svcGetPalette(uint32_t p);
 
-extern cursor_t cursor;
+ extern cursor_t cursor;
 #endif
-

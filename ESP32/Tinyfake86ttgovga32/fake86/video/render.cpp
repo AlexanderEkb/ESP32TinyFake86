@@ -50,7 +50,6 @@ static void SDLprintChar_c(char code, uint32_t x, uint32_t y, uint8_t color, uin
 static void SDLprintChar(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t backcolor);
 
 static const uint32_t DUMPER_COUNT = 7;
-
 static const uint32_t MODE_COUNT = 8;
 
 typedef struct {
@@ -95,24 +94,24 @@ static const uint8_t paletteBasic[16]={
 static const uint32_t GRAPH_PALETTE_COUNT = 4;
 static const uint32_t GRAPH_PALETTE_SIZE = 4;
 //                                                             Black  Green   Red     Yellow
-const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00,  0xD3,   0x43,   0x17};
+uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00,  0x93,   0x13,   0xB3};
 
 //                                                             Black  Green   Red     Yellow
 const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00,  0xC3,   0x43,   0x17};
 
 //                                                             Black  Green   Red     Yellow
-const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00,  0xD8,   0x48,   0x1C};
+uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00,  0x98,   0x18,   0xB8};
 
 //                                                             Black  Green   Red     Yellow
 const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00,  0xC8,   0x48,   0x1C};
 
 //                                                             Black   Cyan   Magenta White
-const uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]      = {0x00,  0xB6,   0x65,   0x0A};
+uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]      = {0x00,  0x86,   0x26,   0x0A};
 
 //                                                             Black   Cyan   Magenta White
-const uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE]   = {0x00,   0xBB,   0x6A,   0x0F};
+uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE]   = {0x00,   0x8B,   0x2B,   0x0F};
 
-static uint8_t const * graphPalettes[GRAPH_PALETTE_COUNT] =
+static uint8_t * graphPalettes[GRAPH_PALETTE_COUNT] =
 {
   paletteGraphicGRYdim,
   paletteGraphicGRYbright,
@@ -137,6 +136,7 @@ static struct render {
   uint32_t lineCount = 25;
 
   uint32_t startAddr = 0;
+  uint32_t loResPixelOffset = 6;
 } render;
 
 
@@ -510,7 +510,7 @@ void renderSetCharHeight(uint8_t height)
   render.lineCount  = 200 / render.charHeight;
 }
 
-void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
+void IRAM_ATTR blitter_2(uint8_t *src, uint16_t *dst)
 {
   const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
   static const uint32_t STEP = 4;
@@ -527,13 +527,13 @@ void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
   }
 }
 
-void IRAM_ATTR blitter_2(uint8_t *src, uint16_t *dst)
+void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
 {
-  static uint32_t line[RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH];
+  // static uint32_t line[RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH];
   const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
   static const uint32_t STEP = 4;
 
-  uint32_t *d = line;
+  uint32_t *d = (uint32_t *)(dst + 35);
   for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP) // 84 steps, 4 pixels per step
   {
     d[0] = destPalette[src[0]];
@@ -543,8 +543,13 @@ void IRAM_ATTR blitter_2(uint8_t *src, uint16_t *dst)
     d += STEP;
     src += STEP;
   }
-  uint8_t *dest = (uint8_t *)((uint32_t *)dst + 16) + 7;
-  memcpy(dest, line, RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH * sizeof(uint32_t));
+  // uint8_t *dest = (uint8_t *)((uint32_t *)dst + 16) + render.loResPixelOffset;
+  // memcpy(dest, line, RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH * sizeof(uint32_t));
+}
+
+void renderSetPixelOffset(uint32_t const offset)
+{
+  render.loResPixelOffset = offset;
 }
 
 void renderSaveBlitter()
@@ -629,6 +634,30 @@ void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
       gb_buffer_vga[scanline][col] = color;
     }
   }
+}
+void svcDrawTableLoRes(uint32_t p)
+{
+  uint8_t *palette = graphPalettes[p];
+
+  static const uint32_t BAR_WIDTH = 20;
+  for(uint32_t bg = 0; bg<4; bg++)
+  {
+    for (uint32_t fg = 0; fg < 4; fg++)
+    {
+      for (uint32_t off=0; off<BAR_WIDTH; off++)
+      {
+        uint8_t color = palette[(off & 0x01)?fg:bg];
+        uint32_t pos = (bg*4+fg)*BAR_WIDTH+off + 8;
+        svcBar(pos, 0, 100, 1, color);
+      }
+    }
+    svcBar(bg*80 + 8, 100, 100, 80, palette[bg]);
+  }
+}
+
+uint8_t *svcGetPalette(uint32_t p)
+{
+  return graphPalettes[p];
 }
 
 void svcShowColorTable()

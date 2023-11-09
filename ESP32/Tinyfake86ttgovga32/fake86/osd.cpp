@@ -64,9 +64,10 @@ const char *gb_main_menu[max_gb_main_menu] = {
     "Sound",
     "Return"};
 
-#define max_gb_video_menu 1
+#define max_gb_video_menu 2
 const char * gb_video_menu[max_gb_video_menu]={
  "Colors",
+ "LO_RES"
 };
 
 #define max_gb_speed_menu 4
@@ -350,6 +351,80 @@ void ShowTinyVideoMenu()
             break;
           case KEY_3:
             renderSetBlitter(2);
+            break;
+        }
+      }
+    }
+    break;
+  case 1:
+    {
+      uint32_t paletteIndex = 0;
+      uint8_t selection = 1;
+      uint8_t pixelOffset = 0;
+      bool bExit = false;
+      while (!bExit)
+      {
+        svcDrawTableLoRes(paletteIndex % 4);
+        uint8_t * palette = svcGetPalette(paletteIndex % 4);
+        for(uint32_t c=1; c<4;c++)
+        {
+          char buffer[4];
+          sprintf(buffer, "%02X", palette[c]);
+          SDLprintText(buffer, c*80+40, 146, 15, 0);
+        }
+        extern KeyboardDriver *keyboard;
+        uint8_t scancode = keyboard->getLastKey();
+        switch (scancode)
+        {
+        case KEY_ESC:
+            bExit = true;
+            break;
+        case KEY_1:
+            renderSetBlitter(0);
+            break;
+        case KEY_2:
+            renderSetBlitter(1);
+            break;
+        case KEY_3:
+            renderSetBlitter(2);
+            break;
+        case KEY_F5:
+            paletteIndex++;
+            break;
+        case KEY_F6:
+            paletteIndex--;
+            break;
+        case KEY_F1:
+            selection = 0;
+            break;
+        case KEY_F2:
+            selection = 1;
+            break;
+        case KEY_F3:
+            selection = 2;
+            break;
+        case KEY_F4:
+            selection = 3;
+            break;
+        case KEY_CURSOR_UP:
+            palette[selection] += 0x10;
+            break;
+        case KEY_CURSOR_DOWN:
+            palette[selection] -= 0x10;
+            break;
+        case KEY_CURSOR_RIGHT:
+            palette[selection] += 0x01;
+            break;
+        case KEY_CURSOR_LEFT:
+            palette[selection] -= 0x01;
+            break;
+        case KEY_F9:
+            pixelOffset--;
+            renderSetPixelOffset(pixelOffset % 8);
+            break;
+        case KEY_F10:
+            pixelOffset++;
+            renderSetPixelOffset(pixelOffset % 8);
             break;
         }
       }
