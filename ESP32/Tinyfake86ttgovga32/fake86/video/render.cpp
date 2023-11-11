@@ -510,7 +510,7 @@ void renderSetCharHeight(uint8_t height)
   render.lineCount  = 200 / render.charHeight;
 }
 
-void IRAM_ATTR blitter_2(uint8_t *src, uint16_t *dst)
+void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
 {
   const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
   static const uint32_t STEP = 4;
@@ -527,10 +527,12 @@ void IRAM_ATTR blitter_2(uint8_t *src, uint16_t *dst)
   }
 }
 
-void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
+void IRAM_ATTR blitter_2(uint8_t *src, uint16_t *dst)
 {
   // static uint32_t line[RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH];
-  const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
+  const uint32_t *destPalette = RawCompositeVideoBlitter::_palette;
+  const uint32_t *destPaletteEven = RawCompositeVideoBlitter::ntsc_palette_even();
+  const uint16_t *destPaletteOdd = RawCompositeVideoBlitter::ntsc_palette_odd();
   static const uint32_t STEP = 4;
 
   uint32_t *d = (uint32_t *)(dst + 35);
@@ -557,6 +559,11 @@ void renderSaveBlitter()
   composite.saveBlitter();
 }
 
+void renderSetPhase(uint32_t phase)
+{
+  composite.setPhase(phase);
+}
+
 void renderRestoreBlitter()
 {
   composite.restoreBlitter();
@@ -568,12 +575,15 @@ void renderSetBlitter(unsigned int blitter)
   {
     case 0:
       composite.setBlitter(blitter_0);
+      composite.setPhase(3);
       break;
     case 1:
       composite.setBlitter(blitter_1);
+      composite.setPhase(0);
       break;
     case 2:
       composite.setBlitter(blitter_2);
+      composite.setPhase(0);
       break;
   }
 }

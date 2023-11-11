@@ -69,6 +69,7 @@ enum VideoStandard {NTSC, PAL};
 
 int _pal_ = 0;
 blitter_t _blitter;
+uint32_t _phase = 0;
 
 //====================================================================================================
 //====================================================================================================
@@ -492,6 +493,12 @@ uint32_t us() {
 #define GRAY_LEVEL       IRE(50)
 #define WHITE_LEVEL      IRE(100)
 
+static const uint16_t NTSC_BURST_4[12] = {
+    BLANKING_LEVEL + BLANKING_LEVEL / 2, BLANKING_LEVEL, BLANKING_LEVEL - BLANKING_LEVEL / 2, BLANKING_LEVEL,
+    BLANKING_LEVEL + BLANKING_LEVEL / 2, BLANKING_LEVEL, BLANKING_LEVEL - BLANKING_LEVEL / 2, BLANKING_LEVEL,
+    BLANKING_LEVEL + BLANKING_LEVEL / 2, BLANKING_LEVEL, BLANKING_LEVEL - BLANKING_LEVEL / 2, BLANKING_LEVEL,
+};
+
 #define P0 (color >> 16)
 #define P1 (color >> 8)
 #define P2 (color)
@@ -792,11 +799,17 @@ void video_init(VideoStandard standard)
                 for (i = _hsync; i < _hsync + (4*10); i += 4) {
                     if (bColorburstEnabled)
                     {
-                        line[i+1] = BLANKING_LEVEL;
-                        line[i+0] = BLANKING_LEVEL + BLANKING_LEVEL/2;
-                        line[i+3] = BLANKING_LEVEL;
-                        line[i+2] = BLANKING_LEVEL - BLANKING_LEVEL/2;
-                    } else {
+                        // line[i+1] = BLANKING_LEVEL;
+                        // line[i+0] = BLANKING_LEVEL + BLANKING_LEVEL/2;
+                        // line[i+3] = BLANKING_LEVEL;
+                        // line[i+2] = BLANKING_LEVEL - BLANKING_LEVEL/2;
+                        line[i + 1] = NTSC_BURST_4[_phase + 0];
+                        line[i + 0] = NTSC_BURST_4[_phase + 1];
+                        line[i + 3] = NTSC_BURST_4[_phase + 2];
+                        line[i + 2] = NTSC_BURST_4[_phase + 3];
+                    }
+                    else
+                    {
                         line[i+1] = BLANKING_LEVEL;
                         line[i+0] = BLANKING_LEVEL;
                         line[i+3] = BLANKING_LEVEL;
@@ -1045,6 +1058,7 @@ class CompositeColorOutput {
         void init(char ***frame, blitter_t blitter) {
             RawCompositeVideoBlitter::_lines = (uint8_t**) *frame;
             RawCompositeVideoBlitter::_blitter = blitter;
+            RawCompositeVideoBlitter::_phase = 0;
             RawCompositeVideoBlitter::frame_init(); // The CompositeGraphics lib will do this for us
             RawCompositeVideoBlitter::video_init(mode);
         }
@@ -1068,7 +1082,12 @@ class CompositeColorOutput {
 
         void restoreBlitter(void)
         {
-          RawCompositeVideoBlitter::_blitter = storedBlitter;
+          setBlitter(storedBlitter);
+        }
+
+        void setPhase(uint32_t phase)
+        {
+          RawCompositeVideoBlitter::_phase = phase % 8;
         }
     private:
         blitter_t storedBlitter;

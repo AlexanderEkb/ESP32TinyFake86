@@ -361,17 +361,25 @@ void ShowTinyVideoMenu()
       uint32_t paletteIndex = 0;
       uint8_t selection = 1;
       uint8_t pixelOffset = 0;
+      uint32_t phase = 0;
       bool bExit = false;
       while (!bExit)
       {
-        svcDrawTableLoRes(paletteIndex % 4);
-        uint8_t * palette = svcGetPalette(paletteIndex % 4);
+        char buffer[40];
+        svcDrawTableLoRes(paletteIndex);
+        renderSetPhase(phase);
+        uint8_t * palette = svcGetPalette(paletteIndex);
         for(uint32_t c=1; c<4;c++)
         {
-          char buffer[4];
           sprintf(buffer, "%02X", palette[c]);
-          SDLprintText(buffer, c*80+40, 146, 15, 0);
+          SDLprintText(buffer, c*80+40, 146, (c == selection)?15:8, 0);
         }
+        sprintf(buffer, "pal:   %i", paletteIndex);
+        SDLprintText(buffer, 24, 120, 15, 0);
+        sprintf(buffer, "phase: %i", phase);
+        SDLprintText(buffer, 24, 128, 15, 0);
+        sprintf(buffer, "off:   %i", pixelOffset);
+        SDLprintText(buffer, 24, 136, 15, 0);
         extern KeyboardDriver *keyboard;
         uint8_t scancode = keyboard->getLastKey();
         switch (scancode)
@@ -388,12 +396,6 @@ void ShowTinyVideoMenu()
         case KEY_3:
             renderSetBlitter(2);
             break;
-        case KEY_F5:
-            paletteIndex++;
-            break;
-        case KEY_F6:
-            paletteIndex--;
-            break;
         case KEY_F1:
             selection = 0;
             break;
@@ -405,6 +407,18 @@ void ShowTinyVideoMenu()
             break;
         case KEY_F4:
             selection = 3;
+            break;
+        case KEY_F5:
+            paletteIndex = (paletteIndex - 1) % 4;
+            break;
+        case KEY_F6:
+            paletteIndex = (paletteIndex + 1) % 4;
+            break;
+        case KEY_F7:
+            phase = (phase - 1) % 8;
+            break;
+        case KEY_F8:
+            phase = (phase + 1) % 8;
             break;
         case KEY_CURSOR_UP:
             palette[selection] += 0x10;

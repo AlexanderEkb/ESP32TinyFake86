@@ -44,6 +44,7 @@ class cursor_t {
  void renderSetCharHeight(uint8_t height);
  void renderSetStartAddr(uint32_t addr);
  void renderSetPixelOffset(uint32_t const offset);
+ void renderSetPhase(uint32_t phase);
  
  unsigned char initscreen(void);
 
