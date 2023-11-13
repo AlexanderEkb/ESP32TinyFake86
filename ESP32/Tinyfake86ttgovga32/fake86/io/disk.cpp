@@ -49,25 +49,6 @@ DRIVE_DESC drives[DRIVE_COUNT] = {
     {80, 2, 18, 1474560},			// B:
 };
 
-typedef struct NODE
-{
-  uint32_t sectorNumber;
-  uint8_t * data;
-  NODE * left;
-  NODE * right;
-  NODE(uint32_t sectorNumber)
-  {
-    this->sectorNumber = sectorNumber;
-    data = (uint8_t *) heap_caps_malloc(SECTOR_SIZE, MALLOC_CAP_SPIRAM);
-    left = nullptr;
-    right = nullptr;
-  }
-  ~NODE()
-  {
-    free(data);
-  }
-} NODE;
-
 void setResult(uint8_t _result)
 {
   lastResult = _result;

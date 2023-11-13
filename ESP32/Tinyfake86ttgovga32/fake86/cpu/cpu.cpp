@@ -1410,7 +1410,6 @@ void intcall86 (unsigned char intnum)
 
 	switch (intnum)
     {
-#ifndef DISK_CONTROLLER_ATA
       /************************************/
       /******** INT19H : Bootstrap ********/
       /************************************/
@@ -1435,14 +1434,6 @@ void intcall86 (unsigned char intnum)
 			case 0xFD:
 				diskhandler();
 				return;
-#endif
-#ifdef NETWORKING_OLDCARD
-			case 0xFC:
-#ifdef NETWORKING_ENABLED
-				nethandler();
-#endif
-				return;
-#endif
 		}
 
 	push (makeflagsword() );
@@ -1454,18 +1445,6 @@ void intcall86 (unsigned char intnum)
 	tf = 0;
 }
 
-//JJ #if defined(NETWORKING_ENABLED)
-//JJ extern struct netstruct {
-//JJ 	uint8_t	enabled;
-//JJ 	uint8_t	canrecv;
-//JJ 	uint16_t	pktlen;
-//JJ } net;
-//JJ #endif
-uint64_t	frametimer = 0, didwhen = 0, didticks = 0;
-uint32_t	makeupticks = 0;
-extern float	timercomp;
-uint64_t	timerticks = 0, realticks = 0;
-uint64_t	lastcountertimer = 0, counterticks = 10000;
 extern uint8_t	nextintr();
 extern void	i8253Exec();
 
@@ -1479,8 +1458,6 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 
 	uint8_t	docontinue;
   static uint16_t trap_toggle = 0;
-
-	counterticks = (uint64_t) ( (double) timerfreq / (double) 65536.0);
 
 	for (loopcount = 0; loopcount < execloops; loopcount++)
 	{

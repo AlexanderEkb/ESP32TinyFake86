@@ -246,25 +246,6 @@ const uint32_t *ntsc_palette_even() { return atari_4_phase_ntsc_even; };
 const uint16_t *ntsc_palette_odd() { return atari_4_phase_ntsc_odd; };
 const uint32_t *pal_palette() { return atari_4_phase_pal; }
 
-//====================================================================================================
-//====================================================================================================
-// Frame buffer
-//
-// (The following code isn't actually used when combined with bitluni's CompositeGraphics code)
-
-void* fb_malloc(size_t size, const char* label, uint32_t caps) {
-    printf("fb_malloc %d free, %d biggest, allocating %s:%d : ",
-      heap_caps_get_free_size(caps), heap_caps_get_largest_free_block(caps), label, size);
-    void *r = heap_caps_malloc(size, caps);
-    if (!r) {
-        printf("failed\n");
-        esp_restart();
-    }
-    else
-        printf("ok (0x%08X)\n", r);
-    return r;
-}
-
 constexpr unsigned int NTSC_DEFAULT_WIDTH = 336;
 constexpr unsigned int Screen_WIDTH = NTSC_DEFAULT_WIDTH;
 constexpr unsigned int Screen_HEIGHT = 240;

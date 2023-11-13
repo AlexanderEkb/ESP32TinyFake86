@@ -33,7 +33,8 @@ static unsigned char palette[16] = {
 #define LIGHTYELLOW   0x1C
 #define LIGHTWHITE    0x0F
 
-static const uint8_t SCREEN_BACKGROUND = 0x60;
+static const uint8_t HEADER_BACKGROUND  = 0x31;
+static const uint8_t SCREEN_BACKGROUND  = 0x60;
 
 static struct osd {
   bool active       = false;
@@ -468,9 +469,9 @@ void do_tinyOSD()
   renderSaveBlitter();
   renderSetBlitter(1);
   renderClearScreen(SCREEN_BACKGROUND);
-  svcBar(8, 0, 21, 320, 0x81);
-  SDLprintText("Port Fake86 by Ackerman", 12, 2, 0x87, 0x81);
-  SDLprintText("Extensions by Ochlamonster", 12, 12, 0xF9, 0x81);
+  svcBar(8, 0, 21, 320, HEADER_BACKGROUND);
+  SDLprintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
+  SDLprintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
 
   auxVol= gb_volumen01;
   auxFrec= gb_frecuencia01;

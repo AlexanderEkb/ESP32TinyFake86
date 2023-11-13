@@ -593,6 +593,23 @@ void renderSetStartAddr(uint32_t addr)
   render.startAddr = addr * 2;
 }
 
+/*
+updateColorSettings(00, 30)
+MC6845 write reg 00h: 63h
+MC6845 write reg 01h: 00h
+MC6845 write reg 02h: 80h
+MC6845 write reg 04h: 04h
+MC6845 write reg 05h: eeh
+MC6845 write reg 06h: 88h
+MC6845 write reg 07h: 1eh
+MC6845 write reg 09h: 00h
+MC6845 write reg 0ah: 1eh
+MC6845 write reg 0bh: 33h
+MC6845 write reg 0ch: c0h
+MC6845 write reg 0dh: 8eh
+updateColorSettings(80, 30)
+updateColorSettings(80, 30)
+*/
 void renderUpdateSettings(uint8_t settings, uint8_t colors)
 {
   uint8_t _mode = (settings & 0x3) | ((settings >> 2) & 0x04);
@@ -611,21 +628,17 @@ void renderUpdateSettings(uint8_t settings, uint8_t colors)
   render.paletteIndex = paletteIndex;
   render.specialColor = specialColor;
 
-  LOG("updateColorSettings(%02x, %02x)\n", paletteIndex, specialColor);
   enum mode {TEXT, GRAPH_LO, GRAPH_HI} mode = !(settings & 0x02) ? TEXT : ((settings & 0x10) ? GRAPH_HI : GRAPH_LO);
   switch (mode)
   {
   case TEXT:
-    LOG("Text\n");
     memcpy(palette, paletteBasic, 16);
     break;
   case GRAPH_LO:
-    LOG("GRAPH_LO\n");
     memcpy(palette, graphPalettes[paletteIndex], GRAPH_PALETTE_SIZE);
     palette[0] = paletteBasic[specialColor];
     break;
   case GRAPH_HI:
-    LOG("GRAPH_HI\n");
     palette[0] = 0;
     for(uint32_t item=1; item<16; item++)
       palette[item] = paletteBasic[specialColor];

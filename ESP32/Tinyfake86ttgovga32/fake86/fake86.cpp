@@ -5,6 +5,7 @@
 //  Single core and dual core
 
 #include <Arduino.h>
+#include <WiFi.h>
 #ifndef use_lib_speaker_cpu
 #include <Ticker.h>
 #endif
@@ -60,7 +61,7 @@ unsigned char gb_force_load_com = 0;
 
 unsigned char cf;
 
-static void ClearRAM();
+// static void ClearRAM();
 static void execCPU();
 static void execKeyboard();
 static void execVideo();
@@ -131,7 +132,6 @@ IOPort port_3F2h = IOPort(0x3F2, 0x00, defaultReader_Stub, nullptr);
 
 //////////////////////////////////////////////////////////////////////////// Local function prototypes
 void setup(void);
-void SDL_DumpVGA(void);
 
 ///////////////////////////////////////////////////////////////////////// External function prototypes
 extern void VideoThreadPoll(void);
@@ -179,7 +179,7 @@ void PerformSpecialActions()
   if (gb_reset == 1)
   {
     gb_reset = 0;
-    ClearRAM();
+    // ClearRAM();
     memset(gb_video_cga, 0, 16384);
     keyboard->Reset();
     reset86();
@@ -190,28 +190,45 @@ void PerformSpecialActions()
 }
 
 //****************************
-void ClearRAM()
-{
-  int i;
-  for (i = 0; i < RAM_SIZE; i++)
-  {
-    write86(i, 0);
-  }
-}
+// void ClearRAM()
+// {
+//   int i;
+//   for (i = 0; i < RAM_SIZE; i++)
+//   {
+//     write86(i, 0);
+//   }
+// }
 
 //****************************
 void CreateRAM()
 {
-  ram = (uint8_t *)heap_caps_malloc(RAM_SIZE, MALLOC_CAP_SPIRAM);
-  if(ram == nullptr)
-  {
-    LOG("Error allocating RAM!!!\n");
-  }
+  const uint32_t coreID = xPortGetCoreID();
+  const uint32_t ramAddr = SOC_EXTRAM_DATA_LOW + (coreID == 1 ? 2 * 1024 * 1024 : 0);
+  ram = (uint8_t *)(ramAddr);
+  LOG("RAM initialized: core #%i, addr:0x%08X\n", coreID, ramAddr);
+  // ram = (uint8_t *)heap_caps_malloc(RAM_SIZE, MALLOC_CAP_SPIRAM);
+
+  // if(ram == nullptr)
+  // {
+  //   LOG("Error allocating RAM!!!\n");
+  // }
 }
 
 // Setup principal
 void setup()
 {
+  // disableCore0WDT();
+  // delay(100);
+  // disableCore1WDT();
+
+  // WiFi.mode(WIFI_OFF);
+  // btStop();
+
+  if (esp_spiram_init() != ESP_OK)
+    LOG("This app requires a board with PSRAM!\n");
+
+  esp_spiram_init_cache();
+
   pinMode(SPEAKER_PIN, OUTPUT);
   digitalWrite(SPEAKER_PIN, LOW);
 
@@ -221,7 +238,7 @@ void setup()
 #endif
   sdcard.Init();
   CreateRAM();
-  ClearRAM();
+  // ClearRAM();
 
   renderInit();
   LOG("VGA %d\n", ESP.getFreeHeap());
@@ -326,7 +343,7 @@ void execKeyboard()
       uint8_t val = IOPortSpace::getInstance().get(0x064)->value;
       IOPortSpace::getInstance().get(0x064)->value = val |= 2;
       doirq(1);
-      Serial.printf("key: 0x%02x\n", scancode);
+      // Serial.printf("key: 0x%02x\n", scancode);
     }
   }
 }

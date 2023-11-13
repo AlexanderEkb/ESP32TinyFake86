@@ -21,7 +21,7 @@ extern unsigned char speakerenabled;
 
 extern unsigned short int segregs[4];
 extern unsigned char gb_video_cga[16384];
-static const size_t      RAM_SIZE  = 736 * 1024;
+static const size_t      RAM_SIZE  = 640 * 1024;
 
 extern unsigned char gb_reset;
  

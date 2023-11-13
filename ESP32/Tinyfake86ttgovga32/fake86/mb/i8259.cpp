@@ -69,7 +69,8 @@ void out8259(uint32_t portnum, uint8_t value) {
 			for (i=0; i<8; i++)
 			if ((i8259.isr >> i) & 1) {
 			   i8259.isr ^= (1 << i);
-			   if ((i==0) && (makeupticks>0)) { makeupticks = 0; i8259.irr |= 1; }
+        // Figure out why this shit is here: 
+			  //  if ((i==0) && (makeupticks>0)) { makeupticks = 0; i8259.irr |= 1; }
 			   return;
 			}
 		 }
