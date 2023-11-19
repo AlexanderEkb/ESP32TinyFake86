@@ -1,0 +1,31 @@
+
+           ╭─────────────────────╮
+         ×─┤3.3V              GND├┨
+          ─┤EN                 23├─
+          ─┤VP                 22├─
+          ─┤VN                 TX├─
+          ─┤34                 RX├─
+          ─┤35                 21├─
+KEYB_DATA ─┤32                GND├┨
+ KEYB_CLK ─┤33                 19├─
+    VIDEO ─┤25                 18├─
+          ─┤28                 ⁵5├─
+  SPEAKER ─┤27                GND├┨
+ SDIO_CLK ─┤14                GND├┨
+          ─┤12¹                 4├─
+         ┠─┤GND                ³0├─
+          ─┤13                 ⁴2├─ SDIO_D0
+         ×─┤SD2               ²15├─ SDIO_CMD
+         ×─┤SD3               SD1├─×
+         ×─┤CMD               SD0├─×
+         ╾─┤VCC               CLK├─×
+         ╾─┤VCC               GND├┨
+           ╰─────────────────────╯
+
+  Function            0           1         Default
+  =================================================
+¹ VDD_SDIO            3.3V,       1.8V        0
+² U0TXD               Silent      Active      1
+³ Boot                Download    SPI_BOOT    1
+⁴ ???                 ???         ???         0
+⁵ SDIO_SLAVE timing   ???         ???         1
