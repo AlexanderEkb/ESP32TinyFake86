@@ -69,15 +69,6 @@
 #define PORT_3D8_GRAPHICS			(0x02)
 #define PORT_3D8_80_COL_TEXT	(0x01)
 
-#define VIDEO_MODE_TEXT				(0x00)
-#define VIDEO_MODE_GRAPH			(0x01)
-#define VIDEO_MODE_40_COLS		(0x00)
-#define VIDEO_MODE_80_COLS		(0x02)
-#define VIDEO_MODE_320_PX			(0x00)
-#define VIDEO_MODE_640_PX			(0x02)
-#define VIDEO_MODE_COLOR			(0x04)
-#define VIDEO_MODE_GRAY				(0x00)
-
 #define MC6845_REG_HTOTAL           (0)
 #define MC6845_REG_HDISP            (1)
 #define MC6845_REG_HSYNC            (2)
@@ -209,6 +200,10 @@ static uint8_t read3DAh(uint32_t portnum)
 
 static void write3D8h(uint32_t portnum, uint8_t value)
 {
+  /*
+  0x0A - graph, lores
+  
+  */
   (void)portnum;
   LOG("write3D8h(%02x)\n", value);
   port3D8h = value;

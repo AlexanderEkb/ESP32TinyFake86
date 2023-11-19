@@ -1,15 +1,15 @@
-#include "config/gbConfig.h"
-#include "fake86.h"
 #include "osd.h"
-#include "gbGlobals.h"
-#include "video/render.h"
+#include "config/gbConfig.h"
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
-#include "io/keys.h"
+#include "fake86.h"
+#include "gbGlobals.h"
 #include "io/keyboard.h"
-#include <Esp.h>
+#include "io/keys.h"
 #include "io/sdcard.h"
-#include "video/render.h"
+#include "video/CompositeColorOutput.h"
+#include "video/gb_sdl_font8x8.h"
+#include <Esp.h>
 #include <string.h>
 
 static unsigned char palette[16] = {
@@ -35,10 +35,17 @@ static unsigned char palette[16] = {
 
 static const uint8_t HEADER_BACKGROUND  = 0x31;
 static const uint8_t SCREEN_BACKGROUND  = 0x60;
+static const uint32_t DEFAULT_BORDER    = 0x77;
+static const uint32_t VERTICAL_OFFSET   = 20;
+static const uint32_t EFFECTIVE_HEIGHT  = 200;
 
 static struct osd {
   bool active       = false;
 } osd;
+
+extern char **bufferNTSC;
+extern CompositeColorOutput composite;
+extern uint8_t ** graphPalettes;
 
 #define max_gb_delay_cpu_menu 50
 const char * gb_delay_cpu_menu[max_gb_delay_cpu_menu]={ 
@@ -114,12 +121,31 @@ const char * gb_reset_menu[max_gb_reset_menu]={
  "Hard"
 };
 
+static uint8_t const * const font = getFont();
 
 #define gb_pos_x_menu 10
 #define gb_pos_y_menu 25
 #define gb_osd_max_rows 20
 
 static void osdLeave();
+static void printChar(char character, int col, int row, unsigned char color, unsigned char backcolor);
+static void svcBar(int orgX, int orgY, int height, int width, uint8_t color);
+static void svcDrawTableLoRes(uint32_t p);
+static void svcShowColorTable(void);
+static uint8_t *svcGetPalette(uint32_t p);
+
+void clearScreen(uint8_t color)
+{
+  for (int y = 0; y < EFFECTIVE_HEIGHT; y++)
+  {
+    for (int x = 0; x < 8; x++)
+      bufferNTSC[y + VERTICAL_OFFSET][x] = DEFAULT_BORDER;
+    for (int x = 0; x < 320; x++)
+      bufferNTSC[y + VERTICAL_OFFSET][x + 8] = color;
+    for (int x = 0; x < 8; x++)
+      bufferNTSC[y + VERTICAL_OFFSET][x + 328] = DEFAULT_BORDER;
+  }
+}
 
 //*************************************************************************************
 void SDLprintText(const char *cad, int x, int y, unsigned char color, unsigned char backcolor)
@@ -131,7 +157,7 @@ void SDLprintText(const char *cad, int x, int y, unsigned char color, unsigned c
   auxLen=50;
  for (int i=0;i<auxLen;i++)
  {
-  renderPrintCharOSD(cad[i],x,y,color,backcolor);
+  printChar(cad[i],x,y,color,backcolor);
   x+=8;
  }
 }
@@ -157,10 +183,23 @@ void OSDMenuRowsDisplayScroll(const char **ptrValue, unsigned char currentId, un
       currentId++;
     }
   }
+}
 
- for (int i=0;i<rowCount;i++)
- {
- }     
+static void printChar(char character, int col, int row, unsigned char color, unsigned char backcolor)
+{
+  int auxId = character << 3; //*8
+  unsigned char pixel;
+  for (uint32_t y = 0; y < 8; y++)
+  {
+    uint8_t aux = font[auxId + y];
+    for (uint32_t x = 0; x < 8; x++)
+    {
+      pixel = ((aux >> x) & 0x01);
+      const uint32_t line = row + y + VERTICAL_OFFSET;
+      const uint32_t column = col + (8 - x);
+      bufferNTSC[line][column] = (pixel == 1) ? color : backcolor;
+    }
+  }
 }
 
 //Maximo 256 elementos
@@ -169,7 +208,7 @@ uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char 
   unsigned char aReturn=0;
   bool bExit = false;
   for (int i = 0; i < width; i++)
-  renderPrintCharOSD(' ', pos + (i << 3), gb_pos_y_menu, 0, WHITE);
+  printChar(' ', pos + (i << 3), gb_pos_y_menu, 0, WHITE);
   SDLprintText(cadTitle,pos,gb_pos_y_menu,0,WHITE);
 
   OSDMenuRowsDisplayScroll(ptrValue,0,aMax, width, pos, highlight);
@@ -345,13 +384,13 @@ void ShowTinyVideoMenu()
             bExit = true;
             break;
           case KEY_1:
-            renderSetBlitter(0);
+            composite.setBlitter(0);
             break;
           case KEY_2:
-            renderSetBlitter(1);
+            composite.setBlitter(1);
             break;
           case KEY_3:
-            renderSetBlitter(2);
+            composite.setBlitter(2);
             break;
         }
       }
@@ -361,14 +400,13 @@ void ShowTinyVideoMenu()
     {
       uint32_t paletteIndex = 0;
       uint8_t selection = 1;
-      uint8_t pixelOffset = 0;
       uint32_t phase = 0;
       bool bExit = false;
       while (!bExit)
       {
         char buffer[40];
         svcDrawTableLoRes(paletteIndex);
-        renderSetPhase(phase);
+        composite.setPhase(phase);
         uint8_t * palette = svcGetPalette(paletteIndex);
         for(uint32_t c=1; c<4;c++)
         {
@@ -379,68 +417,58 @@ void ShowTinyVideoMenu()
         SDLprintText(buffer, 24, 120, 15, 0);
         sprintf(buffer, "phase: %i", phase);
         SDLprintText(buffer, 24, 128, 15, 0);
-        sprintf(buffer, "off:   %i", pixelOffset);
-        SDLprintText(buffer, 24, 136, 15, 0);
         extern KeyboardDriver *keyboard;
         uint8_t scancode = keyboard->getLastKey();
         switch (scancode)
         {
         case KEY_ESC:
-            bExit = true;
-            break;
+          bExit = true;
+          break;
         case KEY_1:
-            renderSetBlitter(0);
-            break;
+          composite.setBlitter(0);
+          break;
         case KEY_2:
-            renderSetBlitter(1);
-            break;
+          composite.setBlitter(1);
+          break;
         case KEY_3:
-            renderSetBlitter(2);
-            break;
+          composite.setBlitter(2);
+          break;
         case KEY_F1:
-            selection = 0;
-            break;
+          selection = 0;
+          break;
         case KEY_F2:
-            selection = 1;
-            break;
+          selection = 1;
+          break;
         case KEY_F3:
-            selection = 2;
-            break;
+          selection = 2;
+          break;
         case KEY_F4:
-            selection = 3;
-            break;
+          selection = 3;
+          break;
         case KEY_F5:
-            paletteIndex = (paletteIndex - 1) % 4;
-            break;
+          paletteIndex = (paletteIndex - 1) % 4;
+          break;
         case KEY_F6:
-            paletteIndex = (paletteIndex + 1) % 4;
-            break;
+          paletteIndex = (paletteIndex + 1) % 4;
+          break;
         case KEY_F7:
-            phase = (phase - 1) % 8;
-            break;
+          phase = (phase - 1) % 8;
+          break;
         case KEY_F8:
-            phase = (phase + 1) % 8;
-            break;
+          phase = (phase + 1) % 8;
+          break;
         case KEY_CURSOR_UP:
-            palette[selection] += 0x10;
-            break;
+          palette[selection] += 0x10;
+          break;
         case KEY_CURSOR_DOWN:
-            palette[selection] -= 0x10;
-            break;
+          palette[selection] -= 0x10;
+          break;
         case KEY_CURSOR_RIGHT:
-            palette[selection] += 0x01;
-            break;
+          palette[selection] += 0x01;
+          break;
         case KEY_CURSOR_LEFT:
-            palette[selection] -= 0x01;
-            break;
-        case KEY_F9:
-            pixelOffset--;
-            renderSetPixelOffset(pixelOffset % 8);
-            break;
-        case KEY_F10:
-            pixelOffset++;
-            renderSetPixelOffset(pixelOffset % 8);
-            break;
+          palette[selection] -= 0x01;
+          break;
         }
       }
     }
@@ -451,7 +479,7 @@ void ShowTinyVideoMenu()
 
 //*******************************************
 //Very small tiny osd
-void do_tinyOSD() 
+bool do_tinyOSD() 
 {
  int auxVol;
  int auxFrec;  
@@ -461,14 +489,15 @@ void do_tinyOSD()
  if (scancode == KEY_F12)
  {
   osd.active = true;
-  return;
+  return false;
  }
 
  if (osd.active)
  {
-  renderSaveBlitter();
-  renderSetBlitter(1);
-  renderClearScreen(SCREEN_BACKGROUND);
+  composite.saveSettings();
+  composite.setBlitter(1);
+  // composite.
+  clearScreen(SCREEN_BACKGROUND);
   svcBar(8, 0, 21, 320, HEADER_BACKGROUND);
   SDLprintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
   SDLprintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
@@ -482,45 +511,91 @@ void do_tinyOSD()
   {
    case 0:
     ShowTinyDSKMenu(0);
-    osdLeave();
     break;
    case 1:
     ShowTinyDSKMenu(1);
-    osdLeave();
     break;
    case 2:
     ShowTinyResetMenu();
-    osdLeave();
     break;
    case 3:
     ShowTinySpeedMenu();
-    osdLeave();
     break;
    case 4: ShowTinyVideoMenu();
-    osdLeave();
     break;
    case 5:
     ShowTinySoundMenu();
-    osdLeave();
     break;
    default:
-    osdLeave();
     break;
   }
 
   gb_volumen01= auxVol;
   gb_frecuencia01= auxFrec;
   keyboard->Reset();
+  osdLeave();
+  return true;
  }
- #ifdef use_lib_sound_ay8912
-  gb_silence_all_channels = 0;
- #endif 
+
+ return false;
 }
 
 static void osdLeave()
 {
   osd.active = false;
-  renderClearScreen(DEFAULT_BORDER);
-  renderRestoreBlitter();
+  composite.restoreSettings();
 }
 
+void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
+{
+  for (int y = 0; y < height; y++)
+  {
+    int scanline = orgY + y + VERTICAL_OFFSET;
+    for (int x = 0; x < width; x++)
+    {
+      int col = orgX + x;
+      bufferNTSC[scanline][col] = color;
+    }
+  }
+}
+
+void svcDrawTableLoRes(uint32_t p)
+{
+  uint8_t *palette = graphPalettes[p];
+
+  static const uint32_t BAR_WIDTH = 20;
+  for (uint32_t bg = 0; bg < 4; bg++)
+  {
+    for (uint32_t fg = 0; fg < 4; fg++)
+    {
+      for (uint32_t off = 0; off < BAR_WIDTH; off++)
+      {
+        uint8_t color = palette[(off & 0x01) ? fg : bg];
+        uint32_t pos = (bg * 4 + fg) * BAR_WIDTH + off + 8;
+        svcBar(pos, 0, 100, 1, color);
+      }
+    }
+    svcBar(bg * 80 + 8, 100, 100, 80, palette[bg]);
+  }
+}
+
+uint8_t *svcGetPalette(uint32_t p)
+{
+  return graphPalettes[p];
+}
+
+void svcShowColorTable()
+{
+  static const int WIDTH = 20;
+  static const int HEIGHT = 10;
+  for (int hue = 0; hue < 16; hue++)
+  {
+    for (int luma = 0; luma < 16; luma++)
+    {
+      int orgX = luma * WIDTH;
+      int orgY = hue * HEIGHT;
+      uint8_t color = ((uint8_t)hue << 4) | ((uint8_t)luma & 0x0F);
+      svcBar(orgX + 8, orgY, HEIGHT, WIDTH, color);
+    }
+  }
+}

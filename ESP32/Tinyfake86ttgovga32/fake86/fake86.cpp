@@ -171,7 +171,6 @@ void inithardware()
   LOG("  - Intel 8237 DMA controller: ");
   init8237();
   LOG("OK\n");
-  initscreen();
 }
 
 void PerformSpecialActions()
@@ -378,6 +377,7 @@ void execMisc()
   if ((now - before) > gb_keyboard_poll_milis)
   {
     PerformSpecialActions();
-    do_tinyOSD();
+    if (do_tinyOSD())
+      renderUpdateBorder();
   }
 }

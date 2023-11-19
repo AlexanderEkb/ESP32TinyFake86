@@ -1,6 +1,6 @@
 #ifndef OSDFILE_H
 #define OSDFILE_H
  
-void do_tinyOSD(void);
+bool do_tinyOSD(void);
 
 #endif
