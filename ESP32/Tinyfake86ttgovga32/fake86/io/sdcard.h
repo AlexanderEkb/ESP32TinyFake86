@@ -146,7 +146,7 @@ class SdCard {
             uint32_t count = 0;
             while (imgList[count].name[0] != 0)
             {
-              if(!strcmp(imgList[count].name, "boot.img"))
+              if(!strcmp(imgList[count].name, "boot622.img"))
               {
                 OpenImage(0, count);
               }

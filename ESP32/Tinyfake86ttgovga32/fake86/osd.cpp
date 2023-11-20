@@ -496,7 +496,7 @@ bool do_tinyOSD()
  {
   composite.saveSettings();
   composite.setBlitter(1);
-  // composite.
+  composite.setColorburstEnabled(true);
   clearScreen(SCREEN_BACKGROUND);
   svcBar(8, 0, 21, 320, HEADER_BACKGROUND);
   SDLprintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);

@@ -529,36 +529,39 @@ void renderInit()
 
 void renderUpdateBorder()
 {
-  uint32_t left   = 8;
-  uint32_t right  = (render.blitter == 0)?656:328;
-  uint32_t width  = (render.blitter == 0)?16:8;
-  uint32_t height = 20;
-  uint32_t color  = 0;
+  uint32_t rightOrg  = (render.blitter == 0)?655:328;
+  uint32_t barWidthL = (render.blitter == 0) ? 15 : 8;
+  uint32_t barWidthR = (render.blitter == 0) ? 17 : 8;
+  uint32_t barHeight = 20;
+  uint32_t barColor  = 0;
 
   switch (render.vmode)
   {
     case TEXT:
     case GRAPH_LO:
-      color = render.hasColor ? paletteBasic[render.specialColor] : paletteBasicBW[render.specialColor];
+      barColor = render.hasColor ? paletteBasic[render.specialColor] : paletteBasicBW[render.specialColor];
       break;
     case GRAPH_HI:
-      color = 0;
+      barColor = 0;
       break;
   }
 
-  for (int y = 0; y < height; y++)
+  for (int y = 0; y < barHeight; y++)
   {
     for (int x = 0; x < CompositeColorOutput::XRES<<1; x++)
-      bufferNTSC[y][x] = color;
+      bufferNTSC[y][x] = barColor;
     for (int x = 0; x < CompositeColorOutput::XRES<<1; x++)
-      bufferNTSC[y + VERTICAL_OFFSET + EFFECTIVE_HEIGHT][x] = color;
+      bufferNTSC[y + VERTICAL_OFFSET + EFFECTIVE_HEIGHT][x] = barColor;
   }
   for (int y = 0; y < EFFECTIVE_HEIGHT; y++)
   {
-    for (int x = 0; x < width; x++)
+    for (int x = 0; x < barWidthL; x++)
     {
-      bufferNTSC[y + VERTICAL_OFFSET][x] = color;
-      bufferNTSC[y + VERTICAL_OFFSET][x + right] = color;
+      bufferNTSC[y + VERTICAL_OFFSET][x] = barColor;
+    }
+    for (int x = 0; x < barWidthR; x++)
+    {
+      bufferNTSC[y + VERTICAL_OFFSET][x + rightOrg] = barColor;
     }
   }
 }
