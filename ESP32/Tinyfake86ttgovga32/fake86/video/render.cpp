@@ -29,11 +29,10 @@
 #include "video/gb_sdl_font8x8.h"
 #include "video/CompositeColorOutput.h"
 
-#define PENDING_COLORBURST_NO     (0x00)
-#define PENDING_COLORBURST_TRUE   (0x01)
-#define PENDING_COLORBURST_FALSE  (0x02)
-
 #define EFFECTIVE_HEIGHT          (200)
+
+#define BLITTER_HIRES             (0)
+#define BLITTER_LORES             (1)
 
 typedef void(*dumper_t)(void);
 
@@ -66,14 +65,14 @@ typedef struct
 } videoMode_t;
 
 const videoMode_t modes[MODE_COUNT] = {
-  {40, dump40x25,   1,  16},//11
-  {80, dump80x25,   0,  22},
-  {40, dump320x200, 1,  2},
-  {40, dump320x200, 1,  2},
-  {40, dump40x25,   1,  16},//11
-  {80, dump80x25,   0,  22},
-  {80, dump640x200, 0,  4},
-  {80, dump640x200, 0,  4}
+  {40, dump40x25,   BLITTER_LORES,  16},
+  {80, dump80x25,   BLITTER_HIRES,  22},
+  {40, dump320x200, BLITTER_LORES,  2},
+  {40, dump320x200, BLITTER_LORES,  2},
+  {40, dump40x25,   BLITTER_LORES,  16},
+  {80, dump80x25,   BLITTER_HIRES,  22},
+  {80, dump640x200, BLITTER_HIRES,  4},
+  {80, dump640x200, BLITTER_HIRES,  4}
 };
 
 cursor_t cursor;
@@ -141,6 +140,8 @@ typedef struct render_t {
   uint32_t hOffset;
   uint32_t blitter;
   vmode_t  vmode;
+
+  uint32_t colorburstOverride;
 } render_t;
 
 static render_t render;
@@ -212,12 +213,14 @@ void renderInit()
   render.frameCount = 0;
   render.paletteIndex = 0;
   render.specialColor = 0;
-  render.hasColor = PENDING_COLORBURST_NO;
+  render.hasColor = COLORBURST_NO_CHANGE;
   render.charHeight = 8;
   render.lineCount = 25;
   render.startAddr = 0;
   render.hOffset = 22;
   render.vmode = TEXT;
+  render.colorburstOverride = COLORBURST_NO_CHANGE;
+
   memcpy(&pendingRender, &render, sizeof(render_t));
 
   bufferNTSC = (char **)malloc(CompositeColorOutput::YRES * sizeof(char *));
@@ -234,10 +237,10 @@ void renderInit()
 
   void renderExec()
   {
-    if (render.hasColor != PENDING_COLORBURST_NO)
+    if (render.hasColor != COLORBURST_NO_CHANGE)
     {
-      composite.setColorburstEnabled(render.hasColor == PENDING_COLORBURST_TRUE);
-      render.hasColor = PENDING_COLORBURST_NO;
+      composite.setColorburstEnabled(render.hasColor == COLORBURST_ENABLE);
+      render.hasColor = COLORBURST_NO_CHANGE;
     }
   }
 
@@ -481,6 +484,10 @@ void renderInit()
     render.lineCount = EFFECTIVE_HEIGHT / render.charHeight;
   }
 
+void renderSetColorburstOverride(uint32_t value)
+{
+  render.colorburstOverride = value;
+}
   void renderSetStartAddr(uint32_t addr)
   {
     render.startAddr = addr * 2;
@@ -490,11 +497,12 @@ void renderInit()
   {
     uint8_t _mode = (settings & 0x3) | ((settings >> 2) & 0x04);
     const bool colorEnabled = !(settings & 0x04); // || (settings & 10);
-    pendingRender.hasColor  = colorEnabled ? PENDING_COLORBURST_TRUE : PENDING_COLORBURST_FALSE;
-    pendingRender.dumper    = modes[_mode].dumper;
-    pendingRender.colCount  = modes[_mode].textWidth;
-    pendingRender.hOffset   = modes[_mode].hOffset;
-    pendingRender.blitter   = modes[_mode].blitter;
+    const uint32_t requestedColor = colorEnabled ? COLORBURST_ENABLE : COLORBURST_DISABLE;
+    pendingRender.hasColor        = render.colorburstOverride == COLORBURST_NO_CHANGE?requestedColor:render.colorburstOverride;
+    pendingRender.dumper          = modes[_mode].dumper;
+    pendingRender.colCount        = modes[_mode].textWidth;
+    pendingRender.hOffset         = modes[_mode].hOffset;
+    pendingRender.blitter         = modes[_mode].blitter;
 
     composite.setBlitter(modes[_mode].blitter);
 

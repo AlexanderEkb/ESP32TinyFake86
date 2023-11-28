@@ -11,6 +11,10 @@
 #define DUMPER_320x200      (5)
 #define DUMPER_640x200      (6)
 
+#define COLORBURST_NO_CHANGE      (0x00)
+#define COLORBURST_ENABLE         (0x01)
+#define COLORBURST_DISABLE        (0x02)
+
 static const uint32_t VERTICAL_OFFSET = 20;
 
 class cursor_t {
@@ -37,6 +41,7 @@ class cursor_t {
  void clearScreen(uint8_t color);
  void renderUpdateSettings(uint8_t settings, uint8_t colors);
  void renderSetCharHeight(uint8_t height);
+ void renderSetColorburstOverride(uint32_t value);
  void renderSetStartAddr(uint32_t addr);
  void renderUpdateBorder();
 

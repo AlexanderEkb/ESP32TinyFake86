@@ -8,6 +8,7 @@
 #include "io/keys.h"
 #include "io/sdcard.h"
 #include "video/CompositeColorOutput.h"
+#include "video/render.h"
 #include "video/gb_sdl_font8x8.h"
 #include <Esp.h>
 #include <string.h>
@@ -36,7 +37,7 @@ static unsigned char palette[16] = {
 static const uint8_t HEADER_BACKGROUND  = 0x31;
 static const uint8_t SCREEN_BACKGROUND  = 0x60;
 static const uint32_t DEFAULT_BORDER    = 0x77;
-static const uint32_t VERTICAL_OFFSET   = 20;
+static const uint32_t OSD_VERTICAL_OFFSET   = 20;
 static const uint32_t EFFECTIVE_HEIGHT  = 200;
 
 static struct osd {
@@ -72,10 +73,18 @@ const char *gb_main_menu[max_gb_main_menu] = {
     "Sound",
     "Return"};
 
-#define max_gb_video_menu 2
+#define max_gb_video_menu 3
 const char * gb_video_menu[max_gb_video_menu]={
- "Colors",
+ "Color"
+ "Palette",
  "LO_RES"
+};
+
+#define COLOR_MENU_ITEM_COUNT 3
+const char * colorMenu[COLOR_MENU_ITEM_COUNT]={
+ "As set by SW"
+ "Enable",
+ "Disable"
 };
 
 #define max_gb_speed_menu 4
@@ -134,16 +143,26 @@ static void svcDrawTableLoRes(uint32_t p);
 static void svcShowColorTable(void);
 static uint8_t *svcGetPalette(uint32_t p);
 
+static void showColorMenu();
+
 void clearScreen(uint8_t color)
 {
+  for (int y = 0; y < OSD_VERTICAL_OFFSET; y++)
+  {
+    for(uint32_t x=0; x<335; x++)
+    {
+      bufferNTSC[y][x] = DEFAULT_BORDER;
+      bufferNTSC[y + EFFECTIVE_HEIGHT + OSD_VERTICAL_OFFSET][x] = DEFAULT_BORDER;
+    }
+  }
   for (int y = 0; y < EFFECTIVE_HEIGHT; y++)
   {
     for (int x = 0; x < 8; x++)
-      bufferNTSC[y + VERTICAL_OFFSET][x] = DEFAULT_BORDER;
+      bufferNTSC[y + OSD_VERTICAL_OFFSET][x] = DEFAULT_BORDER;
     for (int x = 0; x < 320; x++)
-      bufferNTSC[y + VERTICAL_OFFSET][x + 8] = color;
+      bufferNTSC[y + OSD_VERTICAL_OFFSET][x + 8] = color;
     for (int x = 0; x < 8; x++)
-      bufferNTSC[y + VERTICAL_OFFSET][x + 328] = DEFAULT_BORDER;
+      bufferNTSC[y + OSD_VERTICAL_OFFSET][x + 328] = DEFAULT_BORDER;
   }
 }
 
@@ -195,7 +214,7 @@ static void printChar(char character, int col, int row, unsigned char color, uns
     for (uint32_t x = 0; x < 8; x++)
     {
       pixel = ((aux >> x) & 0x01);
-      const uint32_t line = row + y + VERTICAL_OFFSET;
+      const uint32_t line = row + y + OSD_VERTICAL_OFFSET;
       const uint32_t column = col + (8 - x);
       bufferNTSC[line][column] = (pixel == 1) ? color : backcolor;
     }
@@ -246,6 +265,15 @@ uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char 
     }
  } 
  return aReturn;
+}
+
+static void showColorMenu()
+{
+  uint32_t selection = ShowTinyMenu("Color", colorMenu, COLOR_MENU_ITEM_COUNT, 13, 170);
+ if(selection <= COLORBURST_DISABLE)
+ {
+    renderSetColorburstOverride(selection);
+ }
 }
 
 //Menu DSK
@@ -369,7 +397,10 @@ void ShowTinyVideoMenu()
  aSelNum = ShowTinyMenu("Video",gb_video_menu,max_gb_video_menu, 10, 90);
  switch (aSelNum)
  {
-   case 0: 
+   case 0:
+     showColorMenu();
+     break;
+   case 1: 
     {
       svcShowColorTable(); 
       
@@ -396,7 +427,7 @@ void ShowTinyVideoMenu()
       }
     }
     break;
-  case 1:
+  case 2:
     {
       uint32_t paletteIndex = 0;
       uint8_t selection = 1;
@@ -550,7 +581,7 @@ void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
 {
   for (int y = 0; y < height; y++)
   {
-    int scanline = orgY + y + VERTICAL_OFFSET;
+    int scanline = orgY + y + OSD_VERTICAL_OFFSET;
     for (int x = 0; x < width; x++)
     {
       int col = orgX + x;
