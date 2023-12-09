@@ -12,6 +12,7 @@
 #include "video/gb_sdl_font8x8.h"
 #include <Esp.h>
 #include <string.h>
+#include "stats.h"
 
 static unsigned char palette[16] = {
     0x00, 0x73, 0xC3, 0xB6, 0x44, 0x65, 0x17, 0x0A,
@@ -75,14 +76,14 @@ const char *gb_main_menu[max_gb_main_menu] = {
 
 #define max_gb_video_menu 3
 const char * gb_video_menu[max_gb_video_menu]={
- "Color"
+ "Color",
  "Palette",
  "LO_RES"
 };
 
 #define COLOR_MENU_ITEM_COUNT 3
 const char * colorMenu[COLOR_MENU_ITEM_COUNT]={
- "As set by SW"
+ "As set by SW",
  "Enable",
  "Disable"
 };
@@ -273,6 +274,7 @@ static void showColorMenu()
  if(selection <= COLORBURST_DISABLE)
  {
     renderSetColorburstOverride(selection);
+    LOG("renderSetColorburstOverride(%i)\n", selection);
  }
 }
 
@@ -393,8 +395,7 @@ void ShowTinyResetMenu()
 
 void ShowTinyVideoMenu()
 {
- unsigned char aSelNum;
- aSelNum = ShowTinyMenu("Video",gb_video_menu,max_gb_video_menu, 10, 90);
+ unsigned char aSelNum = ShowTinyMenu("Video",gb_video_menu,max_gb_video_menu, 10, 90);
  switch (aSelNum)
  {
    case 0:
@@ -510,7 +511,7 @@ void ShowTinyVideoMenu()
 
 //*******************************************
 //Very small tiny osd
-bool do_tinyOSD() 
+OSD_RESULT_t do_tinyOSD()
 {
  int auxVol;
  int auxFrec;  
@@ -520,7 +521,7 @@ bool do_tinyOSD()
  if (scancode == KEY_F12)
  {
   osd.active = true;
-  return false;
+  return OSD_RESULT_PREPARE;
  }
 
  if (osd.active)
@@ -552,7 +553,8 @@ bool do_tinyOSD()
    case 3:
     ShowTinySpeedMenu();
     break;
-   case 4: ShowTinyVideoMenu();
+   case 4: 
+    ShowTinyVideoMenu();
     break;
    case 5:
     ShowTinySoundMenu();
@@ -565,10 +567,10 @@ bool do_tinyOSD()
   gb_frecuencia01= auxFrec;
   keyboard->Reset();
   osdLeave();
-  return true;
+  return OSD_RESULT_RETURN;
  }
 
- return false;
+ return OSD_RESULT_NONE;
 }
 
 static void osdLeave()

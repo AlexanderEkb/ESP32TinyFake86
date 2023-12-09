@@ -92,8 +92,8 @@ static const uint8_t paletteBasicBW[16]={
 static const uint32_t GRAPH_PALETTE_COUNT = 4;
 static const uint32_t GRAPH_PALETTE_SIZE = 4;
 //                                                             Black  Green   Red     Yellow
-uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]            = {0x00,  0x93,   0x13,   0xB3};
-const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00,  0x06,   0x02,   0x07};
+uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]            = {0x00,  0x94,   0x14,   0xB4};
+const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00,  0x07,   0x03,   0x08};
 uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]         = {0x00,  0x98,   0x18,   0xB8};
 const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00,  0x0B,   0x03,   0x0F};
 
@@ -142,6 +142,8 @@ typedef struct render_t {
   vmode_t  vmode;
 
   uint32_t colorburstOverride;
+  uint8_t  colorSettings;
+
 } render_t;
 
 static render_t render;
@@ -207,6 +209,7 @@ void cursor_t::updatePosition()
 
 void renderInit()
 {
+  LOG("Initializing video");
   render.pendingChanges = false;
   render.dumper = dump80x25;
   render.colCount = 80;
@@ -220,19 +223,22 @@ void renderInit()
   render.hOffset = 22;
   render.vmode = TEXT;
   render.colorburstOverride = COLORBURST_NO_CHANGE;
-
+  render.colorSettings = 0;
+  LOG(".");
   memcpy(&pendingRender, &render, sizeof(render_t));
+  LOG(".");
 
   bufferNTSC = (char **)malloc(CompositeColorOutput::YRES * sizeof(char *));
+  LOG(".");
   for (int y = 0; y < CompositeColorOutput::YRES; y++)
   {
     bufferNTSC[y] = (char *)malloc(CompositeColorOutput::XRES * 2);
     memset(bufferNTSC[y], 0x00, CompositeColorOutput::XRES * 2);
   }
+  LOG(".");
 
-  void IRAM_ATTR blitter_0(uint8_t * src, uint16_t * dst);
-  void IRAM_ATTR blitter_1(uint8_t * src, uint16_t * dst);
   composite.init(&bufferNTSC);
+  LOG("done\r");
 }
 
   void renderExec()
@@ -484,28 +490,24 @@ void renderInit()
     render.lineCount = EFFECTIVE_HEIGHT / render.charHeight;
   }
 
-void renderSetColorburstOverride(uint32_t value)
-{
-  render.colorburstOverride = value;
-}
+  void renderSetColorburstOverride(uint32_t value)
+  {
+    pendingRender.colorburstOverride = value;
+    if(value != COLORBURST_NO_CHANGE)
+    {
+      pendingRender.hasColor = value;
+      renderUpdateColor(render.colorSettings);
+    }
+  }
+
   void renderSetStartAddr(uint32_t addr)
   {
     render.startAddr = addr * 2;
   }
 
-  void renderUpdateSettings(uint8_t settings, uint8_t colors)
+  void renderUpdateColor(uint8_t colors)
   {
-    uint8_t _mode = (settings & 0x3) | ((settings >> 2) & 0x04);
-    const bool colorEnabled = !(settings & 0x04); // || (settings & 10);
-    const uint32_t requestedColor = colorEnabled ? COLORBURST_ENABLE : COLORBURST_DISABLE;
-    pendingRender.hasColor        = render.colorburstOverride == COLORBURST_NO_CHANGE?requestedColor:render.colorburstOverride;
-    pendingRender.dumper          = modes[_mode].dumper;
-    pendingRender.colCount        = modes[_mode].textWidth;
-    pendingRender.hOffset         = modes[_mode].hOffset;
-    pendingRender.blitter         = modes[_mode].blitter;
-
-    composite.setBlitter(modes[_mode].blitter);
-
+    pendingRender.colorSettings = colors;
     // Colors
     static const uint8_t COLOR_MASK = 0x0F;
     static const uint8_t PALETTE_POS = 4;
@@ -515,11 +517,11 @@ void renderSetColorburstOverride(uint32_t value)
     pendingRender.paletteIndex = paletteIndex;
     pendingRender.specialColor = specialColor;
 
-    vmode_t vmode = !(settings & 0x02) ? TEXT : ((settings & 0x10) ? GRAPH_HI : GRAPH_LO);
-    switch (vmode)
+    const bool colorEnabled = (pendingRender.hasColor != COLORBURST_DISABLE);
+    switch (pendingRender.vmode)
     {
     case TEXT:
-      memcpy(palette, colorEnabled?paletteBasic:paletteBasicBW, 16);
+      memcpy(palette, colorEnabled ? paletteBasic : paletteBasicBW, 16);
       break;
     case GRAPH_LO:
       memcpy(palette, colorEnabled ? graphPalettes[paletteIndex] : graphPalettesBW[paletteIndex], GRAPH_PALETTE_SIZE);
@@ -533,7 +535,23 @@ void renderSetColorburstOverride(uint32_t value)
     }
 
     pendingRender.pendingChanges = true;
-}
+  }
+
+  void renderUpdateSettings(uint8_t settings)
+  {
+    uint8_t _mode = (settings & 0x3) | ((settings >> 2) & 0x04);
+    const bool colorEnabled = !(settings & 0x04); // || (settings & 10);
+    const uint32_t requestedColor = colorEnabled ? COLORBURST_ENABLE : COLORBURST_DISABLE;
+    pendingRender.hasColor        = render.colorburstOverride == COLORBURST_NO_CHANGE?requestedColor:render.colorburstOverride;
+    pendingRender.dumper          = modes[_mode].dumper;
+    pendingRender.colCount        = modes[_mode].textWidth;
+    pendingRender.hOffset         = modes[_mode].hOffset;
+    pendingRender.blitter         = modes[_mode].blitter;
+    pendingRender.vmode           = !(settings & 0x02) ? TEXT : ((settings & 0x10) ? GRAPH_HI : GRAPH_LO);
+
+    composite.setBlitter(modes[_mode].blitter);
+    renderUpdateColor(render.colorSettings);
+  }
 
 void renderUpdateBorder()
 {

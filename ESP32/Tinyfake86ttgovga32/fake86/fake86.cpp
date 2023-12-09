@@ -35,7 +35,6 @@
 #ifndef use_lib_singlecore
 // Video Task Core BEGIN
 void videoTask(void *unused);
-QueueHandle_t vidQueue;
 TaskHandle_t videoTaskHandle;
 #endif
 
@@ -139,26 +138,6 @@ extern void draw(void);
 
 uint32_t speed = 0;
 
-void LoadCOMFlash(const unsigned char *ptr, int auxSize, int seg_load)
-{
-  int dir_load = seg_load * 16;
-  for (int i = 0; i < auxSize; i++)
-  {
-    write86((dir_load + 0x100 + i), ptr[i]);
-  }
-  SetRegCS(seg_load);
-  SetRegDS(seg_load);
-  SetRegES(seg_load);
-  SetRegSS(seg_load);
-  SetRegIP(0x100); // 0x100;
-
-  SetRegSP(0);
-  SetRegBP(0);
-  SetRegSI(0);
-  SetRegDI(0);
-  SetCF(0);
-}
-
 void inithardware()
 {
   LOG("Initializing emulated hardware:\n");
@@ -185,18 +164,7 @@ void PerformSpecialActions()
     inithardware();
     return;
   }
-  renderExec();
 }
-
-//****************************
-// void ClearRAM()
-// {
-//   int i;
-//   for (i = 0; i < RAM_SIZE; i++)
-//   {
-//     write86(i, 0);
-//   }
-// }
 
 //****************************
 void CreateRAM()
@@ -205,12 +173,6 @@ void CreateRAM()
   const uint32_t ramAddr = SOC_EXTRAM_DATA_LOW + (coreID == 1 ? 2 * 1024 * 1024 : 0);
   ram = (uint8_t *)(ramAddr);
   LOG("RAM initialized: core #%i, addr:0x%08X\n", coreID, ramAddr);
-  // ram = (uint8_t *)heap_caps_malloc(RAM_SIZE, MALLOC_CAP_SPIRAM);
-
-  // if(ram == nullptr)
-  // {
-  //   LOG("Error allocating RAM!!!\n");
-  // }
 }
 
 // Setup principal
@@ -238,7 +200,7 @@ void setup()
   sdcard.Init();
   CreateRAM();
   // ClearRAM();
-
+  
   renderInit();
   LOG("VGA %d\n", ESP.getFreeHeap());
   keyboard->Init();
@@ -250,7 +212,6 @@ void setup()
 
 #ifndef use_lib_singlecore
   // BEGIN TASK video
-  vidQueue = xQueueCreate(1, sizeof(uint16_t *));
   xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
 // END Task video
 #endif
@@ -272,8 +233,8 @@ void videoTask(void *unused)
   uint16_t *param;
   while (1)
   {
-    xQueueReceive(vidQueue, &param, portMAX_DELAY);
     draw();
+    vTaskDelay(40 / portTICK_PERIOD_MS);
   }
   vTaskDelete(NULL);
 }
@@ -341,6 +302,7 @@ void execKeyboard()
       IOPortSpace::getInstance().get(0x060)->value = scancode;
       uint8_t val = IOPortSpace::getInstance().get(0x064)->value;
       IOPortSpace::getInstance().get(0x064)->value = val |= 2;
+      keyboard->resetRdy();
       doirq(1);
       // Serial.printf("key: 0x%02x\n", scancode);
     }
@@ -357,16 +319,6 @@ void execVideo()
     draw();
     gb_ini_vga = gb_cur_vga;
   }
-#else
-  static uint32_t nextActivation = 0;
-
-  uint32_t now = millis();
-  if (now > nextActivation)
-  {
-    static uint16_t *param;
-    xQueueSend(vidQueue, &param, portMAX_DELAY);
-    nextActivation = now + 50;
-  }
 #endif
 }
 
@@ -377,7 +329,16 @@ void execMisc()
   if ((now - before) > gb_keyboard_poll_milis)
   {
     PerformSpecialActions();
-    if (do_tinyOSD())
+    OSD_RESULT_t result = do_tinyOSD();
+    if (result == OSD_RESULT_PREPARE)
+    {
+      vTaskSuspend(videoTaskHandle);
+    }
+    else if (result == OSD_RESULT_RETURN)
+    {
+      renderExec();
       renderUpdateBorder();
+      vTaskResume(videoTaskHandle);
+    }
   }
 }

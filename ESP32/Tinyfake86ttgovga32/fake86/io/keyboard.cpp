@@ -1,5 +1,6 @@
 #include "io/keyboard.h"
 #include "cpu/ports.h"
+#include "esp32-hal-gpio.h"
 
 IOPort port_060h = IOPort(0x060, 0x00, nullptr, nullptr);
 IOPort port_063h = IOPort(0x063, 0x00, nullptr, nullptr);
@@ -33,5 +34,6 @@ void IRAM_ATTR kb_interruptHandler(void) {
     if (bitcount == 8) {
         bitcount = 0;
         KeyboardDriverAT::OnKey(incoming);
+        digitalWrite(KEYBOARD_RDY, false);
     }
 }
