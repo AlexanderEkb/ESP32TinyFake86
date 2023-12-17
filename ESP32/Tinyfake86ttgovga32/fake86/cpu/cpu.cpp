@@ -772,8 +772,7 @@ void getea (uint8_t rmval)
  //En gcc se puede usar una macro statement expressions
  static inline unsigned short int pop()
  {
-  unsigned short int tempval;
-  tempval = getmem16 (segregs[regss], getreg16 (regsp) );
+  uint16_t tempval = getmem16 (segregs[regss], getreg16 (regsp) );
   putreg16 (regsp, getreg16 (regsp) + 2);
   return tempval;
  }  

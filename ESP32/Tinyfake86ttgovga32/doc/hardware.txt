@@ -12,15 +12,15 @@ KEYB_DATA ─┤32                GND├┨
           ─┤28                 ⁵5├─
   SPEAKER ─┤27                GND├┨
  SDIO_CLK ─┤14                GND├┨
-          ─┤12¹                 4├─
-         ┠─┤GND                ³0├─
+ KEYB_RDY ─┤12¹                 4├─
+        ┠─┤GND                ³0├─
           ─┤13                 ⁴2├─ SDIO_D0
          ×─┤SD2               ²15├─ SDIO_CMD
          ×─┤SD3               SD1├─×
          ×─┤CMD               SD0├─×
-         ╾─┤VCC               CLK├─×
-         ╾─┤VCC               GND├┨
-           ╰─────────────────────╯
+        ╾─┤VCC               CLK├─×
+        ╾─┤VCC               GND├┨
+          ╰─────────────────────╯
 
   Function            0           1         Default
   =================================================

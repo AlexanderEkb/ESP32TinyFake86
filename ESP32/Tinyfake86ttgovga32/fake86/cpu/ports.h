@@ -12,12 +12,16 @@ class IOPort
   public:
     IOPort()
     {
-      left = nullptr;
-      right = nullptr;
+      left        = nullptr;
+      right       = nullptr;
+      leftHeight  = 0;
+      rightHeight = 0;
     }
     IOPort(uint32_t address, uint8_t defaultValue, portReader_t reader, portWriter_t writer);
     IOPort *left;
     IOPort *right;
+    int32_t leftHeight;
+    int32_t rightHeight;
     uint32_t address;
 
     portReader_t reader;

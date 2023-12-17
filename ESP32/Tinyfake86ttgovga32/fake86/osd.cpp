@@ -295,7 +295,7 @@ void ShowTinyDSKMenu(uint32_t drive)
       count++;
     }
 
-    uint32_t selection = ShowTinyMenu("> Select image:", (const char **)arItems, count, 24, 90, imgIndex);
+    uint32_t selection = ShowTinyMenu("> Select image:", (const char **)arItems, count, 27, 90, imgIndex);
 
     if (selection != 0xFF)
       sdcard.OpenImage(drive, selection);
