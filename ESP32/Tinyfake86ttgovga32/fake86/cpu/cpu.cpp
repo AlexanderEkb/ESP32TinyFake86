@@ -83,16 +83,11 @@ static const uint8_t parity[0x100] = {
 static unsigned char opcode, segoverride, reptype;
 static unsigned short int savecs, saveip, ip, useseg, oldsp;
 static unsigned char tempcf, oldcf, pf, af, zf, sf, tf, ifl, df, of, mode, reg, rm;
-//unsigned char cf;
-//static unsigned char cf; //Optimizado
 static unsigned short int oper1, oper2, res16, disp16, temp16, dummy, stacksize, frametemp;
 static unsigned char oper1b, oper2b, res8, disp8, temp8, nestlev, addrbyte;
 static unsigned int temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32, ea;
-//static int result;
 uint64_t totalexec;
 
-//extern uint16_t VGA_SC[0x100], VGA_CRTC[0x100], VGA_ATTR[0x100], VGA_GC[0x100]; //no necesito VGA
-//extern uint8_t updatedscreen;
 union _bytewordregs_ regs;
 unsigned char didbootstrap = 0;
 
@@ -1568,4 +1563,41 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
       };
       opcodes[opcode]();
 		}
+}
+
+uint16_t _dbgGetRegister(_dbgReg_t reg)
+{
+  switch (reg)
+  {
+    case _dbgReg_PC:
+      return ip;
+    case _dbgReg_AX:
+      return regs.wordregs[regax];
+    case _dbgReg_BX:
+      return regs.wordregs[regbx];
+    case _dbgReg_CX:
+      return regs.wordregs[regcx];
+    case _dbgReg_DX:
+      return regs.wordregs[regdx];
+    case _dbgReg_SI:
+      return regs.wordregs[regsi];
+    case _dbgReg_DI:
+      return regs.wordregs[regdi];
+    case _dbgReg_F:
+      return makeflagsword();
+    case _dbgReg_SP:
+      return regs.wordregs[regsp];
+    case _dbgReg_BP:
+      return regs.wordregs[regbp];
+    case _dbgReg_CS:
+      return segregs[regcs];
+    case _dbgReg_DS:
+      return segregs[regds];
+    case _dbgReg_SS:
+      return segregs[regss];
+    case _dbgReg_ES:
+      return segregs[reges];
+    default:
+      return 0;
+  }
 }

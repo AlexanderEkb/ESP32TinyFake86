@@ -18,7 +18,8 @@
 #ifndef _CPU_H
  #define _CPU_H
 
-#include <time.h>
+// #include <time.h>
+#include <stdint.h>
 
 #define regax 0
 #define regcx 1
@@ -41,6 +42,26 @@
 #define regdh 5
 #define regbl 6
 #define regbh 7
+
+typedef enum : uint32_t
+{
+  _dbgReg_PC,
+  _dbgReg_AX,
+  _dbgReg_BX,
+  _dbgReg_CX,
+  _dbgReg_DX,
+  _dbgReg_SP,
+  _dbgReg_BP,
+  _dbgReg_SI,
+  _dbgReg_DI,
+  _dbgReg_F,
+  _dbgReg_CS,
+  _dbgReg_DS,
+  _dbgReg_SS,
+  _dbgReg_ES,
+
+  _dbgReg__COUNT
+} _dbgReg_t;
 
 union _bytewordregs_ {
 	uint16_t wordregs[8];
@@ -72,5 +93,6 @@ void ExternalSetCF(unsigned char valor);
 
 void my_callback_speaker_func(void);
 
+uint16_t _dbgGetRegister(_dbgReg_t reg);
 #endif
 
