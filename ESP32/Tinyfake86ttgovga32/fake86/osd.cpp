@@ -10,9 +10,11 @@
 #include "video/CompositeColorOutput.h"
 #include "video/render.h"
 #include "video/gb_sdl_font8x8.h"
+#include "service/screen.h"
 #include <Esp.h>
 #include <string.h>
 #include "stats.h"
+#include "debugger/debugger.h"
 
 static unsigned char palette[16] = {
     0x00, 0x73, 0xC3, 0xB6, 0x44, 0x65, 0x17, 0x0A,
@@ -34,12 +36,6 @@ static unsigned char palette[16] = {
 #define LIGHTCYAN     0xBB
 #define LIGHTYELLOW   0x1C
 #define LIGHTWHITE    0x0F
-
-static const uint8_t HEADER_BACKGROUND  = 0x31;
-static const uint8_t SCREEN_BACKGROUND  = 0x60;
-static const uint32_t DEFAULT_BORDER    = 0x77;
-static const uint32_t OSD_VERTICAL_OFFSET   = 20;
-static const uint32_t EFFECTIVE_HEIGHT  = 200;
 
 static struct osd {
   bool active       = false;
@@ -72,7 +68,7 @@ const char *gb_main_menu[max_gb_main_menu] = {
     "Speed",
     "Video",
     "Sound",
-    "Return"};
+    "Debug"};
 
 #define max_gb_video_menu 3
 const char * gb_video_menu[max_gb_video_menu]={
@@ -138,49 +134,12 @@ static uint8_t const * const font = getFont();
 #define gb_osd_max_rows 20
 
 static void osdLeave();
-static void printChar(char character, int col, int row, unsigned char color, unsigned char backcolor);
 static void svcBar(int orgX, int orgY, int height, int width, uint8_t color);
 static void svcDrawTableLoRes(uint32_t p);
 static void svcShowColorTable(void);
 static uint8_t *svcGetPalette(uint32_t p);
 
 static void showColorMenu();
-
-void clearScreen(uint8_t color)
-{
-  for (int y = 0; y < OSD_VERTICAL_OFFSET; y++)
-  {
-    for(uint32_t x=0; x<335; x++)
-    {
-      bufferNTSC[y][x] = DEFAULT_BORDER;
-      bufferNTSC[y + EFFECTIVE_HEIGHT + OSD_VERTICAL_OFFSET][x] = DEFAULT_BORDER;
-    }
-  }
-  for (int y = 0; y < EFFECTIVE_HEIGHT; y++)
-  {
-    for (int x = 0; x < 8; x++)
-      bufferNTSC[y + OSD_VERTICAL_OFFSET][x] = DEFAULT_BORDER;
-    for (int x = 0; x < 320; x++)
-      bufferNTSC[y + OSD_VERTICAL_OFFSET][x + 8] = color;
-    for (int x = 0; x < 8; x++)
-      bufferNTSC[y + OSD_VERTICAL_OFFSET][x + 328] = DEFAULT_BORDER;
-  }
-}
-
-//*************************************************************************************
-void SDLprintText(const char *cad, int x, int y, unsigned char color, unsigned char backcolor)
-{
-//SDL_Surface *surface,
-// gb_sdl_font_6x8
- int auxLen= strlen(cad);
- if (auxLen>50)
-  auxLen=50;
- for (int i=0;i<auxLen;i++)
- {
-  printChar(cad[i],x,y,color,backcolor);
-  x+=8;
- }
-}
 
 void OSDMenuRowsDisplayScroll(const char **ptrValue, unsigned char currentId, unsigned char aMax, uint32_t width, uint32_t pos, int32_t highlight = -1)
 {//Dibuja varias lineas
@@ -193,31 +152,14 @@ void OSDMenuRowsDisplayScroll(const char **ptrValue, unsigned char currentId, un
   const int rowCount = (aMax > gb_osd_max_rows) ? gb_osd_max_rows : aMax;
   for (int i = 0; i < rowCount; i++)
   {
-    SDLprintText(lineOfSpaces,pos,gb_pos_y_menu+8+(i<<3),0,DEFAULT_BORDER);
+    svcPrintText(lineOfSpaces,pos,gb_pos_y_menu+8+(i<<3),0,DEFAULT_BORDER);
     if (currentId < aMax)
     {
       uint8_t foreground = (currentId == highlight) ? 0x35 : ((i == 0) ? DEFAULT_BORDER : SCREEN_BACKGROUND);
       uint8_t background = ((i == 0) ? SCREEN_BACKGROUND : DEFAULT_BORDER);
 
-      SDLprintText(ptrValue[currentId], pos + 1, gb_pos_y_menu + 8 + (i << 3), foreground, background);
+      svcPrintText(ptrValue[currentId], pos + 1, gb_pos_y_menu + 8 + (i << 3), foreground, background);
       currentId++;
-    }
-  }
-}
-
-static void printChar(char character, int col, int row, unsigned char color, unsigned char backcolor)
-{
-  int auxId = character << 3; //*8
-  unsigned char pixel;
-  for (uint32_t y = 0; y < 8; y++)
-  {
-    uint8_t aux = font[auxId + y];
-    for (uint32_t x = 0; x < 8; x++)
-    {
-      pixel = ((aux >> x) & 0x01);
-      const uint32_t line = row + y + OSD_VERTICAL_OFFSET;
-      const uint32_t column = col + (8 - x);
-      bufferNTSC[line][column] = (pixel == 1) ? color : backcolor;
     }
   }
 }
@@ -228,8 +170,8 @@ uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char 
   unsigned char aReturn=0;
   bool bExit = false;
   for (int i = 0; i < width; i++)
-  printChar(' ', pos + (i << 3), gb_pos_y_menu, 0, WHITE);
-  SDLprintText(cadTitle,pos,gb_pos_y_menu,0,WHITE);
+  svcPrintChar(' ', pos + (i << 3), gb_pos_y_menu, 0, WHITE);
+  svcPrintText(cadTitle,pos,gb_pos_y_menu,0,WHITE);
 
   OSDMenuRowsDisplayScroll(ptrValue,0,aMax, width, pos, highlight);
 
@@ -443,12 +385,12 @@ void ShowTinyVideoMenu()
         for(uint32_t c=1; c<4;c++)
         {
           sprintf(buffer, "%02X", palette[c]);
-          SDLprintText(buffer, c*80+40, 146, (c == selection)?15:8, 0);
+          svcPrintText(buffer, c*80+40, 146, (c == selection)?15:8, 0);
         }
         sprintf(buffer, "pal:   %i", paletteIndex);
-        SDLprintText(buffer, 24, 120, 15, 0);
+        svcPrintText(buffer, 24, 120, 15, 0);
         sprintf(buffer, "phase: %i", phase);
-        SDLprintText(buffer, 24, 128, 15, 0);
+        svcPrintText(buffer, 24, 128, 15, 0);
         extern KeyboardDriver *keyboard;
         uint8_t scancode = keyboard->getLastKey();
         switch (scancode)
@@ -529,10 +471,10 @@ OSD_RESULT_t do_tinyOSD()
   composite.saveSettings();
   composite.setBlitter(1);
   composite.setColorburstEnabled(true);
-  clearScreen(SCREEN_BACKGROUND);
+  svcClearScreen(SCREEN_BACKGROUND);
   svcBar(8, 0, 21, 320, HEADER_BACKGROUND);
-  SDLprintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
-  SDLprintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
+  svcPrintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
+  svcPrintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
 
   auxVol= gb_volumen01;
   auxFrec= gb_frecuencia01;
@@ -558,6 +500,9 @@ OSD_RESULT_t do_tinyOSD()
     break;
    case 5:
     ShowTinySoundMenu();
+    break;
+  case 6:
+    debugger_t::getInstance().execute();
     break;
    default:
     break;
