@@ -1,0 +1,24 @@
+@startmindmap
+
+<style>
+  node {
+  HorizontalAlignment center
+}
+</style>
+
+*[#FFBBCC] Master clock generator\n(14.31818 MHz)
+** ÷3 (CLK,\n4.67 MHz)
+***[#lightblue] CPU
+*** ÷2 (PCLK,\n2.38 MHz)
+**** ÷2\n(1.193 MHz)
+*****[#lightblue] 8253\nPIT
+** CGA graphic\nadapter
+*** ÷4, polyphasic\ndivider
+****[#lightgreen] NTSC color signals\nand colorburst
+****[#lightgreen] HI_RES\n pixel clock
+***** ÷2
+******[#lightgreen] LO_RES\npixel clock
+*****[#lightgreen] HSYNC,\n15750 Hz
+****** ÷262
+*******[#lightgreen] VSYNC,\n60 Hz
+@endmindmap
