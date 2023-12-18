@@ -134,7 +134,6 @@ static uint8_t const * const font = getFont();
 #define gb_osd_max_rows 20
 
 static void osdLeave();
-static void svcBar(int orgX, int orgY, int height, int width, uint8_t color);
 static void svcDrawTableLoRes(uint32_t p);
 static void svcShowColorTable(void);
 static uint8_t *svcGetPalette(uint32_t p);
@@ -522,19 +521,6 @@ static void osdLeave()
 {
   osd.active = false;
   composite.restoreSettings();
-}
-
-void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
-{
-  for (int y = 0; y < height; y++)
-  {
-    int scanline = orgY + y + OSD_VERTICAL_OFFSET;
-    for (int x = 0; x < width; x++)
-    {
-      int col = orgX + x;
-      bufferNTSC[scanline][col] = color;
-    }
-  }
 }
 
 void svcDrawTableLoRes(uint32_t p)

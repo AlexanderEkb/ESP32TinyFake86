@@ -9,6 +9,7 @@ static const uint32_t DEFAULT_BORDER = 0x77;
 static const uint32_t OSD_VERTICAL_OFFSET = 20;
 static const uint32_t EFFECTIVE_HEIGHT = 200;
 
+void svcBar(int orgX, int orgY, int height, int width, uint8_t color);
 void svcClearScreen(uint8_t color);
 void svcPrintChar(char character, int col, int row, unsigned char color, unsigned char backcolor);
 void svcPrintText(const char *cad, int x, int y, unsigned char color, unsigned char backcolor);
