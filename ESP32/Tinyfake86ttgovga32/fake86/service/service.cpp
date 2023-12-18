@@ -7,6 +7,19 @@
 extern char **bufferNTSC;
 static uint8_t const *const font = getFont();
 
+void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
+{
+  for (int y = 0; y < height; y++)
+  {
+    int scanline = orgY + y + OSD_VERTICAL_OFFSET;
+    for (int x = 0; x < width; x++)
+    {
+      int col = orgX + x;
+      bufferNTSC[scanline][col] = color;
+    }
+  }
+}
+
 void svcClearScreen(uint8_t color)
 {
   for (int y = 0; y < OSD_VERTICAL_OFFSET; y++)

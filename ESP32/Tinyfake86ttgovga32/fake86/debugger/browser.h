@@ -31,12 +31,13 @@ class browser_t
       }
     } rect_t;
 
-    browser_t(rect_t area) : area(area) {isActive = false;};
-    virtual void init() = 0;
+    browser_t() {isActive = false;};
+    virtual void init(rect_t _area) = 0;
     virtual void onEnter() {isActive = true; refresh();};
     virtual void onKey(uint8_t scancode) = 0;
     virtual void onLeave() {isActive = false; refresh();};
     virtual void refresh() = 0;
+    virtual void repaint() = 0;
   protected:
     bool isActive;
     rect_t area;
