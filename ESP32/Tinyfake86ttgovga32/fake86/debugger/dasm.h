@@ -32,7 +32,7 @@ class disassembler_t
 {
   public:
     disassembler_t();
-    void decode(uint8_t *buffer, uint32_t length);
+    void decode(uint8_t *buffer, uint32_t linesToDo);
   private:
     typedef enum segment_registers : int32_t {NO = -1, ES=0, CS, SS, DS} ; 
     uint32_t length;
@@ -41,6 +41,8 @@ class disassembler_t
     uint32_t bytesToPrint = 0;
     uint8_t * code;
     uint32_t pointer;
+    char line[256];
+    uint32_t linePtr;
 
     void parse(char *instrTemplate, char*(disassembler_t::*func)(uint32_t *));
     char *rm(uint8_t type);
@@ -64,6 +66,7 @@ class disassembler_t
     char *r8_rm8(uint32_t *err);
     char *rm16_r16(uint32_t *err);
 
+    uint32_t dump(...);
 };
 
 #endif /* _DEBUGGER_DASM_H_ */

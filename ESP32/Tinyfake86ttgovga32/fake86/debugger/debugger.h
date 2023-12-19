@@ -4,6 +4,7 @@
 #include "service/service.h"
 #include "registers.h"
 #include "memory.h"
+#include "code.h"
 
 
   class debugger_t
@@ -18,10 +19,11 @@ private:
     static const uint32_t REG_WINDOW_WIDTH = 10;
     static const uint32_t CODE_WINDOW_WIDTH = 20;
 
-    static const uint32_t BROWSER_COUNT = 1;
+    static const uint32_t BROWSER_COUNT = 4;
     regBrowser_t regBrowser;
-    // memBrowser_t memBrowser;
-    browser_t * const browsers[BROWSER_COUNT] = {&regBrowser};
+    memBrowser_t memBrowser;
+    codeBrowser_t codeBrowser;
+    browser_t * const browsers[BROWSER_COUNT] = {&regBrowser, &memBrowser, &codeBrowser};
 
     DBG_MEM_ADDR memPosition;
     DBG_MEM_ADDR codePosition;

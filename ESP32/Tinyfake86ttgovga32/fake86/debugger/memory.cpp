@@ -47,14 +47,14 @@ void memBrowser_t::repaint()
     static const uint32_t LENGTH = 16;
     char buffer[LENGTH];
     snprintf(buffer, LENGTH, "%04X:%04X", position.segment, position.offset);
-    static const uint32_t MEM_START_ROW = 14;
-    svcPrintTextPetite(buffer, 0, (MEM_START_ROW + row) * 8, FG_INACTIVE, BG_INACTIVE);
+    svcPrintTextPetite(buffer, area.left, area.top + row * ACTUAL_FONT_HEIGHT, FG_INACTIVE, BG_INACTIVE);
     for(uint32_t col=0; col<MEM_COL_COUNT; col++)
     {
-      const uint8_t value = read86(position.linear());
+      const char value = read86(position.linear());
+      const char toPrint = (value < ' ') ? '.' : value;
+      svcPrintCharPetite(toPrint, area.left + (34 + col) * ACTUAL_FONT_WIDTH,  area.top + row * ACTUAL_FONT_HEIGHT, FG_INACTIVE, BG_INACTIVE);
       snprintf(buffer, LENGTH, "%02X", value);
-      svcPrintTextPetite(buffer, (10 + col * 3) * 8, (MEM_START_ROW + row) * 8, FG_INACTIVE, BG_INACTIVE);
-      svcPrintCharPetite(/*(value<0x20)?'.':*/value, (34 + col) * 8, (MEM_START_ROW + row) * 8, FG_INACTIVE, BG_INACTIVE);
+      svcPrintTextPetite(buffer, (10 + col * 3) * ACTUAL_FONT_WIDTH, area.top + row * ACTUAL_FONT_HEIGHT, FG_INACTIVE, BG_INACTIVE);
       position++;
     }
   }

@@ -122,16 +122,15 @@ uint32_t disassembler_t::parse_noop(char *instrTemplate)
 00000000  3E51        ds push cx
 0000C0DE  3E151617    mov ax,[DS:SI+1234h]
 */
-void disassembler_t::decode(uint8_t *buffer, uint32_t length)
+void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 {
   code = buffer;
-  this->length = length;
   segment_override = NO;
   rm_segment_override = NO;
   bytesToPrint = 1;
 	pointer = 0; 
-
-	while (pointer < length)
+  
+	for(uint32_t linesDone = 0; linesDone<linesToDo; linesDone)
 	{
 		if (segment_override == NO)
 			printf("%08X  ", pointer);  // OUT: 1 - address
@@ -896,4 +895,9 @@ char * disassembler_t::rm(uint8_t type)
 		case 0x07: sprintf(rm_str, "[%sbx%s]", segment, displacement) ; break ;
 	}
 	return rm_str ; 
+}
+
+uint32_t disassembler_t::dump(...)
+{
+
 }

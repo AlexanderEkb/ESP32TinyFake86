@@ -19,8 +19,8 @@ void regBrowser_t::init()
 {
   area.left = 0;
   area.top = 0;
-  area.width = 10*FONT_WIDTH;
-  area.height = 13*FONT_HEIGHT;
+  area.width = 8*(SERVICE_FONT_WIDTH + 1);
+  area.height = _dbgReg__COUNT*(SERVICE_FONT_HEIGHT + 1);
   svcBar(area.left, area.top, area.height, area.width, BG_INACTIVE);
   void svcClearScreen(uint8_t color);
   // Clear screen area
@@ -63,6 +63,6 @@ void regBrowser_t::repaint()
 
     const uint32_t foreground         = registers[i].hasChanged?FG_CHANGED:(isActive?FG_ACTIVE:FG_INACTIVE);
     const uint32_t background         = isActive?BG_ACTIVE:BG_INACTIVE;
-    svcPrintTextPetite(buffer, area.left, i*8+area.top, foreground, background);    
+    svcPrintTextPetite(buffer, area.left, i*(SERVICE_FONT_HEIGHT+1)+area.top, foreground, background);    
   }
 }

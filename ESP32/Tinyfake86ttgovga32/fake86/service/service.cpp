@@ -11,7 +11,7 @@ void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
 {
   for (int y = 0; y < height; y++)
   {
-    int scanline = orgY + y + OSD_VERTICAL_OFFSET;
+    int scanline = orgY + y;
     for (int x = 0; x < width; x++)
     {
       int col = orgX + x;
@@ -99,6 +99,6 @@ void svcPrintTextPetite(const char *cad, int x, int y, unsigned char color, unsi
   for (int i = 0; i < auxLen; i++)
   {
     svcPrintCharPetite(cad[i], x, y, color, backcolor);
-    x += SERVICE_FONT_WIDTH;
+    x += SERVICE_FONT_WIDTH + 1;
   }
 }

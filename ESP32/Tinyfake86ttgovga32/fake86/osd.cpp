@@ -471,7 +471,7 @@ OSD_RESULT_t do_tinyOSD()
   composite.setBlitter(1);
   composite.setColorburstEnabled(true);
   svcClearScreen(SCREEN_BACKGROUND);
-  svcBar(8, 0, 21, 320, HEADER_BACKGROUND);
+  svcBar(8, OSD_VERTICAL_OFFSET, 21, 320, HEADER_BACKGROUND);
   svcPrintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
   svcPrintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
 
@@ -536,10 +536,10 @@ void svcDrawTableLoRes(uint32_t p)
       {
         uint8_t color = palette[(off & 0x01) ? fg : bg];
         uint32_t pos = (bg * 4 + fg) * BAR_WIDTH + off + 8;
-        svcBar(pos, 0, 100, 1, color);
+        svcBar(pos, OSD_VERTICAL_OFFSET, 100, 1, color);
       }
     }
-    svcBar(bg * 80 + 8, 100, 100, 80, palette[bg]);
+    svcBar(bg * 80 + 8, 100 + OSD_VERTICAL_OFFSET, 100, 80, palette[bg]);
   }
 }
 
@@ -557,7 +557,7 @@ void svcShowColorTable()
     for (int luma = 0; luma < 16; luma++)
     {
       int orgX = luma * WIDTH;
-      int orgY = hue * HEIGHT;
+      int orgY = hue * HEIGHT + OSD_VERTICAL_OFFSET;
       uint8_t color = ((uint8_t)hue << 4) | ((uint8_t)luma & 0x0F);
       svcBar(orgX + 8, orgY, HEIGHT, WIDTH, color);
     }
