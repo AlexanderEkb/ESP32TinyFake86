@@ -1,0 +1,13 @@
+@startuml temp
+
+state STOPPED
+state RUNNING
+state PAUSED
+
+STOPPED -> RUNNING
+RUNNING -> PAUSED
+PAUSED  -> RUNNING
+RUNNING -> STOPPED
+PAUSED  -> STOPPED
+
+@enduml

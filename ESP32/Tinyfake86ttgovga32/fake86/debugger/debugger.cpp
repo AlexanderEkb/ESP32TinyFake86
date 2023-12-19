@@ -1,4 +1,4 @@
-#include "debugger.h"
+#include "debugger/debugger.h"
 #include "cpu/cpu.h"
 #include "io/keyboard.h"
 #include "service/service.h"
@@ -31,9 +31,9 @@ void debugger_t::onEnter()
   codePosition.segment = _dbgGetRegister(_dbgReg_CS);
   codePosition.offset   = _dbgGetRegister(_dbgReg_PC);
   regBrowser.init();
-  memBrowser.init(memPosition);
+  // memBrowser.init(memPosition);
   regBrowser.refresh();
-  memBrowser.refresh();
+  // memBrowser.refresh();
 }
 
 // void debugger_t::refreshRegs()
