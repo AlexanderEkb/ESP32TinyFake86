@@ -120,7 +120,7 @@ uint32_t disassembler_t::parse_noop(char *instrTemplate)
 /*
 1         2           3  4
 00000000  3E51        ds push cx
-0000C0DE  
+0000C0DE  3E151617    mov ax,[DS:SI+1234h]
 */
 void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 {
@@ -128,7 +128,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
   this->length = length;
   segment_override = NO;
   rm_segment_override = NO;
-  bytesToPrint = 0;
+  bytesToPrint = 1;
 	pointer = 0; 
 
 	while (pointer < length)
