@@ -18,10 +18,10 @@ private:
     static const uint32_t REG_WINDOW_WIDTH = 10;
     static const uint32_t CODE_WINDOW_WIDTH = 20;
 
-    static const uint32_t BROWSER_COUNT = 2;
+    static const uint32_t BROWSER_COUNT = 1;
     regBrowser_t regBrowser;
-    memBrowser_t memBrowser;
-    browser_t * const browsers[BROWSER_COUNT] = {&regBrowser, &memBrowser};
+    // memBrowser_t memBrowser;
+    browser_t * const browsers[BROWSER_COUNT] = {&regBrowser};
 
     DBG_MEM_ADDR memPosition;
     DBG_MEM_ADDR codePosition;

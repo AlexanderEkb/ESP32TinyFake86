@@ -1,707 +1,1013 @@
-#include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include "dasm.h"
 
-#define ASSERT(EXPR)                                                                     \
-  if (!(EXPR))                                                                           \
-  {                                                                                      \
-    fprintf(stderr, "Assert failed [%s():%d]: if (%s) ..\n", __func__, __LINE__, #EXPR); \
-    *(volatile int *)0 = 0;                                                              \
-  }
-enum op_mode : uint8_t
+static char *regs16[8] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"} ; 
+static char *regs8[8] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"} ;
+static char *segreg[4] = {"es", "cs", "ss", "ds"} ;
+
+ 
+uint32_t bytes = 0 ;
+
+uint32_t rm_segment_override = -1 ; 
+
+uint32_t disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)(uint32_t *))
 {
-  REGISTER,
-  MEMORY,
-  IMMEDIATE,
-  DIRECT_ADDRESS
-};
+	bytes = 1;
+	uint32_t temp_j = pointer; 
+	uint32_t error = 0 ;
+	char *result = (this->*func)(&error) ;
+	if (error)
+	{
+		char tmp_buffer[20] ; 
+		memset(tmp_buffer, '\0', 20) ;
+		unsigned char tmp_char = code[pointer] ; 
+		sprintf(tmp_buffer, "db 0x%X\n", tmp_char) ;
+		parse_noop(tmp_buffer) ;
+		return 0 ;
+	}
+	uint32_t i=0;
+	uint32_t k = 16 ;
+	uint32_t t = 0 ;
+	if (segment_override == NO && rm_segment_override >= 0)
+	{
+		t = 1; 
+		k = k - 2 ;
+		switch (rm_segment_override)
+		{
+			case ES: printf("%02X", 0x26) ;	 break ;
+			case CS: printf("%02X", 0x2E) ;	 break ;
+			case SS: printf("%02X", 0x36) ;	 break ;
+			case DS: printf("%02X", 0x3E) ;	 break ;
+		} 
+		rm_segment_override = -1 ; 
+		segment_override = NO ;
+	}
+	char segment[20] ;
 
-struct operand
-{
-  char *value;
-  enum op_mode mode;
-  uint16_t disp;
-  uint16_t data;
-  uint16_t direct_address;
-};
-
-struct instruction
-{
-  char *name; // TODO: static buffer?
-
-  /* width
-   *
-   * 0: 8-bit (byte)
-   * 1: 16-bit (word)
-   */
-  uint8_t w;
-
-  /* direction
-   *
-   * 0: REG is source
-   * 1: REG is destination
-   */
-  uint8_t d;
-
-  /* signed bit extension
-   *
-   * 0: no sign extension
-   * 1: sign extend 8-bit immediate data to 16-bits if w=1
-   */
-  uint8_t s;
-
-  /* shift/rotate
-   *
-   * 0: shift/rotate count is 1
-   * 1: shift/rotate count in CL register
-   */
-  uint8_t v;
-
-  /* repeat/loop
-   *
-   * 0: repeat/loop while zero flag is clear
-   * 1: repeat/loop while zero flag is set
-   */
-  uint8_t z;
-
-  uint8_t mod;
-  uint8_t reg;
-  uint8_t rm;
-
-  uint16_t disp;
-  uint16_t data;
-
-  struct operand operands[2];
-};
-
-static char *registers[][2] = {
-    [0b000] = {"al", "ax"},
-    [0b001] = {"cl", "cx"},
-    [0b010] = {"dl", "dx"},
-    [0b011] = {"bl", "bx"},
-    [0b100] = {"ah", "sp"},
-    [0b101] = {"ch", "bp"},
-    [0b110] = {"dh", "si"},
-    [0b111] = {"bh", "di"},
-};
-static char *eac_table[] = {
-    [0b000] = "bx + si",
-    [0b001] = "bx + di",
-    [0b010] = "bp + si",
-    [0b011] = "bp + di",
-    [0b100] = "si",
-    [0b101] = "di",
-    [0b110] = "bp",
-    [0b111] = "bx",
-};
-
-static void instruction_print(struct instruction *inst)
-{
-  char *separators[2] = {", ", "\n"};
-
-  fprintf(fp, "%s ", inst->name);
-  for (int i = 0; i < 2; i++)
-  {
-    struct operand *op = &inst->operands[i];
-
-    if (op->mode == REGISTER)
-    {
-      fprintf(fp, "%s", op->value);
-    }
-    else if (op->mode == MEMORY)
-    {
-      if (inst->w)
-      {
-        fprintf(fp, "word ");
-      }
-      else
-      {
-        fprintf(fp, "byte ");
-      }
-
-      fprintf(fp, "[%s", op->value);
-      if (op->disp)
-      {
-        // fprintf (fp, " + %d", (int16_t) op->disp);
-        fprintf(fp, " + %d", op->disp);
-      }
-      fprintf(fp, "]");
-    }
-    else if (op->mode == IMMEDIATE)
-    {
-      ASSERT(op->data);
-
-      fprintf(fp, "%d", (int16_t)op->data);
-    }
-    else if (op->mode == DIRECT_ADDRESS)
-    {
-      fprintf(fp, "word [%d]", (int16_t)op->direct_address);
-    }
-
-    fprintf(fp, "%s", separators[i]);
-  }
+	if (t == 1)
+	{
+			memset(segment, '\0', 20) ;
+			switch (segment_override)
+			{
+				case ES: sprintf(segment, "es") ; break ;
+				case CS: sprintf(segment, "cs") ; break ;
+				case SS: sprintf(segment, "ss") ; break ;
+				case DS: sprintf(segment, "ds") ; break ;
+			}
+	}
+	if (segment_override >= 0 )
+	{
+		k = k - 2 ;
+		switch (segment_override)
+		{
+			case ES: printf("%02X", 0x26) ;	 break ;
+			case CS: printf("%02X", 0x2E) ;	 break ;
+			case SS: printf("%02X", 0x36) ;	 break ;
+			case DS: printf("%02X", 0x3E) ;	 break ;
+		}
+		segment_override = NO ;
+		rm_segment_override = -1 ; 
+	}
+	for (i=0; i < bytes; i++)
+	{
+		unsigned char byte = code[temp_j+i]  ; 
+		printf("%02X", byte) ;	
+	}
+	k = (k - (bytes*2))  ; 
+	for (i=0; i < k; i++) printf(" ") ;
+	if (t == 1)
+	{
+		char tmp_string[255] ; 
+		char tmp_string2[255] ; 
+		memset(tmp_string, '\0', 255) ;
+		memset(tmp_string2, '\0', 255) ;
+		sprintf(tmp_string, instrTemplate, result) ; 
+		sprintf(tmp_string2, "%s %s", segment, tmp_string) ; 
+		printf("%s", tmp_string2) ;
+	}
+	else printf(instrTemplate, result) ; 
 }
 
-static uint8_t decode_displacement(uint8_t *buf, struct instruction *inst)
+uint32_t disassembler_t::parse_noop(char *instrTemplate)
 {
-  uint8_t i = 0;
+	uint32_t k = 16 ; 
+	if (segment_override >= 0) 
+	{
+			switch (segment_override)
+			{
+				case ES: printf("%02X", 0x26) ;	 break ;
+				case CS: printf("%02X", 0x2E) ;	 break ;
+				case SS: printf("%02X", 0x36) ;	 break ;
+				case DS: printf("%02X", 0x3E) ;	 break ;
+			}
+			k = k - 2 ; 
+	}
+	unsigned char tmp_char = code[pointer] ; 
+	printf("%02X", tmp_char) ;
 
-  switch (inst->mod)
-  {
-  case 0b00:
-  {
-    /**
-     * Memory mode, no displacements follows
-     * (Except when R/M = 110, then 16-bit
-     * displacement follows)
-     */
-    if (inst->rm == 0b110)
-    {
-      uint8_t disp_low = buf[i++];
-      uint8_t disp_high = buf[i++];
-      inst->disp = (disp_high << 8) | disp_low;
-    }
-  }
-  break;
-  case 0b01:
-  {
-    /**
-     * Memory mode, 8-bit displacement follows
-     */
-    inst->disp = buf[i++];
-    // TODO: do we need to sign-extend?
-    // Page 4-20:
-    // If the displacement is only a single byte, the 8086
-    // or 8088 automatically sign-extends this quantity to 16-bits
-    // before using the information in further address calculations.
-    //            if (inst->disp)
-    //            {
-    //                inst->disp |= 0xFF << 8;
-    //            }
-  }
-  break;
-  case 0b10:
-  {
-    /**
-     * Memory mode, 16-bit displacement follows
-     */
-    uint8_t disp_low = buf[i++];
-    uint8_t disp_high = buf[i++];
-    inst->disp = (disp_high << 8) | disp_low;
-  }
-  break;
-  case 0b11:
-  {
-    /**
-     * Register mode (no displacement)
-     */
-  }
-  break;
-  }
+	uint32_t i= 0 ;
+	k = k - 1*2 ; 
+	for (i=0; i < k; i++) printf(" ") ;
 
-  return i;
+	if (segment_override >= 0)
+	{
+		char segment[20] ;
+		memset(segment, '\0', 20) ;
+		switch (segment_override)
+		{
+			case ES: sprintf(segment, "es") ; break ;
+			case CS: sprintf(segment, "cs") ; break ;
+			case SS: sprintf(segment, "ss") ; break ;
+			case DS: sprintf(segment, "ds") ; break ;
+		}
+		printf("%s %s", segment, instrTemplate ) ; 
+		segment_override = NO ;
+		rm_segment_override = -1 ; 
+	}
+	else
+	{
+		printf("%s", instrTemplate) ; 
+	}
 }
 
-static void operand_set(struct instruction *inst, struct operand *op, uint8_t mode, uint8_t register_index)
+void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 {
-  op->mode = static_cast<op_mode>(mode);
-  if (op->mode == REGISTER)
-  {
-    op->value = registers[register_index][inst->w];
-  }
-  else if (op->mode == MEMORY)
-  {
-    op->value = eac_table[inst->rm];
-
-    if (inst->disp)
-    {
-      op->disp = inst->disp;
-    }
-  }
-  else if (op->mode == DIRECT_ADDRESS)
-  {
-    // TODO: direct_adddress may not be needed
-    op->direct_address = inst->disp;
-    op->disp = inst->disp;
-  }
+  code = buffer;
+  this->length = length;
+	pointer = 0; 
+	while (pointer < length)
+	{
+		if (segment_override == NO)
+			printf("%08X  ", pointer) ;
+		switch (code[pointer])
+		{
+			case 0x00: parse("add %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x01: parse("add %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x02: parse("add %s\n", &disassembler_t::r8_rm8) ; break ;
+			case 0x03: parse("add %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0x04: parse("add al,%s\n", &disassembler_t::imm8) ; break ; 
+			case 0x05: parse("add ax,%s\n", &disassembler_t::imm16) ; break ;
+			case 0x06: parse_noop("push es\n"); break ; 
+			case 0x07: parse_noop("pop es\n"); break ;
+			case 0x08: parse("or %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x09: parse("or %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x0A: parse("or %s\n", &disassembler_t::r8_rm8) ; break ;
+			case 0x0B: parse("or %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0x0C: parse("or al,%s\n", &disassembler_t::imm8) ; break ; 
+			case 0x0D: parse("or ax,%s\n", &disassembler_t::imm16) ; break ;
+			case 0x0E: parse_noop("push cs\n") ; break ;
+			case 0x10: parse("adc %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x11: parse("adc %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x12: parse("adc %s\n", &disassembler_t::r8_rm8) ; break ;
+			case 0x13: parse("adc %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0x14: parse("adc al,%s\n", &disassembler_t::imm8) ; break ; 
+			case 0x15: parse("adc ax,%s\n", &disassembler_t::imm16) ; break ;
+			case 0x16: parse_noop("push ss\n") ; break ;
+			case 0x17: parse_noop("pop ss\n") ; break ;
+			case 0x18: parse("sbb %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x19: parse("sbb %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x1A: parse("sbb %s\n", &disassembler_t::r8_rm8) ; break ;
+			case 0x1B: parse("sbb %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0x1C: parse("sbb al,%s\n", &disassembler_t::imm8) ; break ; 
+			case 0x1D: parse("sbb ax,%s\n", &disassembler_t::imm16) ; break ;
+			case 0x1E: parse_noop("push ds\n") ; break ;
+			case 0x1F: parse_noop("pop ds\n") ; break ;
+			case 0x20: parse("and %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x21: parse("and %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x22: parse("and %s\n", &disassembler_t::r8_rm8) ; break ;
+			case 0x23: parse("and %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0x24: parse("and al,%s\n", &disassembler_t::imm8) ; break ; 
+			case 0x25: parse("and ax,%s\n", &disassembler_t::imm16) ; break ;
+			case 0x26: 
+			{
+				segment_override = ES ; 
+				rm_segment_override = ES;
+			}
+			break ;
+			case 0x27: parse_noop("daa\n") ; break ;
+			case 0x28: parse("sub %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x29: parse("sub %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x2A: parse("sub %s\n", &disassembler_t::r8_rm8) ; break ;
+			case 0x2B: parse("sub %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0x2C: parse("sub al,%s\n", &disassembler_t::imm8) ; break ; 
+			case 0x2D: parse("sub ax,%s\n", &disassembler_t::imm16) ; break ;
+			case 0x2E: 
+			{
+				segment_override = CS ; 
+				rm_segment_override = CS ;
+			} break ;
+			case 0x2F: parse_noop("das\n") ; break ;
+			case 0x30: parse("xor %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x31: parse("xor %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x32: parse("xor %s\n", &disassembler_t::r8_rm8) ; break ;
+			case 0x33: parse("xor %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0x34: parse("xor al,%s\n", &disassembler_t::imm8) ; break ; 
+			case 0x35: parse("xor ax,%s\n", &disassembler_t::imm16) ; break ;
+			case 0x36: 
+			{
+				segment_override = SS ; 
+				rm_segment_override = SS ; 
+			} break ;
+			case 0x37: parse_noop("aaa\n") ; break ;
+			case 0x38: parse("cmp %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x39: parse("cmp %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x3A: parse("cmp %s\n", &disassembler_t::r8_rm8) ; break ;
+			case 0x3B: parse("cmp %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0x3C: parse("cmp al,%s\n", &disassembler_t::imm8) ; break ; 
+			case 0x3D: parse("cmp ax,%s\n", &disassembler_t::imm16) ; break ;
+			case 0x3E: 
+			{
+				segment_override = DS ; 
+				rm_segment_override = DS ; 
+			}
+			break ;
+			case 0x3F: parse_noop("aas\n") ; break ;
+			case 0x40: parse_noop("inc ax\n") ; break ;
+			case 0x41: parse_noop("inc cx\n") ; break ;
+			case 0x42: parse_noop("inc dx\n") ; break ;
+			case 0x43: parse_noop("inc bx\n") ; break ;
+			case 0x44: parse_noop("inc sp\n") ; break ;
+			case 0x45: parse_noop("inc bp\n") ; break ;
+			case 0x46: parse_noop("inc si\n") ; break ;
+			case 0x47: parse_noop("inc di\n") ; break ;
+			case 0x48: parse_noop("dec ax\n") ; break ;
+			case 0x49: parse_noop("dec cx\n") ; break ;
+			case 0x4A: parse_noop("dec dx\n") ; break ;
+			case 0x4B: parse_noop("dec bx\n") ; break ;
+			case 0x4C: parse_noop("dec sp\n") ; break ;
+			case 0x4D: parse_noop("dec bp\n") ; break ;
+			case 0x4E: parse_noop("dec si\n") ; break ;
+			case 0x4F: parse_noop("dec di\n") ; break ;
+			case 0x50: parse_noop("push ax\n") ; break ;
+			case 0x51: parse_noop("push cx\n") ; break ;
+			case 0x52: parse_noop("push dx\n") ; break ;
+			case 0x53: parse_noop("push bx\n") ; break ;
+			case 0x54: parse_noop("push sp\n") ; break ;
+			case 0x55: parse_noop("push bp\n") ; break ;
+			case 0x56: parse_noop("push si\n") ; break ;
+			case 0x57: parse_noop("push di\n") ; break ;
+			case 0x58: parse_noop("pop ax\n") ; break ;
+			case 0x59: parse_noop("pop cx\n") ; break ;
+			case 0x5A: parse_noop("pop dx\n") ; break ;
+			case 0x5B: parse_noop("pop bx\n") ; break ;
+			case 0x5C: parse_noop("pop sp\n") ; break ;
+			case 0x5D: parse_noop("pop bp\n") ; break ;
+			case 0x5E: parse_noop("pop si\n") ; break ;
+			case 0x5F: parse_noop("pop di\n") ; break ;
+			case 0x70: parse("jo %s\n", &disassembler_t::rel8) ; break ;
+			case 0x71: parse("jno %s\n", &disassembler_t::rel8) ; break ;
+			case 0x72: parse("jc %s\n", &disassembler_t::rel8) ; break ;
+			case 0x73: parse("jnc %s\n", &disassembler_t::rel8) ; break ;
+			case 0x74: parse("jz %s\n", &disassembler_t::rel8) ; break ;
+			case 0x75: parse("jnz %s\n", &disassembler_t::rel8) ; break ;
+			case 0x76: parse("jna %s\n", &disassembler_t::rel8) ; break ;
+			case 0x77: parse("ja %s\n", &disassembler_t::rel8) ; break ;
+			case 0x78: parse("js %s\n", &disassembler_t::rel8) ; break ;
+			case 0x79: parse("jns %s\n", &disassembler_t::rel8) ; break ;
+			case 0x7A: parse("jpe %s\n", &disassembler_t::rel8) ; break ;
+			case 0x7B: parse("jpo %s\n", &disassembler_t::rel8) ; break ;
+			case 0x7C: parse("jl %s\n", &disassembler_t::rel8) ; break ;
+			case 0x7D: parse("jnl %s\n", &disassembler_t::rel8) ; break ;
+			case 0x7E: parse("jng %s\n", &disassembler_t::rel8) ; break ;
+			case 0x7F: parse("jg %s\n", &disassembler_t::rel8) ; break ;
+			case 0x80:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ; 
+				unsigned char t = 0 ;
+				switch (opcode)
+				{
+					case 0x00: parse("add %s\n", &disassembler_t::rm8_imm8) ; break ;
+					case 0x01: parse("or %s\n", &disassembler_t::rm8_imm8) ; break ;
+					case 0x02: parse("adc %s\n", &disassembler_t::rm8_imm8) ; break ;
+					case 0x03: parse("sbb %s\n", &disassembler_t::rm8_imm8) ; break ;
+					case 0x04: parse("and %s\n", &disassembler_t::rm8_imm8) ; break ;
+					case 0x05: parse("sub %s\n", &disassembler_t::rm8_imm8) ; break ;
+					case 0x06: parse("xor %s\n", &disassembler_t::rm8_imm8) ; break ;
+					case 0x07: parse("cmp %s\n", &disassembler_t::rm8_imm8) ; break ;
+					default: t = 1; break ;
+				}
+				if (t) goto print_symbol ;
+			} break ;
+			case 0x81:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ; 
+				unsigned char t = 0 ;
+				switch (opcode)
+				{
+					case 0x00: parse("add %s\n", &disassembler_t::rm16_imm16) ; break ;
+					case 0x01: parse("or %s\n", &disassembler_t::rm16_imm16) ; break ;
+					case 0x02: parse("adc %s\n", &disassembler_t::rm16_imm16) ; break ;
+					case 0x03: parse("sbb %s\n", &disassembler_t::rm16_imm16) ; break ;
+					case 0x04: parse("and %s\n", &disassembler_t::rm16_imm16) ; break ;
+					case 0x05: parse("sub %s\n", &disassembler_t::rm16_imm16) ; break ;
+					case 0x06: parse("xor %s\n", &disassembler_t::rm16_imm16) ; break ;
+					case 0x07: parse("cmp %s\n", &disassembler_t::rm16_imm16) ; break ;
+					default: t = 1; break ;
+				}
+				if (t) goto print_symbol ;
+			} break ;
+			case 0x83:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ;
+				unsigned char t = 0 ;
+				switch (opcode)
+				{
+					case 0x00: parse("add %s\n", &disassembler_t::rm16_imm8) ; break ;
+					case 0x02: parse("adc %s\n", &disassembler_t::rm16_imm8) ; break ;
+					case 0x03: parse("sbb %s\n", &disassembler_t::rm16_imm8) ; break ;
+					case 0x05: parse("sub %s\n", &disassembler_t::rm16_imm8) ; break ;
+					case 0x07: parse("cmp %s\n", &disassembler_t::rm16_imm8) ; break ;
+					default: t = 1; break ;
+				} 
+				if (t) goto print_symbol ;
+			} break ;
+			case 0x84: parse("test %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x85: parse("test %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x86: parse("xchg %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x87: parse("xchg %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x88: parse("mov %s\n", &disassembler_t::rm8_r8) ; break ;
+			case 0x89: parse("mov %s\n", &disassembler_t::rm16_r16) ; break ;
+			case 0x8A: parse("mov %s\n", &disassembler_t::r8_rm8) ; break ;
+			case 0x8B: parse("mov %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0x8C: 
+			{ 
+				parse("mov %s\n", &disassembler_t::rm16_sreg) ; break ;
+			}
+			case 0x8D: parse("lea %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0x8E: 
+			{
+					parse("mov %s\n", &disassembler_t::sreg_rm16) ; break ;
+			}
+			case 0x8F:
+			{
+			  	unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ; 
+				unsigned char t = 0 ;
+				switch (opcode)
+				{
+					case 0x00: parse("pop word %s\n", &disassembler_t::m16) ; break ;
+					default: t = 1; break ;
+				}	
+				if (t) goto print_symbol ;
+			} break ;
+			case 0x90: parse_noop("xchg ax,ax\n") ; break ;
+			case 0x91: parse_noop("xchg cx,ax\n") ; break ;
+			case 0x92: parse_noop("xchg dx,ax\n") ; break ;
+			case 0x93: parse_noop("xchg bx,ax\n") ; break ;
+			case 0x94: parse_noop("xchg sp,ax\n") ; break ;
+			case 0x95: parse_noop("xchg bp,ax\n") ; break ;
+			case 0x96: parse_noop("xchg si,ax\n") ; break ;
+			case 0x97: parse_noop("xchg di,ax\n") ; break ;
+			case 0x98: parse_noop("cbw\n") ; break ;
+			case 0x99: parse_noop("cwd\n") ; break ;
+			case 0x9A: parse("call %s\n", &disassembler_t::call_inter) ; break ; 
+			case 0x9B: parse_noop("wait\n") ; break ;
+			case 0x9C: parse_noop("pushf\n") ; break ;
+			case 0x9D: parse_noop("popf\n") ; break ;
+			case 0x9E: parse_noop("sahf\n") ; break ;
+			case 0x9F: parse_noop("lahf\n") ; break ;
+			case 0xA0: parse("mov al,%s\n", &disassembler_t::moffs16) ; break ;
+			case 0xA1: parse("mov ax,%s\n", &disassembler_t::moffs16) ; break ;
+			case 0xA2: parse("mov %s,al\n", &disassembler_t::moffs16) ; break ;
+			case 0xA3: parse("mov %s,ax\n", &disassembler_t::moffs16) ; break ;
+			case 0xA4: parse_noop("movsb\n") ; break ;
+			case 0xA5: parse_noop("movsw\n") ; break ;
+			case 0xA6: parse_noop("cmpsb\n") ; break ;
+			case 0xA7: parse_noop("cmpsw\n") ; break ;
+			case 0xA8: parse("test al, %s\n", &disassembler_t::imm8) ; break ;
+			case 0xA9: parse("test ax, %s\n", &disassembler_t::imm16) ; break ;
+			case 0xAA: parse_noop("stosb\n") ; break ;
+			case 0xAB: parse_noop("stosw\n") ; break ;
+			case 0xAC: parse_noop("lodsb\n") ; break ;
+			case 0xAD: parse_noop("lodsw\n") ; break ;
+			case 0xAE: parse_noop("scasb\n") ; break ;
+			case 0xAF: parse_noop("scasw\n") ; break ;
+			case 0xB0: parse("mov al,%s\n",&disassembler_t::imm8); break;
+			case 0xB1: parse("mov cl,%s\n",&disassembler_t::imm8); break;
+			case 0xB2: parse("mov dl,%s\n",&disassembler_t::imm8); break;
+			case 0xB3: parse("mov bl,%s\n",&disassembler_t::imm8); break;
+			case 0xB4: parse("mov ah,%s\n",&disassembler_t::imm8); break;
+			case 0xB5: parse("mov ch,%s\n",&disassembler_t::imm8); break;
+			case 0xB6: parse("mov dh,%s\n",&disassembler_t::imm8); break;
+			case 0xB7: parse("mov bh,%s\n",&disassembler_t::imm8); break;
+			case 0xB8: parse("mov ax,%s\n",&disassembler_t::imm16); break;
+			case 0xB9: parse("mov cx,%s\n",&disassembler_t::imm16); break;
+			case 0xBA: parse("mov dx,%s\n",&disassembler_t::imm16); break;
+			case 0xBB: parse("mov bx,%s\n",&disassembler_t::imm16); break;
+			case 0xBC: parse("mov sp,%s\n",&disassembler_t::imm16); break;
+			case 0xBD: parse("mov bp,%s\n",&disassembler_t::imm16); break;
+			case 0xBE: parse("mov si,%s\n",&disassembler_t::imm16); break;
+			case 0xBF: parse("mov di,%s\n",&disassembler_t::imm16); break;
+			case 0xC2: parse("ret %s\n", &disassembler_t::imm16) ; break ; 
+			case 0xC3: parse_noop("ret\n") ; break ;
+			case 0xC4: parse("les %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0xC5: parse("lds %s\n", &disassembler_t::r16_rm16) ; break ;
+			case 0xC6: parse("mov %s\n", &disassembler_t::rm16_imm8) ; break ;
+			case 0xC7: parse("mov %s\n", &disassembler_t::rm16_imm16) ; break ;
+			case 0xCA: parse("retf %s\n", &disassembler_t::imm16) ; break ;
+			case 0xCB: parse_noop("retf\n") ; break ;
+			case 0xCC: parse_noop("int3\n") ; break ;
+			case 0xCD: parse("int %s\n", &disassembler_t::imm8) ; break ;
+			case 0xCE: parse_noop("into\n") ; break ;
+			case 0xCF: parse_noop("iret\n") ; break ;
+			case 0xD0:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ;
+				unsigned char t = 0 ;
+				switch (opcode)
+				{
+					case 0x00: parse("rol %s,1\n", &disassembler_t::rm8) ; break ;
+					case 0x01: parse("ror %s,1\n", &disassembler_t::rm8) ; break ;
+					case 0x02: parse("rcl %s,1\n", &disassembler_t::rm8) ; break ;
+					case 0x03: parse("rcr %s,1\n", &disassembler_t::rm8) ; break ;
+					case 0x04: parse("shl %s,1\n", &disassembler_t::rm8) ; break ;
+					case 0x05: parse("shr %s,1\n", &disassembler_t::rm8) ; break ;
+					case 0x07: parse("sar %s,1\n", &disassembler_t::rm8) ; break ;
+					default: t = 1; break ;
+				}
+				if (t) goto print_symbol ;
+			} break ;
+			case 0xD1:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ;	
+				unsigned char t = 0 ;
+				switch (opcode)
+				{
+					case 0x00: parse("rol %s,1\n", &disassembler_t::rm16) ; break ;
+					case 0x01: parse("ror %s,1\n", &disassembler_t::rm16) ; break ;
+					case 0x02: parse("rcl %s,1\n", &disassembler_t::rm16) ; break ;
+					case 0x03: parse("rcr %s,1\n", &disassembler_t::rm16) ; break ;
+					case 0x04: parse("shl %s,1\n", &disassembler_t::rm16) ; break ;
+					case 0x05: parse("shr %s,1\n", &disassembler_t::rm16) ; break ;
+					case 0x07: parse("sar %s,1\n", &disassembler_t::rm16) ; break ;
+					default: t = 1; break ;
+				}
+				if (t) goto print_symbol ;
+			} break ;
+			case 0xD2:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ;	
+				unsigned char t = 0 ;
+				switch (opcode)
+				{
+					case 0x00: parse("rol %s,cl\n", &disassembler_t::rm8) ; break ;
+					case 0x01: parse("ror %s,cl\n", &disassembler_t::rm8) ; break ;
+					case 0x02: parse("rcl %s,cl\n", &disassembler_t::rm8) ; break ;
+					case 0x03: parse("rcr %s,cl\n", &disassembler_t::rm8) ; break ;
+					case 0x04: parse("shl %s,cl\n", &disassembler_t::rm8) ; break ;
+					case 0x05: parse("shr %s,cl\n", &disassembler_t::rm8) ; break ;
+					case 0x07: parse("sar %s,cl\n", &disassembler_t::rm8) ; break ;
+					default: t = 1; break ;
+				}
+				if (t) goto print_symbol ;
+			} break ;
+			case 0xD3:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ;	
+				unsigned char t = 0 ;
+				switch (opcode)
+				{
+					case 0x00: parse("rol %s,cl\n", &disassembler_t::rm16) ; break ;
+					case 0x01: parse("ror %s,cl\n", &disassembler_t::rm16) ; break ;
+					case 0x02: parse("rcl %s,cl\n", &disassembler_t::rm16) ; break ;
+					case 0x03: parse("rcr %s,cl\n", &disassembler_t::rm16) ; break ;
+					case 0x04: parse("shl %s,cl\n", &disassembler_t::rm16) ; break ;
+					case 0x05: parse("shr %s,cl\n", &disassembler_t::rm16) ; break ;
+					case 0x07: parse("sar %s,cl\n", &disassembler_t::rm16) ; break ;
+					default: t = 1; break ;
+				}
+				if (t) goto print_symbol ;
+			} break ;
+			case 0xD4: parse_noop("aam\n") ; break ;
+			case 0xD5: parse_noop("aad\n") ; break ;
+			case 0xD7: parse_noop("xlatb\n") ; break ;
+			/*D8-DF => ESC0-7*/
+			case 0xE0: parse("loopne %s\n", &disassembler_t::rel8) ; break ;
+			case 0xE1: parse("loope %s\n", &disassembler_t::rel8) ; break ;
+			case 0xE2: parse("loop %s\n", &disassembler_t::rel8) ; break ;
+			case 0xE3: parse("jcxz %s\n", &disassembler_t::rel8) ; break ;
+			case 0xE4: parse("in al,%s\n", &disassembler_t::imm8) ; break ;
+			case 0xE5: parse("in ax,%s\n", &disassembler_t::imm8) ; break ;
+			case 0xE6: parse("out %s,al\n", &disassembler_t::imm8) ; break ;
+			case 0xE7: parse("out %s,ax\n", &disassembler_t::imm8) ; break ;
+			case 0xE8: parse("call %s\n", &disassembler_t::rel16) ; break ;
+			case 0xE9: parse("jmp %s\n", &disassembler_t::rel16) ; break ;
+			case 0xEA: parse("jmp %s\n", &disassembler_t::call_inter) ; break ;
+			case 0xEB: parse("jmp short %s\n", &disassembler_t::rel8) ; break ;
+			case 0xEC: parse_noop("in al,dx\n") ; break ;
+			case 0xED: parse_noop("in ax,dx\n") ; break ;
+			case 0xEE: parse_noop("out dx,al\n") ; break ;
+			case 0xEF: parse_noop("out dx,ax\n") ; break ;
+			case 0xF0: printf("lock ") ; break ;
+			case 0xF2: printf("repne ") ; break ;
+			case 0xF3: printf("rep ") ; break ;
+			case 0xF4: parse_noop("hlt\n") ; break ;
+			case 0xF5: parse_noop("cmc\n") ; break ;
+			case 0xF6:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ;	
+				unsigned char t = 0 ;
+				switch (opcode)
+				{
+					case 0x00: parse("test %s\n", &disassembler_t::rm8_imm8) ; break ;
+					case 0x02: parse("not %s\n", &disassembler_t::rm8) ; break ;
+					case 0x03: parse("neg %s\n", &disassembler_t::rm8) ; break ;
+					case 0x04: parse("mul %s\n", &disassembler_t::rm8) ; break ;
+					case 0x05: parse("imul %s\n", &disassembler_t::rm8) ; break ;
+					case 0x06: parse("div %s\n", &disassembler_t::rm8) ; break ;
+					case 0x07: parse("idiv %s\n", &disassembler_t::rm8) ; break ;
+					default: t = 1; break ;
+				}
+				if (t) goto print_symbol ;
+			} break ;
+			case 0xF7:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				unsigned char t = 0 ;
+				pointer-- ;	
+				switch (opcode)
+				{
+					case 0x00: parse("test %s\n", &disassembler_t::rm16_imm16) ; break ;
+					case 0x02: parse("not %s\n", &disassembler_t::rm16) ; break ;
+					case 0x03: parse("neg %s\n", &disassembler_t::rm16) ; break ;
+					case 0x04: parse("mul %s\n", &disassembler_t::rm16) ; break ;
+					case 0x05: parse("imul %s\n", &disassembler_t::rm16) ; break ;
+					case 0x06: parse("div %s\n", &disassembler_t::rm16) ; break ;
+					case 0x07: parse("idiv %s\n", &disassembler_t::rm16) ; break ;
+					default: t = 1; break ;
+				}
+				if (t) goto print_symbol ;
+			} break ;
+			case 0xF8: parse_noop("clc\n") ; break ;
+			case 0xF9: parse_noop("stc\n") ; break ;
+			case 0xFA: parse_noop("cli\n") ; break ;
+			case 0xFB: parse_noop("sti\n") ; break ;
+			case 0xFC: parse_noop("cld\n") ; break ;
+			case 0xFD: parse_noop("std\n") ; break ;
+			case 0xFE:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ;
+				unsigned char t = 0 ;	
+				switch (opcode)
+				{
+					case 0x00: parse("inc %s\n", &disassembler_t::rm8) ; break ;
+					case 0x01: parse("dec %s\n", &disassembler_t::rm8) ; break ;
+					default: t = 1; break ;
+				}
+				if (t) goto print_symbol ;
+			} break ;
+			case 0xFF:
+			{
+				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
+				pointer-- ;	
+				unsigned char t = 0 ;
+				switch (opcode)
+				{
+					case 0x00: parse("inc %s\n", &disassembler_t::rm16) ; break ;
+					case 0x01: parse("dec %s\n", &disassembler_t::rm16) ; break ;
+					case 0x02: parse("call near %s\n", &disassembler_t::rm16) ; break ;
+					case 0x03: parse("call far %s\n", &disassembler_t::rm16) ; break ;
+					case 0x04: parse("jmp near %s\n", &disassembler_t::rm16) ; break ;
+					case 0x05: parse("jmp far %s\n", &disassembler_t::rm16) ; break ;
+					case 0x06: parse("push %s\n", &disassembler_t::rm16) ; break ;
+					default: t = 1; break ;
+				}
+				if (t) goto print_symbol ;
+			} break ;
+			print_symbol:
+			default: 
+			{
+				char tmp_buffer[20] ; 
+				memset(tmp_buffer, '\0', 20) ;
+				sprintf(tmp_buffer, "db 0x%X\n", code[pointer]) ;
+				parse_noop(tmp_buffer) ;
+				break ;
+			}
+		}
+		pointer++ ;
+	}
 }
 
-// TODO: maybe split this into separate decode_dst() and decode_src() ??
-// -- or maybe even decode_mem/reg/imm/direct() ??
-static void decode_operands(struct instruction *inst)
+char str[255] ; 
+
+char * disassembler_t::moffs16(uint32_t *err)
 {
-  switch (inst->mod)
-  {
-  case 0b00:
-  case 0b01:
-  case 0b10:
-  {
-    uint8_t dst_mode;
-    uint8_t src_mode = inst->d ? MEMORY : REGISTER;
-    uint8_t register_index = inst->reg;
-
-    if (inst->mod == 0b00 &&
-        inst->rm == 0b110)
-    {
-      dst_mode = DIRECT_ADDRESS;
-      register_index = 0;
-    }
-    else
-    {
-      dst_mode = inst->d ? REGISTER : MEMORY;
-    }
-
-    operand_set(inst, &inst->operands[0], dst_mode, register_index);
-    operand_set(inst, &inst->operands[1], src_mode, register_index);
-  }
-  break;
-  case 0b11:
-  {
-    uint8_t dst_index = inst->d ? inst->reg : inst->rm;
-    uint8_t src_index = inst->d ? inst->rm : inst->reg;
-
-    operand_set(inst, &inst->operands[0], REGISTER, dst_index);
-    operand_set(inst, &inst->operands[1], REGISTER, src_index);
-  }
-  }
+	memset(str, '\0', 255) ;
+	char segment[10] ;
+	memset(segment, '\0', 10) ;
+	if (segment_override >= 0)
+	{
+		switch (segment_override)
+		{
+			case ES: sprintf(segment, "es:") ; break ;
+			case CS: sprintf(segment, "cs:") ; break ;
+			case SS: sprintf(segment, "ss:") ; break ;
+			case DS: sprintf(segment, "ds:") ; break ;
+		}
+		segment_override = NO ;
+	}
+	pointer++ ; 
+	bytes++ ;
+	unsigned char low = code[pointer] ; 
+	pointer++ ;
+	bytes++ ; 
+	unsigned char high = code[pointer] ; 
+	unsigned short imm16 = ((high << 8) + low) ;
+	sprintf(str, "[%s0x%x]", segment, imm16) ;
+	return str ;
 }
 
-static uint8_t decode_mov_rm2r(uint8_t *buf)
+char * disassembler_t::rm8(uint32_t *err)
 {
-  uint8_t i = 0;
-  struct instruction inst = {.name = "mov"};
-  uint8_t b0 = buf[i++];
-  uint8_t b1 = buf[i++];
-
-  ASSERT((b0 >> 2) == 0b100010);
-
-  inst.d = (b0 & 0b00000010) >> 1;
-  inst.w = (b0 & 0b00000001);
-
-  inst.mod = (b1 & 0b11000000) >> 6;
-  inst.reg = (b1 & 0b00111000) >> 3;
-  inst.rm = (b1 & 0b00000111);
-
-  i += decode_displacement(&buf[i], &inst);
-  inst.disp = (int16_t)inst.disp; // sign-extension
-  decode_operands(&inst);
-
-  instruction_print(&inst);
-
-  return i;
+	uint32_t error = 0 ;
+	memset(str, '\0', 255) ;
+	char *s =  rm(8, &error)  ;
+	if (error)
+	{
+		*err = 1 ;
+		return str ;
+	}
+	sprintf(str, "%s", s) ; 
+	return str ;
 }
 
-static uint8_t decode_mov_i2rm(uint8_t *buf)
+char * disassembler_t::rm16(uint32_t *err)
 {
-  printf("ERROR-not-implemented: decoding mov (immediate-to-reg/mem)\n");
-  return 0;
+	uint32_t error = 0; 
+	memset(str, '\0', 255) ;
+	char *s =  rm(16, &error)  ;
+	if (error)
+	{
+		*err = error ;
+		return str; 
+	}
+	sprintf(str, "%s", s) ; 
+	return str ;
 }
 
-static uint8_t decode_mov_i2r(uint8_t *buf)
+char * disassembler_t::call_inter(uint32_t *err)
 {
-  uint8_t i = 0;
-  uint8_t b0 = buf[i++];
-
-  uint8_t W = (b0 & 0b1000) >> 3;
-  uint8_t REG = (b0 & 0b0111);
-  uint16_t data = buf[i++];
-
-  if (W == 1)
-  {
-    data |= buf[i++] << 8;
-  }
-
-  fprintf(fp, "mov %s, %u\n", registers[REG][W], data);
-
-  return i;
+	memset(str, '\0', 255) ;
+	pointer++ ;
+	bytes++ ; 
+	unsigned char offset_low = code[pointer] ; 
+	pointer++ ;
+	bytes++ ;
+	unsigned char offset_high = code[pointer] ; 
+	pointer++ ;
+	bytes++ ;
+	unsigned char seg_low = code[pointer] ; 
+	pointer++ ;
+	bytes++ ;
+	unsigned char seg_high = code[pointer] ; 
+	unsigned short offset = ((offset_high << 8) + offset_low) ; 
+	unsigned short seg = ((seg_high << 8) + seg_low) ;
+	sprintf(str,"0x%x:0x%x", seg, offset) ;
+	return str ;	
 }
 
-static uint8_t decode_add_r2r(uint8_t *buf)
+char * disassembler_t::m16(uint32_t *err)
 {
-  struct instruction inst = {.name = "add"};
-  uint8_t i = 0;
-  uint8_t b0 = buf[i++];
-  uint8_t b1 = buf[i++];
-
-  inst.d = (b0 & 0b10) != 0; // 0000 0010
-  inst.w = (b0 & 0b01) != 0; // 0000 0001
-
-  inst.mod = (b1 >> 6) & 0b11;  // 1100 0000
-  inst.reg = (b1 >> 3) & 0b111; // 0011 1000
-  inst.rm = b1 & 0b111;         // 0000 0111
-
-  i += decode_displacement(&buf[i], &inst);
-  decode_operands(&inst);
-
-  instruction_print(&inst);
-
-  return i;
+	uint32_t error = 0; 
+	memset(str, '\0', 255) ;
+	char *s =  rm(16, &error)  ;
+	if (error)
+	{
+		*err = 1 ;
+		return str ;
+	}
+	sprintf(str,"%s", s) ;
+	return str ;
 }
 
-static uint8_t decode_add_i2rm(uint8_t *buf)
+char * disassembler_t::sreg_rm16(uint32_t *error) 
 {
-  struct instruction inst = {.name = "add"};
-  uint8_t i = 0;
-
-  uint8_t b0 = buf[i++];
-  uint8_t b1 = buf[i++];
-
-  inst.s = (b0 & 0b10) != 0; // 0000 0010
-  inst.w = (b0 & 0b01) != 0; // 0000 0001
-
-  inst.mod = (b1 >> 6) & 0b11;  // 1100 0000
-  inst.reg = (b1 >> 3) & 0b111; // 0011 1000
-  inst.rm = b1 & 0b111;         // 0000 0111
-
-  i += decode_displacement(&buf[i], &inst);
-  decode_operands(&inst);
-
-  struct operand *src = &inst.operands[1];
-  src->mode = IMMEDIATE;
-  src->data = buf[i++];
-  if (inst.s == 0 && inst.w == 1)
-  {
-    src->data |= 0xFF << 8; // TODO: should be buf[i++] << 8
-  }
-  instruction_print(&inst);
-
-  return i;
+	uint32_t err = 0 ;
+	memset(str, '\0', 255) ;
+	unsigned char reg = ((code[++pointer] & 0x38) >> 3) ;
+	pointer-- ;
+	char *s =  rm(16, &err)  ;
+	if (err)
+	{
+		*error = 1 ;
+		return str ;
+	}
+	if (reg < 4)
+	{
+		char *sreg = segreg[reg] ;
+		sprintf(str,"%s,%s", sreg, s) ;
+		*error = 0 ;
+	} else *error = 1 ; 
+	return str ;
 }
 
-static uint8_t decode_add_i2a(uint8_t *buf)
+char * disassembler_t::rm16_sreg(uint32_t *error)
 {
-  struct instruction inst = {.name = "add"};
-  uint8_t i = 0;
-
-  uint8_t b0 = buf[i++];
-
-  ASSERT((b0 >> 1) == 0b0000010);
-
-  inst.w = (b0 & 0b01) != 0; // 0000 0001
-  i += decode_displacement(&buf[i], &inst);
-
-  struct operand *dst = &inst.operands[0];
-  dst->value = registers[0][inst.w];
-  dst->mode = REGISTER;
-
-  struct operand *src = &inst.operands[1];
-  src->mode = IMMEDIATE;
-  src->data = buf[i++];
-  if (inst.w)
-  {
-    src->data |= buf[i++] << 8;
-  }
-
-  instruction_print(&inst);
-
-  return i;
+	uint32_t err = 0; 
+	memset(str, '\0', 255) ;
+	unsigned char reg = ((code[++pointer] & 0x38) >> 3) ;
+	pointer-- ; 
+	char *s =  rm(16, &err)  ;
+	if (err)
+	{
+		*error = 1 ;
+		return str ;
+	}
+	if (reg < 4)
+	{
+		char *sreg = segreg[reg] ;
+		sprintf(str,"%s,%s", s, sreg) ;
+		*error = 0 ;
+	} else *error = 1 ; 
+	return str ;
 }
 
-static uint8_t decode_sub_r2r(uint8_t *buf)
+char * disassembler_t::rm16_imm8(uint32_t *err)
 {
-  struct instruction inst = {.name = "sub"};
-  uint8_t i = 0;
-
-  uint8_t b0 = buf[i++];
-  uint8_t b1 = buf[i++];
-
-  ASSERT((b0 >> 2) == 0b001010);
-
-  inst.d = (b0 & 0b00000010) >> 1;
-  inst.w = (b0 & 0b00000001);
-
-  inst.mod = (b1 & 0b11000000) >> 6;
-  inst.reg = (b1 & 0b00111000) >> 3;
-  inst.rm = (b1 & 0b00000111);
-
-  i += decode_displacement(&buf[i], &inst);
-  decode_operands(&inst);
-
-  instruction_print(&inst);
-
-  return i;
+	uint32_t error = 0 ;
+	memset(str, '\0', 255) ;
+	char *s = rm(16, &error) ;
+	if (error)
+	{
+		*err = 1 ; 
+		return str ;
+	}
+	pointer++ ;
+	pointer--;
+	pointer++; 
+	bytes++ ;
+	signed char imm8 = code[pointer] ; 
+	char sign = '+' ;
+	if (imm8 < 0) 
+	{
+		sign = '-' ;
+		imm8 = -imm8 ;
+	}
+	sprintf(str, "%s,byte %c0x%x", s, sign, imm8) ;
+	return str ;
 }
 
-static uint8_t decode_sub_ifrm(uint8_t *buf)
+char * disassembler_t::rm16_imm16(uint32_t *err)
 {
-  struct instruction inst = {.name = "sub"};
-  uint8_t i = 0;
-
-  uint8_t b0 = buf[i++];
-  uint8_t b1 = buf[i++];
-
-  inst.s = (b0 & 0b10) != 0; // 0000 0010
-  inst.w = (b0 & 0b01) != 0; // 0000 0001
-
-  inst.mod = (b1 >> 6) & 0b11;  // 1100 0000
-  inst.reg = (b1 >> 3) & 0b111; // 0011 1000
-  inst.rm = b1 & 0b111;         // 0000 0111
-
-  i += decode_displacement(&buf[i], &inst);
-  decode_operands(&inst);
-
-  struct operand *src = &inst.operands[1];
-  src->mode = IMMEDIATE;
-  src->data = buf[i++];
-  if (inst.s == 0 && inst.w == 1)
-  {
-    src->data |= 0xFF << 8; // TODO: should be buf[i++] << 8
-  }
-
-  instruction_print(&inst);
-
-  return i;
+	uint32_t error = 0; 
+	memset(str, '\0', 255) ;
+	char *s = rm(16, &error) ;
+	if (error)
+	{
+		*err = 1 ; 
+		return str ;
+	}
+	pointer++ ;
+	pointer-- ;
+	pointer++;
+	bytes++ ;
+	unsigned char low = code[pointer] ; 
+	pointer++ ;
+	bytes++ ;
+	unsigned char high = code[pointer] ; 
+	unsigned short imm16 = ((high << 8) + low) ; 
+	sprintf(str, "%s,0x%x", s, imm16) ;
+	return str ;
 }
 
-static uint8_t decode_sub_ifa(uint8_t *buf)
+char * disassembler_t::rm8_imm8(uint32_t *err)
 {
-  struct instruction inst = {.name = "sub"};
-  uint8_t i = 0;
-
-  uint8_t b0 = buf[i++];
-
-  ASSERT((b0 >> 1) == 0b0010110);
-
-  inst.w = (b0 & 0b01) != 0; // 0000 0001
-  i += decode_displacement(&buf[i], &inst);
-
-  struct operand *dst = &inst.operands[0];
-  dst->value = registers[0][inst.w];
-  dst->mode = REGISTER;
-
-  struct operand *src = &inst.operands[1];
-  src->mode = IMMEDIATE;
-  src->data = buf[i++];
-  if (inst.w)
-  {
-    src->data |= buf[i++] << 8;
-  }
-
-  instruction_print(&inst);
-
-  return i;
+	uint32_t error = 0;
+	memset(str, '\0', 255) ;
+	char *s = rm(8, &error) ;
+	if (error)
+	{
+		*err = 1 ; 
+		return str ;
+	}
+	pointer++ ;
+	pointer-- ; 
+	pointer++;
+	bytes++ ;
+	unsigned char imm8 = code[pointer] ; 
+	sprintf(str, "%s,0x%x", s, imm8) ;
+	return str ;  
 }
 
-static uint8_t decode_cmp_rmnr(uint8_t *buf)
+char * disassembler_t::rel16(uint32_t *err)
 {
-  struct instruction inst = {.name = "cmp"};
-  uint8_t i = 0;
-
-  uint8_t b0 = buf[i++];
-  uint8_t b1 = buf[i++];
-
-  ASSERT((b0 >> 2) == 0b001110);
-
-  inst.d = (b0 & 0b00000010) >> 1;
-  inst.w = (b0 & 0b00000001);
-
-  inst.mod = (b1 & 0b11000000) >> 6;
-  inst.reg = (b1 & 0b00111000) >> 3;
-  inst.rm = (b1 & 0b00000111);
-
-  i += decode_displacement(&buf[i], &inst);
-  decode_operands(&inst);
-
-  instruction_print(&inst);
-
-  return i;
+	memset(str, '\0', 255) ;
+	pointer++ ;
+	bytes++ ;
+	unsigned char rel_low = code[pointer] ; 
+	pointer++ ;
+	bytes++ ; 
+	unsigned char rel_high = code[pointer] ; 
+	signed short rel = ((rel_high << 8) + rel_low) ;
+	unsigned short result = pointer + rel + 1 ;
+	sprintf(str, "0x%x", result) ; 
+	return str ;
 }
 
-static uint8_t decode_cmp_iwrm(uint8_t *buf)
+char * disassembler_t::rel8(uint32_t *err)
 {
-  struct instruction inst = {.name = "cmp"};
-  uint8_t i = 0;
-
-  uint8_t b0 = buf[i++];
-  uint8_t b1 = buf[i++];
-
-  ASSERT((b0 >> 2) == 0b100000);
-
-  inst.s = (b0 & 0b10) != 0; // 0000 0010
-  inst.w = (b0 & 0b01) != 0; // 0000 0001
-
-  inst.mod = (b1 >> 6) & 0b11;  // 1100 0000
-  inst.reg = (b1 >> 3) & 0b111; // 0011 1000
-  inst.rm = b1 & 0b111;         // 0000 0111
-
-  i += decode_displacement(&buf[i], &inst);
-
-  // expect: cmp ax, 1000
-  // actual: cmp (null), 232
-
-  decode_operands(&inst);
-
-  struct operand *src = &inst.operands[1];
-  src->mode = IMMEDIATE;
-  src->data = buf[i++];
-  if (inst.s == 1 && inst.w == 1)
-  {
-    src->data = (uint8_t)src->data;
-  }
-
-  instruction_print(&inst);
-
-  return i;
+	memset(str, '\0', 255) ;
+	pointer++ ;
+	bytes++ ;
+	signed char rel = code[pointer] ; 
+	unsigned short result = pointer + rel + 1 ;
+	sprintf(str, "0x%x", result) ; 
+	return str ;
 }
 
-static uint8_t decode_cmp_iwa(uint8_t *buf)
+char * disassembler_t::imm8(uint32_t *err)
 {
-  struct instruction inst = {.name = "cmp"};
-  uint8_t i = 0;
-
-  uint8_t b0 = buf[i++];
-
-  ASSERT((b0 >> 1) == 0b0011110);
-
-  inst.w = (b0 & 0b1);
-  inst.d = 1;       // implied
-  inst.reg = 0b000; // implied
-
-  decode_operands(&inst);
-
-  struct operand *src = &inst.operands[i];
-  src->mode = IMMEDIATE;
-  src->data = buf[i++];
-  if (inst.w == 1)
-  {
-    src->data |= buf[i++] << 8;
-  }
-
-  instruction_print(&inst);
-
-  return i;
+	memset(str, '\0', 255) ;
+	pointer++ ;
+	bytes++ ;
+	unsigned char imm8 = code[pointer] ; 
+	sprintf(str, "0x%x", imm8) ; 
+	return str ; 
 }
 
-static uint8_t decode_shared_100000xx(uint8_t *buf)
+char * disassembler_t::imm16(uint32_t *err)
 {
-  uint8_t i = 0;
-  uint8_t b0 = buf[i++];
-
-  ASSERT((b0 >> 2) == 0b100000);
-
-  uint8_t b1 = buf[i++];
-  uint8_t reg = (b1 & 0b00111000) >> 3;
-
-  if (reg == 0b000)
-  {
-    i = decode_add_i2rm(buf);
-  }
-  else if (reg == 0b101)
-  {
-    i = decode_sub_ifrm(buf);
-  }
-  else if (reg == 0b111)
-  {
-    i = decode_cmp_iwrm(buf);
-  }
-
-  return i;
+	memset(str, '\0', 255) ;
+	pointer++ ; 
+	bytes++ ;
+	unsigned char low = code[pointer] ; 
+	pointer++ ;
+	bytes++ ;
+	unsigned char high = code[pointer] ; 
+	unsigned short imm16 = ((high << 8) + low) ;
+	sprintf(str, "0x%x", imm16); 
+	return str ;
 }
 
-typedef uint8_t(decode_f)(uint8_t *buf);
-
-static decode_f *decode_table[] = {
-    /* mov (register/memory to/from register)
-     * 100010xx */
-    [0b10001000] = decode_mov_rm2r,
-    [0b10001001] = decode_mov_rm2r,
-    [0b10001010] = decode_mov_rm2r,
-    [0b10001011] = decode_mov_rm2r,
-    /* mov (immediate to register/memory)
-     * 1100011x */
-    [0b11000110] = decode_mov_i2rm,
-    [0b11000111] = decode_mov_i2rm,
-    /* mov (immediate to register)
-     * 1011xxxx */
-    [0b10110000] = decode_mov_i2r,
-    [0b10110001] = decode_mov_i2r,
-    [0b10110010] = decode_mov_i2r,
-    [0b10110011] = decode_mov_i2r,
-    [0b10110100] = decode_mov_i2r,
-    [0b10110101] = decode_mov_i2r,
-    [0b10110110] = decode_mov_i2r,
-    [0b10110111] = decode_mov_i2r,
-    [0b10111000] = decode_mov_i2r,
-    [0b10111001] = decode_mov_i2r,
-    [0b10111010] = decode_mov_i2r,
-    [0b10111011] = decode_mov_i2r,
-    [0b10111100] = decode_mov_i2r,
-    [0b10111101] = decode_mov_i2r,
-    [0b10111110] = decode_mov_i2r,
-    [0b10111111] = decode_mov_i2r,
-
-    /* add (reg/memory with reg to either)
-     * 000000xx */
-    [0b00000000] = decode_add_r2r,
-    [0b00000001] = decode_add_r2r,
-    [0b00000010] = decode_add_r2r,
-    [0b00000011] = decode_add_r2r,
-    /* add (immediate to reg/memory)
-     * 100000xx */
-    [0b10000000] = decode_shared_100000xx,
-    [0b10000001] = decode_shared_100000xx,
-    [0b10000010] = decode_shared_100000xx,
-    [0b10000011] = decode_shared_100000xx,
-    /* add (immediate to accumulator)
-     * 0000010x */
-    [0b00000100] = decode_add_i2a,
-    [0b00000101] = decode_add_i2a,
-
-    /* sub (reg/memory and register to either)
-     * 001010xx */
-    [0b00101000] = decode_sub_r2r,
-    [0b00101001] = decode_sub_r2r,
-    [0b00101010] = decode_sub_r2r,
-    [0b00101011] = decode_sub_r2r,
-    /* sub (immediate from reg/memory)
-     * 100000xx */
-    [0b10000000] = decode_shared_100000xx,
-    [0b10000001] = decode_shared_100000xx,
-    [0b10000010] = decode_shared_100000xx,
-    [0b10000011] = decode_shared_100000xx,
-    /* sub (immediate from accumulator)
-     * 0010110x */
-    [0b00101100] = decode_sub_ifa,
-    [0b00101101] = decode_sub_ifa,
-
-    /* cmp (reg/memory and register)
-     * 001110xx */
-    [0b00111000] = decode_cmp_rmnr,
-    [0b00111001] = decode_cmp_rmnr,
-    [0b00111010] = decode_cmp_rmnr,
-    [0b00111011] = decode_cmp_rmnr,
-
-    /* cmp (immediate and reg/memory)
-     * 100000xx */
-    [0b10000000] = decode_shared_100000xx,
-    [0b10000001] = decode_shared_100000xx,
-    [0b10000010] = decode_shared_100000xx,
-    [0b10000011] = decode_shared_100000xx,
-
-    [0b00111100] = decode_cmp_iwa,
-    [0b00111101] = decode_cmp_iwa,
-};
-
-static void decode(uint8_t *data, int len)
+char * disassembler_t::r16_rm16(uint32_t *err)
 {
-  int bytes_consumed = 0;
+	uint32_t error = 0 ;
+	memset(str, '\0', 255) ;
+	unsigned char reg = ((code[++pointer] & 0x38) >> 3 ); 
+	pointer-- ; 
+	char *s = rm(16, &error) ;
+	if (error)
+	{
+		*err = 1 ; 
+		return str ;
+	}
+	char *reg16 = regs16[reg] ; 
+	sprintf(str, "%s,%s", reg16, s) ;
+	return str ;
+}
 
-  for (int i = 0; i < len; i += bytes_consumed)
-  {
-    uint8_t *ptr = &data[i];
-    if (decode_table[*ptr])
-    {
-      bytes_consumed = decode_table[*ptr](ptr);
-      if (bytes_consumed == 0)
-      {
-        return;
-      }
-    }
-    else
-    {
-      printf("decode function for [ %02X ] not found\n", *ptr);
-      return;
-    }
-  }
+char * disassembler_t::rm8_r8(uint32_t *err)
+{
+	uint32_t error = 0; 
+	memset(str, '\0', 255) ;
+	unsigned char reg = ((code[++pointer] & 0x38) >> 3 ); 
+	pointer-- ; 
+	char *s = rm(8, &error) ;
+	if (error)
+	{
+		*err = 1 ;
+		return str ;
+	}
+	char *reg8 = regs8[reg] ; 
+	sprintf(str, "%s,%s", s, reg8) ;
+	return str ;
+}
+
+char * disassembler_t::r8_rm8(uint32_t *err)
+{
+	uint32_t error = 0 ;
+	memset(str, '\0', 255) ;
+	unsigned char reg = ((code[++pointer] & 0x38) >> 3 ); 
+	pointer-- ; 
+	char *s = rm(8, &error) ;
+	if (error)
+	{
+		*err = 1 ;
+		return str ;
+	}
+	char *reg8 = regs8[reg] ;
+	sprintf(str, "%s,%s", reg8, s) ; 
+	return str ;
+}
+
+char * disassembler_t::rm16_r16(uint32_t *err)
+{
+	uint32_t error = 0;
+	memset(str, '\0', 255) ; 
+	unsigned char reg = ((code[++pointer] & 0x38) >> 3 ); 
+	pointer-- ;
+	char *s = rm(16, &error) ;
+	if (error)
+	{
+		*err = 1 ;
+		return str ;
+	}
+	char *reg16 = regs16[reg] ; 
+	sprintf(str, "%s,%s", s, reg16) ;
+	return str ;
+}
+
+char rm_str[255] ; 
+
+char * disassembler_t::rm(uint8_t type, uint32_t *error)
+{
+	memset(rm_str, '\0', 255) ; 
+	bytes++ ;
+	unsigned char rm_byte = code[++pointer] ; 
+	unsigned char mod = (rm_byte >> 6) ; 
+	unsigned char rm8 = (rm_byte & 7) ; 
+	char disp_str[255] ; 
+	memset(rm_str, '\0', 255) ; 
+	memset(disp_str, '\0', 255) ;
+	char segment[10] ;
+	memset(segment, '\0', 10) ;
+	if (segment_override >= 0)
+	{
+		switch (segment_override)
+		{
+			case ES: sprintf(segment, "es:") ; break ;
+			case CS: sprintf(segment, "cs:") ; break ;
+			case SS: sprintf(segment, "ss:") ; break ;
+			case DS: sprintf(segment, "ds:") ; break ;
+		}
+	}
+	switch (mod)
+	{
+		case 0x0:
+		{
+		if (rm8 == 0x06)
+		{
+			pointer++ ; 
+			bytes++ ;
+			unsigned char low = code[pointer] ;
+			pointer++ ; 
+			bytes++ ;
+			unsigned char high = code[pointer] ; 
+			unsigned short disp = ((high << 8) + low) ; 
+			char sign = '+' ;
+			sprintf(disp_str, "%c0x%x", sign, disp) ;
+		}
+		else sprintf(disp_str, "") ;
+		} break ; 
+		case 0x01:
+		{
+			signed char disp_low = code[++pointer] ; 
+			signed short disp = disp_low ; 
+			bytes++ ;
+			char sign = '+' ; 
+			if (disp < 0) 
+			{
+				sign = '-' ;
+				disp = ~disp ;
+				disp++ ;
+			}
+			sprintf(disp_str, "%c0x%x", sign, disp) ; 
+		} break ;
+		case 0x02:
+		{
+			pointer++ ; 
+			bytes++ ;
+			unsigned char low = code[pointer] ;
+			pointer++ ; 
+			bytes++ ;
+			unsigned char high = code[pointer] ;
+			unsigned short disp = ((high << 8) + low) ; 
+			char sign = '+' ;
+			sprintf(disp_str, "%c0x%x", sign, disp) ;
+		} break ;
+		case 0x03:
+		{
+			if (type == 8)
+			{
+ 				return regs8[rm8] ;
+			}
+			if (type == 16)
+			{
+				return regs16[rm8]; 
+			}
+		} break ;
+	}
+	switch (rm8)
+	{
+		case 0x00: sprintf(rm_str, "[%sbx+si%s]", segment, disp_str) ; break ;
+		case 0x01: sprintf(rm_str, "[%sbx+di%s]", segment, disp_str) ; break ;
+		case 0x02: sprintf(rm_str, "[%sbp+si%s]", segment, disp_str) ; break ;
+		case 0x03: sprintf(rm_str, "[%sbp+di%s]", segment, disp_str) ; break ;
+		case 0x04: sprintf(rm_str, "[%ssi%s]", segment, disp_str) ; break ;
+		case 0x05: sprintf(rm_str, "[%sdi%s]", segment, disp_str) ; break ;
+		case 0x06: sprintf(rm_str, "[%sbp%s]", segment, disp_str) ; break ; 
+		case 0x07: sprintf(rm_str, "[%sbx%s]", segment, disp_str) ; break ;
+	}
+	return rm_str ; 
 }

@@ -14,6 +14,21 @@
  * Breakpoints (?)
  * Stack (?)
  */
+typedef struct rect_t
+{
+  uint32_t left;
+  uint32_t top;
+  uint32_t width;
+  uint32_t height;
+  rect_t& operator=(rect_t& rvalue)
+  {
+    this->left    = rvalue.left;
+    this->top     = rvalue.top;
+    this->width   = rvalue.width;
+    this->height  = rvalue.height;
+    return *this;
+  }
+} rect_t;
 
 class browser_t
 {

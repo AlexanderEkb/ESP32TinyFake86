@@ -1,7 +1,7 @@
 #ifndef _DEBUGGER_REGISTERS_H_
 #define _DEBUGGER_REGISTERS_H_
 
-#include "debugger/browser.h"
+#include "browser.h"
 #include "cpu/cpu.h"
 
 class regBrowser_t : public browser_t
