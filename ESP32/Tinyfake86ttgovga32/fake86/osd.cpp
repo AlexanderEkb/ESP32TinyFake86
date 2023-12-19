@@ -10,7 +10,7 @@
 #include "video/CompositeColorOutput.h"
 #include "video/render.h"
 #include "video/gb_sdl_font8x8.h"
-#include "service/screen.h"
+#include "service/service.h"
 #include <Esp.h>
 #include <string.h>
 #include "stats.h"

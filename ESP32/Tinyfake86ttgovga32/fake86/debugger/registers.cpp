@@ -1,7 +1,9 @@
 #include "registers.h"
 #include "io/keys.h"
 #include <stdio.h>
-#include <service/screen.h>
+#include <service/service.h>
+
+constexpr char * regBrowser_t::regNames[static_cast<uint32_t>(_dbgReg__COUNT)] ;
 
 regBrowser_t::regBrowser_t()
 {
@@ -13,9 +15,14 @@ regBrowser_t::regBrowser_t()
   }
 }
 
-void regBrowser_t::init(rect_t _area)
+void regBrowser_t::init()
 {
-  area = _area;
+  area.left = 0;
+  area.top = 0;
+  area.width = 10*FONT_WIDTH;
+  area.height = 13*FONT_HEIGHT;
+  svcBar(area.left, area.top, area.height, area.width, BG_INACTIVE);
+  void svcClearScreen(uint8_t color);
   // Clear screen area
 }
 
@@ -54,13 +61,8 @@ void regBrowser_t::repaint()
     char buffer[LENGTH];
     snprintf(buffer, LENGTH, "%s: %04X", regNames[i], registers[i].value);
 
-    static const uint32_t FG_ACTIVE   = 0x0F;
-    static const uint32_t FG_CHANGED  = 0x48;
-    static const uint32_t FG_INACTIVE = 0x0C;
-    static const uint32_t BG_ACTIVE   = 0x00;
-    static const uint32_t BG_INACTIVE = 0x04;
     const uint32_t foreground         = registers[i].hasChanged?FG_CHANGED:(isActive?FG_ACTIVE:FG_INACTIVE);
     const uint32_t background         = isActive?BG_ACTIVE:BG_INACTIVE;
-    svcPrintText(buffer, area.left, i*8+area.top, foreground, background);    
+    svcPrintTextPetite(buffer, area.left, i*8+area.top, foreground, background);    
   }
 }
