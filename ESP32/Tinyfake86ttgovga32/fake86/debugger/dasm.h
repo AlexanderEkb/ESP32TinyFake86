@@ -28,4 +28,40 @@ class code_t
   private:
 };
 
+class disassembler_t
+{
+  public:
+    disassembler_t();
+    void decode(uint8_t *buffer, uint32_t length);
+  private:
+    typedef enum segment_registers : int32_t {NO = -1, ES=0, CS, SS, DS} ; 
+    uint32_t length;
+    segment_registers segment_override = NO;
+    uint8_t * code;
+    uint32_t pointer;
+
+    uint32_t parse(char *instrTemplate, char*(disassembler_t::*func)(uint32_t *));
+    char *rm(uint8_t type, uint32_t *error);
+    uint32_t parse_noop(char *s);
+    char *moffs16(uint32_t *err);
+    char *rm8(uint32_t *err);
+    char *rm16(uint32_t *err);
+    char *call_inter(uint32_t *err);
+    char *m16(uint32_t *err);
+    char *sreg_rm16(uint32_t *err);
+    char *rm16_sreg(uint32_t *err);
+    char *rm16_imm8(uint32_t *err);
+    char *rm16_imm16(uint32_t *err);
+    char *rm8_imm8(uint32_t *err);
+    char *rel16(uint32_t *err);
+    char *rel8(uint32_t *err);
+    char *imm8(uint32_t *err);
+    char *imm16(uint32_t *err);
+    char *r16_rm16(uint32_t *err);
+    char *rm8_r8(uint32_t *err);
+    char *r8_rm8(uint32_t *err);
+    char *rm16_r16(uint32_t *err);
+
+};
+
 #endif /* _DEBUGGER_DASM_H_ */
