@@ -3,3 +3,6 @@ ESP32/Tinyfake86ttgovga32/CMakeLists.txt
 ESP32/Tinyfake86ttgovga32/sdkconfig.esp-wrover-kit
 ESP32/Tinyfake86ttgovga32/.vscode/launch.json
 ESP32/Tinyfake86ttgovga32/fake86/CMakeLists.txt
+ESP32/Tinyfake86ttgovga32/.vscode/c_cpp_properties.json
+ESP32/Tinyfake86ttgovga32/.vscode/extensions.json
+ESP32/Tinyfake86ttgovga32/.vscode/launch.json
