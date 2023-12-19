@@ -8,32 +8,25 @@ static char *regs8[8] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"} ;
 static char *segreg[4] = {"es", "cs", "ss", "ds"} ;
 
  
-uint32_t bytes = 0 ;
-
-uint32_t rm_segment_override = -1 ; 
-
-uint32_t disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)(uint32_t *))
+void disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)(uint32_t *))
 {
-	bytes = 1;
+	bytesToPrint = 1;
 	uint32_t temp_j = pointer; 
 	uint32_t error = 0 ;
 	char *result = (this->*func)(&error) ;
 	if (error)
 	{
 		char tmp_buffer[20] ; 
-		memset(tmp_buffer, '\0', 20) ;
-		unsigned char tmp_char = code[pointer] ; 
-		sprintf(tmp_buffer, "db 0x%X\n", tmp_char) ;
+		sprintf(tmp_buffer, "db 0x%X\n", code[pointer]) ;
 		parse_noop(tmp_buffer) ;
-		return 0 ;
+		return;
 	}
-	uint32_t i=0;
-	uint32_t k = 16 ;
+	uint32_t spacesToFill = 16 ;
 	uint32_t t = 0 ;
 	if (segment_override == NO && rm_segment_override >= 0)
 	{
 		t = 1; 
-		k = k - 2 ;
+		spacesToFill -= 2 ;
 		switch (rm_segment_override)
 		{
 			case ES: printf("%02X", 0x26) ;	 break ;
@@ -41,7 +34,7 @@ uint32_t disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)
 			case SS: printf("%02X", 0x36) ;	 break ;
 			case DS: printf("%02X", 0x3E) ;	 break ;
 		} 
-		rm_segment_override = -1 ; 
+		rm_segment_override = NO ; 
 		segment_override = NO ;
 	}
 	char segment[20] ;
@@ -59,7 +52,7 @@ uint32_t disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)
 	}
 	if (segment_override >= 0 )
 	{
-		k = k - 2 ;
+		spacesToFill = spacesToFill - 2 ;
 		switch (segment_override)
 		{
 			case ES: printf("%02X", 0x26) ;	 break ;
@@ -68,15 +61,15 @@ uint32_t disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)
 			case DS: printf("%02X", 0x3E) ;	 break ;
 		}
 		segment_override = NO ;
-		rm_segment_override = -1 ; 
+		rm_segment_override = NO ; 
 	}
-	for (i=0; i < bytes; i++)
+	for (uint32_t i=0; i < bytesToPrint; i++)
 	{
-		unsigned char byte = code[temp_j+i]  ; 
+		uint8_t byte = code[temp_j+i]  ; 
 		printf("%02X", byte) ;	
 	}
-	k = (k - (bytes*2))  ; 
-	for (i=0; i < k; i++) printf(" ") ;
+	spacesToFill = (spacesToFill - (bytesToPrint*2))  ; 
+	for (uint32_t i=0; i < spacesToFill; i++) printf(" ") ;
 	if (t == 1)
 	{
 		char tmp_string[255] ; 
@@ -92,55 +85,56 @@ uint32_t disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)
 
 uint32_t disassembler_t::parse_noop(char *instrTemplate)
 {
-	uint32_t k = 16 ; 
+	uint32_t spacesToFill = 12; 
 	if (segment_override >= 0) 
 	{
-			switch (segment_override)
+			switch (segment_override)               // OUT: 2. Bytes
 			{
 				case ES: printf("%02X", 0x26) ;	 break ;
 				case CS: printf("%02X", 0x2E) ;	 break ;
 				case SS: printf("%02X", 0x36) ;	 break ;
 				case DS: printf("%02X", 0x3E) ;	 break ;
 			}
-			k = k - 2 ; 
+			spacesToFill -= 2 ; 
 	}
-	unsigned char tmp_char = code[pointer] ; 
-	printf("%02X", tmp_char) ;
+	uint8_t tmp_char = code[pointer] ; 
+	printf("%02X", tmp_char) ;                  // OUT: 2. Bytes
 
-	uint32_t i= 0 ;
-	k = k - 1*2 ; 
-	for (i=0; i < k; i++) printf(" ") ;
+	for (uint32_t i=0; i < spacesToFill; i++) printf(" ") ;
 
 	if (segment_override >= 0)
 	{
-		char segment[20] ;
-		memset(segment, '\0', 20) ;
 		switch (segment_override)
 		{
-			case ES: sprintf(segment, "es") ; break ;
-			case CS: sprintf(segment, "cs") ; break ;
-			case SS: sprintf(segment, "ss") ; break ;
-			case DS: sprintf(segment, "ds") ; break ;
+			case ES: printf("es") ; break ;         // OUT: (3)Segment override
+			case CS: printf("cs") ; break ;
+			case SS: printf("ss") ; break ;
+			case DS: printf("ds") ; break ;
 		}
-		printf("%s %s", segment, instrTemplate ) ; 
 		segment_override = NO ;
-		rm_segment_override = -1 ; 
+		rm_segment_override = NO ; 
 	}
-	else
-	{
-		printf("%s", instrTemplate) ; 
-	}
+  printf("%s", instrTemplate) ;               // OUT: (4)Instruction
 }
 
+/*
+1         2           3  4
+00000000  3E51        ds push cx
+0000C0DE  
+*/
 void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 {
   code = buffer;
   this->length = length;
+  segment_override = NO;
+  rm_segment_override = NO;
+  bytesToPrint = 0;
 	pointer = 0; 
+
 	while (pointer < length)
 	{
 		if (segment_override == NO)
-			printf("%08X  ", pointer) ;
+			printf("%08X  ", pointer);  // OUT: 1 - address
 		switch (code[pointer])
 		{
 			case 0x00: parse("add %s\n", &disassembler_t::rm8_r8) ; break ;
@@ -274,9 +268,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			case 0x7F: parse("jg %s\n", &disassembler_t::rel8) ; break ;
 			case 0x80:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ; 
-				unsigned char t = 0 ;
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("add %s\n", &disassembler_t::rm8_imm8) ; break ;
@@ -293,9 +286,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			} break ;
 			case 0x81:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ; 
-				unsigned char t = 0 ;
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("add %s\n", &disassembler_t::rm16_imm16) ; break ;
@@ -312,9 +304,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			} break ;
 			case 0x83:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ;
-				unsigned char t = 0 ;
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("add %s\n", &disassembler_t::rm16_imm8) ; break ;
@@ -345,9 +336,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			}
 			case 0x8F:
 			{
-			  	unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ; 
-				unsigned char t = 0 ;
+			  	uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("pop word %s\n", &disassembler_t::m16) ; break ;
@@ -417,9 +407,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			case 0xCF: parse_noop("iret\n") ; break ;
 			case 0xD0:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ;
-				unsigned char t = 0 ;
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("rol %s,1\n", &disassembler_t::rm8) ; break ;
@@ -435,9 +424,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			} break ;
 			case 0xD1:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ;	
-				unsigned char t = 0 ;
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("rol %s,1\n", &disassembler_t::rm16) ; break ;
@@ -453,9 +441,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			} break ;
 			case 0xD2:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ;	
-				unsigned char t = 0 ;
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("rol %s,cl\n", &disassembler_t::rm8) ; break ;
@@ -471,9 +458,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			} break ;
 			case 0xD3:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ;	
-				unsigned char t = 0 ;
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("rol %s,cl\n", &disassembler_t::rm16) ; break ;
@@ -514,9 +500,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			case 0xF5: parse_noop("cmc\n") ; break ;
 			case 0xF6:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ;	
-				unsigned char t = 0 ;
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("test %s\n", &disassembler_t::rm8_imm8) ; break ;
@@ -532,9 +517,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			} break ;
 			case 0xF7:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				unsigned char t = 0 ;
-				pointer-- ;	
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("test %s\n", &disassembler_t::rm16_imm16) ; break ;
@@ -556,9 +540,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			case 0xFD: parse_noop("std\n") ; break ;
 			case 0xFE:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ;
-				unsigned char t = 0 ;	
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;	
 				switch (opcode)
 				{
 					case 0x00: parse("inc %s\n", &disassembler_t::rm8) ; break ;
@@ -569,9 +552,8 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t length)
 			} break ;
 			case 0xFF:
 			{
-				unsigned char opcode = ((code[++pointer] & 0x38) >> 3 ); 
-				pointer-- ;	
-				unsigned char t = 0 ;
+				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t t = 0 ;
 				switch (opcode)
 				{
 					case 0x00: parse("inc %s\n", &disassembler_t::rm16) ; break ;
@@ -618,40 +600,28 @@ char * disassembler_t::moffs16(uint32_t *err)
 		segment_override = NO ;
 	}
 	pointer++ ; 
-	bytes++ ;
-	unsigned char low = code[pointer] ; 
+	bytesToPrint++ ;
+	uint8_t low = code[pointer] ; 
 	pointer++ ;
-	bytes++ ; 
-	unsigned char high = code[pointer] ; 
-	unsigned short imm16 = ((high << 8) + low) ;
+	bytesToPrint++ ; 
+	uint8_t high = code[pointer] ; 
+	uint16_t imm16 = ((high << 8) + low) ;
 	sprintf(str, "[%s0x%x]", segment, imm16) ;
 	return str ;
 }
 
 char * disassembler_t::rm8(uint32_t *err)
 {
-	uint32_t error = 0 ;
 	memset(str, '\0', 255) ;
-	char *s =  rm(8, &error)  ;
-	if (error)
-	{
-		*err = 1 ;
-		return str ;
-	}
+	char *s =  rm(8)  ;
 	sprintf(str, "%s", s) ; 
 	return str ;
 }
 
 char * disassembler_t::rm16(uint32_t *err)
 {
-	uint32_t error = 0; 
 	memset(str, '\0', 255) ;
-	char *s =  rm(16, &error)  ;
-	if (error)
-	{
-		*err = error ;
-		return str; 
-	}
+	char *s =  rm(16)  ;
 	sprintf(str, "%s", s) ; 
 	return str ;
 }
@@ -660,49 +630,36 @@ char * disassembler_t::call_inter(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
 	pointer++ ;
-	bytes++ ; 
-	unsigned char offset_low = code[pointer] ; 
+	bytesToPrint++ ; 
+	uint8_t offset_low = code[pointer] ; 
 	pointer++ ;
-	bytes++ ;
-	unsigned char offset_high = code[pointer] ; 
+	bytesToPrint++ ;
+	uint8_t offset_high = code[pointer] ; 
 	pointer++ ;
-	bytes++ ;
-	unsigned char seg_low = code[pointer] ; 
+	bytesToPrint++ ;
+	uint8_t seg_low = code[pointer] ; 
 	pointer++ ;
-	bytes++ ;
-	unsigned char seg_high = code[pointer] ; 
-	unsigned short offset = ((offset_high << 8) + offset_low) ; 
-	unsigned short seg = ((seg_high << 8) + seg_low) ;
+	bytesToPrint++ ;
+	uint8_t seg_high = code[pointer] ; 
+	uint16_t offset = ((offset_high << 8) + offset_low) ; 
+	uint16_t seg = ((seg_high << 8) + seg_low) ;
 	sprintf(str,"0x%x:0x%x", seg, offset) ;
 	return str ;	
 }
 
 char * disassembler_t::m16(uint32_t *err)
 {
-	uint32_t error = 0; 
 	memset(str, '\0', 255) ;
-	char *s =  rm(16, &error)  ;
-	if (error)
-	{
-		*err = 1 ;
-		return str ;
-	}
+	char *s =  rm(16)  ;
 	sprintf(str,"%s", s) ;
 	return str ;
 }
 
 char * disassembler_t::sreg_rm16(uint32_t *error) 
 {
-	uint32_t err = 0 ;
 	memset(str, '\0', 255) ;
-	unsigned char reg = ((code[++pointer] & 0x38) >> 3) ;
-	pointer-- ;
-	char *s =  rm(16, &err)  ;
-	if (err)
-	{
-		*error = 1 ;
-		return str ;
-	}
+	uint8_t reg = ((code[pointer+1] & 0x38) >> 3) ;
+	char *s =  rm(16)  ;
 	if (reg < 4)
 	{
 		char *sreg = segreg[reg] ;
@@ -714,16 +671,9 @@ char * disassembler_t::sreg_rm16(uint32_t *error)
 
 char * disassembler_t::rm16_sreg(uint32_t *error)
 {
-	uint32_t err = 0; 
 	memset(str, '\0', 255) ;
-	unsigned char reg = ((code[++pointer] & 0x38) >> 3) ;
-	pointer-- ; 
-	char *s =  rm(16, &err)  ;
-	if (err)
-	{
-		*error = 1 ;
-		return str ;
-	}
+	uint8_t reg = ((code[pointer+1] & 0x38) >> 3) ;
+	char *s =  rm(16)  ;
 	if (reg < 4)
 	{
 		char *sreg = segreg[reg] ;
@@ -735,19 +685,11 @@ char * disassembler_t::rm16_sreg(uint32_t *error)
 
 char * disassembler_t::rm16_imm8(uint32_t *err)
 {
-	uint32_t error = 0 ;
 	memset(str, '\0', 255) ;
-	char *s = rm(16, &error) ;
-	if (error)
-	{
-		*err = 1 ; 
-		return str ;
-	}
-	pointer++ ;
-	pointer--;
+	char *s = rm(16) ;
 	pointer++; 
-	bytes++ ;
-	signed char imm8 = code[pointer] ; 
+	bytesToPrint++ ;
+	int8_t imm8 = code[pointer] ; 
 	char sign = '+' ;
 	if (imm8 < 0) 
 	{
@@ -760,42 +702,26 @@ char * disassembler_t::rm16_imm8(uint32_t *err)
 
 char * disassembler_t::rm16_imm16(uint32_t *err)
 {
-	uint32_t error = 0; 
 	memset(str, '\0', 255) ;
-	char *s = rm(16, &error) ;
-	if (error)
-	{
-		*err = 1 ; 
-		return str ;
-	}
-	pointer++ ;
-	pointer-- ;
+	char *s = rm(16) ;
 	pointer++;
-	bytes++ ;
-	unsigned char low = code[pointer] ; 
+	bytesToPrint++ ;
+	uint8_t low = code[pointer] ; 
 	pointer++ ;
-	bytes++ ;
-	unsigned char high = code[pointer] ; 
-	unsigned short imm16 = ((high << 8) + low) ; 
+	bytesToPrint++ ;
+	uint8_t high = code[pointer] ; 
+	uint16_t imm16 = ((high << 8) + low) ; 
 	sprintf(str, "%s,0x%x", s, imm16) ;
 	return str ;
 }
 
 char * disassembler_t::rm8_imm8(uint32_t *err)
 {
-	uint32_t error = 0;
 	memset(str, '\0', 255) ;
-	char *s = rm(8, &error) ;
-	if (error)
-	{
-		*err = 1 ; 
-		return str ;
-	}
-	pointer++ ;
-	pointer-- ; 
+	char *s = rm(8) ;
 	pointer++;
-	bytes++ ;
-	unsigned char imm8 = code[pointer] ; 
+	bytesToPrint++ ;
+	uint8_t imm8 = code[pointer] ; 
 	sprintf(str, "%s,0x%x", s, imm8) ;
 	return str ;  
 }
@@ -804,13 +730,13 @@ char * disassembler_t::rel16(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
 	pointer++ ;
-	bytes++ ;
-	unsigned char rel_low = code[pointer] ; 
+	bytesToPrint++ ;
+	uint8_t rel_low = code[pointer] ; 
 	pointer++ ;
-	bytes++ ; 
-	unsigned char rel_high = code[pointer] ; 
-	signed short rel = ((rel_high << 8) + rel_low) ;
-	unsigned short result = pointer + rel + 1 ;
+	bytesToPrint++ ; 
+	uint8_t rel_high = code[pointer] ; 
+	int16_t rel = ((rel_high << 8) + rel_low) ;
+	uint16_t result = pointer + rel + 1 ;
 	sprintf(str, "0x%x", result) ; 
 	return str ;
 }
@@ -819,9 +745,9 @@ char * disassembler_t::rel8(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
 	pointer++ ;
-	bytes++ ;
-	signed char rel = code[pointer] ; 
-	unsigned short result = pointer + rel + 1 ;
+	bytesToPrint++ ;
+	int8_t rel = code[pointer] ; 
+	uint16_t result = pointer + rel + 1 ;
 	sprintf(str, "0x%x", result) ; 
 	return str ;
 }
@@ -830,8 +756,8 @@ char * disassembler_t::imm8(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
 	pointer++ ;
-	bytes++ ;
-	unsigned char imm8 = code[pointer] ; 
+	bytesToPrint++ ;
+	uint8_t imm8 = code[pointer] ; 
 	sprintf(str, "0x%x", imm8) ; 
 	return str ; 
 }
@@ -840,28 +766,21 @@ char * disassembler_t::imm16(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
 	pointer++ ; 
-	bytes++ ;
-	unsigned char low = code[pointer] ; 
+	bytesToPrint++ ;
+	uint8_t low = code[pointer] ; 
 	pointer++ ;
-	bytes++ ;
-	unsigned char high = code[pointer] ; 
-	unsigned short imm16 = ((high << 8) + low) ;
+	bytesToPrint++ ;
+	uint8_t high = code[pointer] ; 
+	uint16_t imm16 = ((high << 8) + low) ;
 	sprintf(str, "0x%x", imm16); 
 	return str ;
 }
 
 char * disassembler_t::r16_rm16(uint32_t *err)
 {
-	uint32_t error = 0 ;
 	memset(str, '\0', 255) ;
-	unsigned char reg = ((code[++pointer] & 0x38) >> 3 ); 
-	pointer-- ; 
-	char *s = rm(16, &error) ;
-	if (error)
-	{
-		*err = 1 ; 
-		return str ;
-	}
+	uint8_t reg = ((code[pointer+1] & 0x38) >> 3 ); 
+	char *s = rm(16) ;
 	char *reg16 = regs16[reg] ; 
 	sprintf(str, "%s,%s", reg16, s) ;
 	return str ;
@@ -869,16 +788,9 @@ char * disassembler_t::r16_rm16(uint32_t *err)
 
 char * disassembler_t::rm8_r8(uint32_t *err)
 {
-	uint32_t error = 0; 
 	memset(str, '\0', 255) ;
-	unsigned char reg = ((code[++pointer] & 0x38) >> 3 ); 
-	pointer-- ; 
-	char *s = rm(8, &error) ;
-	if (error)
-	{
-		*err = 1 ;
-		return str ;
-	}
+	uint8_t reg = ((code[pointer+1] & 0x38) >> 3 ); 
+	char *s = rm(8) ;
 	char *reg8 = regs8[reg] ; 
 	sprintf(str, "%s,%s", s, reg8) ;
 	return str ;
@@ -886,16 +798,9 @@ char * disassembler_t::rm8_r8(uint32_t *err)
 
 char * disassembler_t::r8_rm8(uint32_t *err)
 {
-	uint32_t error = 0 ;
 	memset(str, '\0', 255) ;
-	unsigned char reg = ((code[++pointer] & 0x38) >> 3 ); 
-	pointer-- ; 
-	char *s = rm(8, &error) ;
-	if (error)
-	{
-		*err = 1 ;
-		return str ;
-	}
+	uint8_t reg = ((code[pointer+1] & 0x38) >> 3 ); 
+	char *s = rm(8) ;
 	char *reg8 = regs8[reg] ;
 	sprintf(str, "%s,%s", reg8, s) ; 
 	return str ;
@@ -903,16 +808,9 @@ char * disassembler_t::r8_rm8(uint32_t *err)
 
 char * disassembler_t::rm16_r16(uint32_t *err)
 {
-	uint32_t error = 0;
 	memset(str, '\0', 255) ; 
-	unsigned char reg = ((code[++pointer] & 0x38) >> 3 ); 
-	pointer-- ;
-	char *s = rm(16, &error) ;
-	if (error)
-	{
-		*err = 1 ;
-		return str ;
-	}
+	uint8_t reg = ((code[pointer+1] & 0x38) >> 3 ); 
+	char *s = rm(16) ;
 	char *reg16 = regs16[reg] ; 
 	sprintf(str, "%s,%s", s, reg16) ;
 	return str ;
@@ -920,18 +818,14 @@ char * disassembler_t::rm16_r16(uint32_t *err)
 
 char rm_str[255] ; 
 
-char * disassembler_t::rm(uint8_t type, uint32_t *error)
+char * disassembler_t::rm(uint8_t type)
 {
+	bytesToPrint++ ;
+	uint8_t rm_byte = code[++pointer] ; 
+	uint8_t mod = (rm_byte >> 6) ; 
+	uint8_t rm8 = (rm_byte & 7) ; 
+	char segment[10] = {'\0'};
 	memset(rm_str, '\0', 255) ; 
-	bytes++ ;
-	unsigned char rm_byte = code[++pointer] ; 
-	unsigned char mod = (rm_byte >> 6) ; 
-	unsigned char rm8 = (rm_byte & 7) ; 
-	char disp_str[255] ; 
-	memset(rm_str, '\0', 255) ; 
-	memset(disp_str, '\0', 255) ;
-	char segment[10] ;
-	memset(segment, '\0', 10) ;
 	if (segment_override >= 0)
 	{
 		switch (segment_override)
@@ -942,29 +836,25 @@ char * disassembler_t::rm(uint8_t type, uint32_t *error)
 			case DS: sprintf(segment, "ds:") ; break ;
 		}
 	}
+	char displacement[255] = {'\0'};
 	switch (mod)
 	{
 		case 0x0:
 		{
-		if (rm8 == 0x06)
-		{
-			pointer++ ; 
-			bytes++ ;
-			unsigned char low = code[pointer] ;
-			pointer++ ; 
-			bytes++ ;
-			unsigned char high = code[pointer] ; 
-			unsigned short disp = ((high << 8) + low) ; 
-			char sign = '+' ;
-			sprintf(disp_str, "%c0x%x", sign, disp) ;
-		}
-		else sprintf(disp_str, "") ;
+      if (rm8 == 0x06)
+      {
+        bytesToPrint += 2;
+        uint8_t low   = code[++pointer] ;
+        uint8_t high  = code[++pointer] ; 
+        uint16_t disp = ((high << 8) + low) ; 
+        sprintf(displacement, "+%Xh", disp) ;
+      }
+      else sprintf(displacement, "") ;
 		} break ; 
 		case 0x01:
 		{
-			signed char disp_low = code[++pointer] ; 
-			signed short disp = disp_low ; 
-			bytes++ ;
+			int16_t disp = code[++pointer]; 
+			bytesToPrint++ ;
 			char sign = '+' ; 
 			if (disp < 0) 
 			{
@@ -972,19 +862,15 @@ char * disassembler_t::rm(uint8_t type, uint32_t *error)
 				disp = ~disp ;
 				disp++ ;
 			}
-			sprintf(disp_str, "%c0x%x", sign, disp) ; 
+			sprintf(displacement, "%c%Xh", sign, disp) ; 
 		} break ;
 		case 0x02:
 		{
-			pointer++ ; 
-			bytes++ ;
-			unsigned char low = code[pointer] ;
-			pointer++ ; 
-			bytes++ ;
-			unsigned char high = code[pointer] ;
-			unsigned short disp = ((high << 8) + low) ; 
-			char sign = '+' ;
-			sprintf(disp_str, "%c0x%x", sign, disp) ;
+			bytesToPrint += 2;
+			uint8_t low   = code[++pointer] ;
+			uint8_t high  = code[++pointer] ;
+			uint16_t disp = ((high << 8) + low) ; 
+			sprintf(displacement, "+%Xh", disp) ;
 		} break ;
 		case 0x03:
 		{
@@ -1000,14 +886,14 @@ char * disassembler_t::rm(uint8_t type, uint32_t *error)
 	}
 	switch (rm8)
 	{
-		case 0x00: sprintf(rm_str, "[%sbx+si%s]", segment, disp_str) ; break ;
-		case 0x01: sprintf(rm_str, "[%sbx+di%s]", segment, disp_str) ; break ;
-		case 0x02: sprintf(rm_str, "[%sbp+si%s]", segment, disp_str) ; break ;
-		case 0x03: sprintf(rm_str, "[%sbp+di%s]", segment, disp_str) ; break ;
-		case 0x04: sprintf(rm_str, "[%ssi%s]", segment, disp_str) ; break ;
-		case 0x05: sprintf(rm_str, "[%sdi%s]", segment, disp_str) ; break ;
-		case 0x06: sprintf(rm_str, "[%sbp%s]", segment, disp_str) ; break ; 
-		case 0x07: sprintf(rm_str, "[%sbx%s]", segment, disp_str) ; break ;
+		case 0x00: sprintf(rm_str, "[%sbx+si%s]", segment, displacement) ; break ;
+		case 0x01: sprintf(rm_str, "[%sbx+di%s]", segment, displacement) ; break ;
+		case 0x02: sprintf(rm_str, "[%sbp+si%s]", segment, displacement) ; break ;
+		case 0x03: sprintf(rm_str, "[%sbp+di%s]", segment, displacement) ; break ;
+		case 0x04: sprintf(rm_str, "[%ssi%s]", segment, displacement) ; break ;
+		case 0x05: sprintf(rm_str, "[%sdi%s]", segment, displacement) ; break ;
+		case 0x06: sprintf(rm_str, "[%sbp%s]", segment, displacement) ; break ; 
+		case 0x07: sprintf(rm_str, "[%sbx%s]", segment, displacement) ; break ;
 	}
 	return rm_str ; 
 }

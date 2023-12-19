@@ -37,11 +37,13 @@ class disassembler_t
     typedef enum segment_registers : int32_t {NO = -1, ES=0, CS, SS, DS} ; 
     uint32_t length;
     segment_registers segment_override = NO;
+    segment_registers rm_segment_override = NO;
+    uint32_t bytesToPrint = 0;
     uint8_t * code;
     uint32_t pointer;
 
-    uint32_t parse(char *instrTemplate, char*(disassembler_t::*func)(uint32_t *));
-    char *rm(uint8_t type, uint32_t *error);
+    void parse(char *instrTemplate, char*(disassembler_t::*func)(uint32_t *));
+    char *rm(uint8_t type);
     uint32_t parse_noop(char *s);
     char *moffs16(uint32_t *err);
     char *rm8(uint32_t *err);
