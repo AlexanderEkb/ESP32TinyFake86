@@ -3,28 +3,22 @@
 
 #include "debugger.h"
 
-typedef struct MEM_ADDR
-{
-  uint16_t segment;
-  uint16_t offset;
-  MEM_ADDR(uint16_t seg, uint16_t off) :
-    segment(seg),
-    offset(off) {}
-  uint32_t linear() {return ((uint32_t)segment << 4) + offset;}
-} MEM_ADDR;
-
 class line_t
 {
   public:
-    MEM_ADDR addr;
+    DBG_MEM_ADDR addr;
+    uint8_t length;
+    uint8_t prefixes;
     line_t();
+    int32_t print(...) {return 0;};
 };
 
 class code_t
 {
   public:
     code_t();
-    line_t * add(uint16_t seg, uint16_t off);
+    void clear();
+    line_t * newLine(const DBG_MEM_ADDR addr) {return nullptr;};
   private:
 };
 
@@ -32,18 +26,21 @@ class disassembler_t
 {
   public:
     disassembler_t();
-    void decode(uint8_t *buffer, uint32_t linesToDo);
+    void decode(DBG_MEM_ADDR origin, int32_t length);
+    code_t _code;
   private:
     typedef enum segment_registers : int32_t {NO = -1, ES=0, CS, SS, DS} ; 
     uint32_t length;
     segment_registers segment_override = NO;
     segment_registers rm_segment_override = NO;
+    uint8_t opcode;
     uint32_t bytesToPrint = 0;
-    uint8_t * code;
-    uint32_t pointer;
-    char line[256];
-    uint32_t linePtr;
+    DBG_MEM_ADDR pointer;
+    line_t * line;
 
+    uint8_t fetchByte() {bytesToPrint++; uint8_t result = read86(pointer.linear()); pointer++; return result;};
+    uint8_t lookByte()  {return read86(pointer.linear());};
+    uint8_t lookNext()  {return read86(pointer.linear() + 1);};
     void parse(char *instrTemplate, char*(disassembler_t::*func)(uint32_t *));
     char *rm(uint8_t type);
     uint32_t parse_noop(char *s);
@@ -65,8 +62,6 @@ class disassembler_t
     char *rm8_r8(uint32_t *err);
     char *r8_rm8(uint32_t *err);
     char *rm16_r16(uint32_t *err);
-
-    uint32_t dump(...);
 };
 
 #endif /* _DEBUGGER_DASM_H_ */

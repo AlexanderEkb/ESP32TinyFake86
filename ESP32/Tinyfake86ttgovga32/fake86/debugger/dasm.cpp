@@ -7,17 +7,20 @@ static char *regs16[8] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"} ;
 static char *regs8[8] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"} ;
 static char *segreg[4] = {"es", "cs", "ss", "ds"} ;
 
+int32_t operator-(DBG_MEM_ADDR& lhs, DBG_MEM_ADDR& rhs)
+{
+  return (lhs.linear() - rhs.linear());
+}
  
 void disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)(uint32_t *))
 {
-	bytesToPrint = 1;
-	uint32_t temp_j = pointer; 
+	// bytesToPrint = 1;
 	uint32_t error = 0 ;
 	char *result = (this->*func)(&error) ;
 	if (error)
 	{
 		char tmp_buffer[20] ; 
-		sprintf(tmp_buffer, "db 0x%X\n", code[pointer]) ;
+		sprintf(tmp_buffer, "db 0x%X\n", opcode) ;
 		parse_noop(tmp_buffer) ;
 		return;
 	}
@@ -63,11 +66,11 @@ void disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)(uin
 		segment_override = NO ;
 		rm_segment_override = NO ; 
 	}
-	for (uint32_t i=0; i < bytesToPrint; i++)
-	{
-		uint8_t byte = code[temp_j+i]  ; 
-		printf("%02X", byte) ;	
-	}
+	// for (uint32_t i=0; i < bytesToPrint; i++)
+	// {
+	// 	uint8_t byte = code[temp_j+i]  ; 
+	// 	printf("%02X", byte) ;	
+	// }
 	spacesToFill = (spacesToFill - (bytesToPrint*2))  ; 
 	for (uint32_t i=0; i < spacesToFill; i++) printf(" ") ;
 	if (t == 1)
@@ -97,8 +100,8 @@ uint32_t disassembler_t::parse_noop(char *instrTemplate)
 			}
 			spacesToFill -= 2 ; 
 	}
-	uint8_t tmp_char = code[pointer] ; 
-	printf("%02X", tmp_char) ;                  // OUT: 2. Bytes
+	// uint8_t tmp_char = code[pointer] ; 
+	// printf("%02X", tmp_char) ;                  // OUT: 2. Bytes
 
 	for (uint32_t i=0; i < spacesToFill; i++) printf(" ") ;
 
@@ -117,24 +120,22 @@ uint32_t disassembler_t::parse_noop(char *instrTemplate)
   printf("%s", instrTemplate) ;               // OUT: (4)Instruction
 }
 
-/*
-1         2           3  4
-00000000  3E51        ds push cx
-0000C0DE  3E151617    mov ax,[DS:SI+1234h]
-*/
-void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
+void disassembler_t::decode(DBG_MEM_ADDR origin, int32_t length)
 {
-  code = buffer;
+  pointer = origin;
+  this->length = length;
   segment_override = NO;
   rm_segment_override = NO;
-  bytesToPrint = 1;
-	pointer = 0; 
-  
-	for(uint32_t linesDone = 0; linesDone<linesToDo; linesDone)
+  bytesToPrint = 0;
+  _code.clear();
+
+	while (pointer - origin < length)
 	{
+    line = _code.newLine(pointer);
 		if (segment_override == NO)
 			printf("%08X  ", pointer);  // OUT: 1 - address
-		switch (code[pointer])
+    opcode = fetchByte();
+		switch (opcode)
 		{
 			case 0x00: parse("add %s\n", &disassembler_t::rm8_r8) ; break ;
 			case 0x01: parse("add %s\n", &disassembler_t::rm16_r16) ; break ;
@@ -266,8 +267,9 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			case 0x7E: parse("jng %s\n", &disassembler_t::rel8) ; break ;
 			case 0x7F: parse("jg %s\n", &disassembler_t::rel8) ; break ;
 			case 0x80:
+			case 0x82:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -285,7 +287,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			} break ;
 			case 0x81:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -303,7 +305,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			} break ;
 			case 0x83:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -335,7 +337,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			}
 			case 0x8F:
 			{
-			  	uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+			  	uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -406,7 +408,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			case 0xCF: parse_noop("iret\n") ; break ;
 			case 0xD0:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -423,7 +425,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			} break ;
 			case 0xD1:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -440,7 +442,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			} break ;
 			case 0xD2:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -457,7 +459,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			} break ;
 			case 0xD3:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -499,7 +501,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			case 0xF5: parse_noop("cmc\n") ; break ;
 			case 0xF6:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -516,7 +518,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			} break ;
 			case 0xF7:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -539,7 +541,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			case 0xFD: parse_noop("std\n") ; break ;
 			case 0xFE:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;	
 				switch (opcode)
 				{
@@ -551,7 +553,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			} break ;
 			case 0xFF:
 			{
-				uint8_t opcode = ((code[pointer+1] & 0x38) >> 3 ); 
+				uint8_t opcode = ((lookNext() & 0x38) >> 3 ); 
 				uint8_t t = 0 ;
 				switch (opcode)
 				{
@@ -571,7 +573,7 @@ void disassembler_t::decode(uint8_t *buffer, uint32_t linesToDo)
 			{
 				char tmp_buffer[20] ; 
 				memset(tmp_buffer, '\0', 20) ;
-				sprintf(tmp_buffer, "db 0x%X\n", code[pointer]) ;
+				sprintf(tmp_buffer, "db 0x%X\n", opcode) ;
 				parse_noop(tmp_buffer) ;
 				break ;
 			}
@@ -598,12 +600,8 @@ char * disassembler_t::moffs16(uint32_t *err)
 		}
 		segment_override = NO ;
 	}
-	pointer++ ; 
-	bytesToPrint++ ;
-	uint8_t low = code[pointer] ; 
-	pointer++ ;
-	bytesToPrint++ ; 
-	uint8_t high = code[pointer] ; 
+	uint8_t low = fetchByte(); 
+	uint8_t high = fetchByte(); 
 	uint16_t imm16 = ((high << 8) + low) ;
 	sprintf(str, "[%s0x%x]", segment, imm16) ;
 	return str ;
@@ -628,18 +626,10 @@ char * disassembler_t::rm16(uint32_t *err)
 char * disassembler_t::call_inter(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
-	pointer++ ;
-	bytesToPrint++ ; 
-	uint8_t offset_low = code[pointer] ; 
-	pointer++ ;
-	bytesToPrint++ ;
-	uint8_t offset_high = code[pointer] ; 
-	pointer++ ;
-	bytesToPrint++ ;
-	uint8_t seg_low = code[pointer] ; 
-	pointer++ ;
-	bytesToPrint++ ;
-	uint8_t seg_high = code[pointer] ; 
+	uint8_t offset_low = fetchByte(); 
+	uint8_t offset_high = fetchByte(); 
+	uint8_t seg_low = fetchByte(); 
+	uint8_t seg_high = fetchByte(); 
 	uint16_t offset = ((offset_high << 8) + offset_low) ; 
 	uint16_t seg = ((seg_high << 8) + seg_low) ;
 	sprintf(str,"0x%x:0x%x", seg, offset) ;
@@ -657,7 +647,7 @@ char * disassembler_t::m16(uint32_t *err)
 char * disassembler_t::sreg_rm16(uint32_t *error) 
 {
 	memset(str, '\0', 255) ;
-	uint8_t reg = ((code[pointer+1] & 0x38) >> 3) ;
+	uint8_t reg = ((lookNext() & 0x38) >> 3) ;
 	char *s =  rm(16)  ;
 	if (reg < 4)
 	{
@@ -671,7 +661,7 @@ char * disassembler_t::sreg_rm16(uint32_t *error)
 char * disassembler_t::rm16_sreg(uint32_t *error)
 {
 	memset(str, '\0', 255) ;
-	uint8_t reg = ((code[pointer+1] & 0x38) >> 3) ;
+	uint8_t reg = ((lookNext() & 0x38) >> 3) ;
 	char *s =  rm(16)  ;
 	if (reg < 4)
 	{
@@ -686,9 +676,7 @@ char * disassembler_t::rm16_imm8(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
 	char *s = rm(16) ;
-	pointer++; 
-	bytesToPrint++ ;
-	int8_t imm8 = code[pointer] ; 
+	int8_t imm8 = fetchByte(); 
 	char sign = '+' ;
 	if (imm8 < 0) 
 	{
@@ -703,12 +691,8 @@ char * disassembler_t::rm16_imm16(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
 	char *s = rm(16) ;
-	pointer++;
-	bytesToPrint++ ;
-	uint8_t low = code[pointer] ; 
-	pointer++ ;
-	bytesToPrint++ ;
-	uint8_t high = code[pointer] ; 
+	uint8_t low = fetchByte(); 
+	uint8_t high = fetchByte(); 
 	uint16_t imm16 = ((high << 8) + low) ; 
 	sprintf(str, "%s,0x%x", s, imm16) ;
 	return str ;
@@ -718,9 +702,7 @@ char * disassembler_t::rm8_imm8(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
 	char *s = rm(8) ;
-	pointer++;
-	bytesToPrint++ ;
-	uint8_t imm8 = code[pointer] ; 
+	uint8_t imm8 = fetchByte(); 
 	sprintf(str, "%s,0x%x", s, imm8) ;
 	return str ;  
 }
@@ -728,14 +710,10 @@ char * disassembler_t::rm8_imm8(uint32_t *err)
 char * disassembler_t::rel16(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
-	pointer++ ;
-	bytesToPrint++ ;
-	uint8_t rel_low = code[pointer] ; 
-	pointer++ ;
-	bytesToPrint++ ; 
-	uint8_t rel_high = code[pointer] ; 
+	uint8_t rel_low = fetchByte(); 
+	uint8_t rel_high = fetchByte();
 	int16_t rel = ((rel_high << 8) + rel_low) ;
-	uint16_t result = pointer + rel + 1 ;
+	uint16_t result = pointer.offset + rel + 1 ;
 	sprintf(str, "0x%x", result) ; 
 	return str ;
 }
@@ -743,10 +721,8 @@ char * disassembler_t::rel16(uint32_t *err)
 char * disassembler_t::rel8(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
-	pointer++ ;
-	bytesToPrint++ ;
-	int8_t rel = code[pointer] ; 
-	uint16_t result = pointer + rel + 1 ;
+	int8_t rel = fetchByte(); 
+	uint16_t result = pointer.offset + rel + 1 ;
 	sprintf(str, "0x%x", result) ; 
 	return str ;
 }
@@ -754,9 +730,7 @@ char * disassembler_t::rel8(uint32_t *err)
 char * disassembler_t::imm8(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
-	pointer++ ;
-	bytesToPrint++ ;
-	uint8_t imm8 = code[pointer] ; 
+	uint8_t imm8 = fetchByte(); 
 	sprintf(str, "0x%x", imm8) ; 
 	return str ; 
 }
@@ -764,12 +738,8 @@ char * disassembler_t::imm8(uint32_t *err)
 char * disassembler_t::imm16(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
-	pointer++ ; 
-	bytesToPrint++ ;
-	uint8_t low = code[pointer] ; 
-	pointer++ ;
-	bytesToPrint++ ;
-	uint8_t high = code[pointer] ; 
+	uint8_t low = fetchByte(); 
+	uint8_t high = fetchByte(); 
 	uint16_t imm16 = ((high << 8) + low) ;
 	sprintf(str, "0x%x", imm16); 
 	return str ;
@@ -778,7 +748,7 @@ char * disassembler_t::imm16(uint32_t *err)
 char * disassembler_t::r16_rm16(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
-	uint8_t reg = ((code[pointer+1] & 0x38) >> 3 ); 
+	uint8_t reg = ((lookNext() & 0x38) >> 3 ); 
 	char *s = rm(16) ;
 	char *reg16 = regs16[reg] ; 
 	sprintf(str, "%s,%s", reg16, s) ;
@@ -788,7 +758,7 @@ char * disassembler_t::r16_rm16(uint32_t *err)
 char * disassembler_t::rm8_r8(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
-	uint8_t reg = ((code[pointer+1] & 0x38) >> 3 ); 
+	uint8_t reg = ((lookNext() & 0x38) >> 3 ); 
 	char *s = rm(8) ;
 	char *reg8 = regs8[reg] ; 
 	sprintf(str, "%s,%s", s, reg8) ;
@@ -798,7 +768,7 @@ char * disassembler_t::rm8_r8(uint32_t *err)
 char * disassembler_t::r8_rm8(uint32_t *err)
 {
 	memset(str, '\0', 255) ;
-	uint8_t reg = ((code[pointer+1] & 0x38) >> 3 ); 
+	uint8_t reg = ((lookNext() & 0x38) >> 3 ); 
 	char *s = rm(8) ;
 	char *reg8 = regs8[reg] ;
 	sprintf(str, "%s,%s", reg8, s) ; 
@@ -808,7 +778,7 @@ char * disassembler_t::r8_rm8(uint32_t *err)
 char * disassembler_t::rm16_r16(uint32_t *err)
 {
 	memset(str, '\0', 255) ; 
-	uint8_t reg = ((code[pointer+1] & 0x38) >> 3 ); 
+	uint8_t reg = ((lookNext() & 0x38) >> 3 ); 
 	char *s = rm(16) ;
 	char *reg16 = regs16[reg] ; 
 	sprintf(str, "%s,%s", s, reg16) ;
@@ -819,8 +789,7 @@ char rm_str[255] ;
 
 char * disassembler_t::rm(uint8_t type)
 {
-	bytesToPrint++ ;
-	uint8_t rm_byte = code[++pointer] ; 
+	uint8_t rm_byte = fetchByte(); 
 	uint8_t mod = (rm_byte >> 6) ; 
 	uint8_t rm8 = (rm_byte & 7) ; 
 	char segment[10] = {'\0'};
@@ -842,9 +811,8 @@ char * disassembler_t::rm(uint8_t type)
 		{
       if (rm8 == 0x06)
       {
-        bytesToPrint += 2;
-        uint8_t low   = code[++pointer] ;
-        uint8_t high  = code[++pointer] ; 
+        uint8_t low   = fetchByte();
+        uint8_t high  = fetchByte(); 
         uint16_t disp = ((high << 8) + low) ; 
         sprintf(displacement, "+%Xh", disp) ;
       }
@@ -852,8 +820,7 @@ char * disassembler_t::rm(uint8_t type)
 		} break ; 
 		case 0x01:
 		{
-			int16_t disp = code[++pointer]; 
-			bytesToPrint++ ;
+			int16_t disp = fetchByte(); 
 			char sign = '+' ; 
 			if (disp < 0) 
 			{
@@ -865,9 +832,8 @@ char * disassembler_t::rm(uint8_t type)
 		} break ;
 		case 0x02:
 		{
-			bytesToPrint += 2;
-			uint8_t low   = code[++pointer] ;
-			uint8_t high  = code[++pointer] ;
+			uint8_t low   = fetchByte();
+			uint8_t high  = fetchByte();
 			uint16_t disp = ((high << 8) + low) ; 
 			sprintf(displacement, "+%Xh", disp) ;
 		} break ;
@@ -895,9 +861,4 @@ char * disassembler_t::rm(uint8_t type)
 		case 0x07: sprintf(rm_str, "[%sbx%s]", segment, displacement) ; break ;
 	}
 	return rm_str ; 
-}
-
-uint32_t disassembler_t::dump(...)
-{
-
 }
