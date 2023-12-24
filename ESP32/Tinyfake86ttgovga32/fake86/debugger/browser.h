@@ -15,8 +15,8 @@
  * Stack (?)
  */
 
-static const uint32_t ACTUAL_FONT_WIDTH = SERVICE_FONT_WIDTH + 1;
-static const uint32_t ACTUAL_FONT_HEIGHT = SERVICE_FONT_HEIGHT + 1;
+static const uint32_t ACTUAL_FONT_WIDTH = 8; //SERVICE_FONT_WIDTH + 1;
+static const uint32_t ACTUAL_FONT_HEIGHT = 8; //SERVICE_FONT_HEIGHT + 1;
 
 class browser_t
 {

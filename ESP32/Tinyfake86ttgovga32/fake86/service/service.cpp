@@ -41,13 +41,13 @@ void svcClearScreen(uint8_t color)
   }
 }
 
-void svcPrintChar(char character, int col, int row, unsigned char color, unsigned char backcolor)
+void svcPrintChar(char character, int col, int row, unsigned char color, unsigned char backcolor, int32_t _off)
 {
   int origin = character << 3; //*8
   unsigned char pixel;
   for (uint32_t y = 0; y < 8; y++)
   {
-    const uint32_t line = row + y + OSD_VERTICAL_OFFSET;
+    const uint32_t line = row + y + _off;
     uint8_t aux = font[origin + y];
     for (uint32_t x = 0; x < 8; x++)
     {
@@ -59,7 +59,7 @@ void svcPrintChar(char character, int col, int row, unsigned char color, unsigne
 }
 
 //*************************************************************************************
-void svcPrintText(const char *cad, int x, int y, unsigned char color, unsigned char backcolor)
+void svcPrintText(const char *cad, int x, int y, unsigned char color, unsigned char backcolor, int32_t _off)
 {
   // SDL_Surface *surface,
   //  gb_sdl_font_6x8
@@ -68,7 +68,7 @@ void svcPrintText(const char *cad, int x, int y, unsigned char color, unsigned c
     auxLen = 50;
   for (int i = 0; i < auxLen; i++)
   {
-    svcPrintChar(cad[i], x, y, color, backcolor);
+    svcPrintChar(cad[i], x, y, color, backcolor, _off);
     x += 8;
   }
 }

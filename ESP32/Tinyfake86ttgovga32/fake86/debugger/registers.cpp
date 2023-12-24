@@ -63,6 +63,6 @@ void regBrowser_t::repaint()
 
     const uint32_t foreground         = registers[i].hasChanged?FG_CHANGED:(isActive?FG_ACTIVE:FG_INACTIVE);
     const uint32_t background         = isActive?BG_ACTIVE:BG_INACTIVE;
-    svcPrintTextPetite(buffer, area.left, i*(SERVICE_FONT_HEIGHT+1)+area.top, foreground, background);    
+    svcPrintText(buffer, area.left, i*(ACTUAL_FONT_HEIGHT)+area.top, foreground, background, 0);    
   }
 }

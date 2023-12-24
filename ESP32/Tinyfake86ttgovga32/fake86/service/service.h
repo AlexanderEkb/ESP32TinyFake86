@@ -67,8 +67,8 @@ static const uint32_t EFFECTIVE_HEIGHT = 200;
 
 void svcBar(int orgX, int orgY, int height, int width, uint8_t color);
 void svcClearScreen(uint8_t color);
-void svcPrintChar(char character, int col, int row, unsigned char color, unsigned char backcolor);
-void svcPrintText(const char *cad, int x, int y, unsigned char color, unsigned char backcolor);
+void svcPrintChar(char character, int col, int row, unsigned char color, unsigned char backcolor, int32_t _off = OSD_VERTICAL_OFFSET);
+void svcPrintText(const char *cad, int x, int y, unsigned char color, unsigned char backcolor, int32_t _off = OSD_VERTICAL_OFFSET);
 
 void svcPrintCharPetite(char character, int col, int row, unsigned char color, unsigned char backcolor);
 void svcPrintTextPetite(const char *cad, int x, int y, unsigned char color, unsigned char backcolor);

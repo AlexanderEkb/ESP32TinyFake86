@@ -17,7 +17,7 @@ class regBrowser_t : public browser_t
 
   private:
       static const uint32_t FG_ACTIVE = 0x0F;
-      static const uint32_t FG_CHANGED = 0x0F;
+      static const uint32_t FG_CHANGED = 0x1A;
       static const uint32_t FG_INACTIVE = 0x88;
       static const uint32_t BG_ACTIVE = 0x00;
       static const uint32_t BG_INACTIVE = 0x00;
@@ -29,7 +29,7 @@ class regBrowser_t : public browser_t
       } registerDesc_t;
       registerDesc_t registers[static_cast<uint32_t>(_dbgReg__COUNT)];
       static constexpr char *regNames[static_cast<uint32_t>(_dbgReg__COUNT)] = {
-        "PC", "AX", "BX", "CX", "DX", "SP", "BP", "SI", "DI", " F", "CS", "DS", "SS", "ES"
+        "IP", "AX", "BX", "CX", "DX", "SP", "BP", "SI", "DI", " F", "CS", "DS", "SS", "ES"
   };
 };
 
