@@ -1,6 +1,5 @@
 #include "cpu/cpu.h"
 #include "dasm.h"
-#include <Arduino.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -95,7 +94,6 @@ int32_t operator-(DBG_MEM_ADDR& lhs, DBG_MEM_ADDR& rhs)
  
 void disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)(uint32_t *))
 {
-  Serial,printf("parse ");
 	// instructionLength = 1;
 	uint32_t error = 0 ;
 	char *result = (this->*func)(&error) ;

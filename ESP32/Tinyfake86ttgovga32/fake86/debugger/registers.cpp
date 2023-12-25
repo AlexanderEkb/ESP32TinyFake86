@@ -1,7 +1,8 @@
 #include "registers.h"
 #include "io/keys.h"
-#include <stdio.h>
+#include <Arduino.h>
 #include <service/service.h>
+#include <stdio.h>
 
 constexpr char * regBrowser_t::regNames[static_cast<uint32_t>(_dbgReg__COUNT)] ;
 
@@ -22,8 +23,6 @@ void regBrowser_t::init()
   area.width = 8*(SERVICE_FONT_WIDTH + 1);
   area.height = _dbgReg__COUNT*(SERVICE_FONT_HEIGHT + 1);
   svcBar(area.left, area.top, area.height, area.width, BG_INACTIVE);
-  void svcClearScreen(uint8_t color);
-  // Clear screen area
 }
 
 void regBrowser_t::onKey(uint8_t scancode)
@@ -63,6 +62,7 @@ void regBrowser_t::repaint()
 
     const uint32_t foreground         = registers[i].hasChanged?FG_CHANGED:(isActive?FG_ACTIVE:FG_INACTIVE);
     const uint32_t background         = isActive?BG_ACTIVE:BG_INACTIVE;
-    svcPrintText(buffer, area.left, i*(ACTUAL_FONT_HEIGHT)+area.top, foreground, background, 0);    
+    svcPrintText(buffer, area.left, (i+1)*(ACTUAL_FONT_HEIGHT)+area.top, foreground, background, 0);
+    registers[i].hasChanged           = false;
   }
 }

@@ -26,6 +26,8 @@ typedef struct DBG_MEM_ADDR
   uint16_t segment;
   uint16_t offset;
   DBG_MEM_ADDR() : segment(0), offset(0) {}
+  DBG_MEM_ADDR(DBG_MEM_ADDR * src) : segment(src->segment), offset(src->offset) {}
+
   DBG_MEM_ADDR(uint16_t seg, uint16_t off) : segment(seg),
                                              offset(off) {}
   uint32_t linear() { return ((uint32_t)segment << 4) + offset; }
@@ -46,7 +48,7 @@ typedef struct DBG_MEM_ADDR
   }
   DBG_MEM_ADDR operator++(int)
   {
-    DBG_MEM_ADDR prev = DBG_MEM_ADDR(this->segment, this->offset);
+    DBG_MEM_ADDR prev = DBG_MEM_ADDR(this);
     this->offset++;
     if (this->offset == 0)
     {

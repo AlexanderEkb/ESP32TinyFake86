@@ -17,11 +17,11 @@ class regBrowser_t : public browser_t
 
   private:
       static const uint32_t FG_ACTIVE = 0x0F;
-      static const uint32_t FG_CHANGED = 0x1A;
+      static const uint32_t FG_CHANGED = 0x16;
       static const uint32_t FG_INACTIVE = 0x88;
       static const uint32_t BG_ACTIVE = 0x00;
       static const uint32_t BG_INACTIVE = 0x00;
-
+      
       typedef struct registerDesc_t
       {
         uint16_t value;

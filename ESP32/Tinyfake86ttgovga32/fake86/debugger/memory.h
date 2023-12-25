@@ -19,9 +19,10 @@ class memBrowser_t : public browser_t
   private:
     static const uint32_t FG_ACTIVE = 0x0F;
     static const uint32_t FG_CHANGED = 0x48;
-    static const uint32_t FG_INACTIVE = 0x0C;
+    static const uint32_t FG_INACTIVE = 0x08;
     static const uint32_t BG_ACTIVE = 0x00;
-    static const uint32_t BG_INACTIVE = 0x04;
+    static const uint32_t BG_INACTIVE = 0x00;
+    static const uint32_t FG_MEM_CONTENT = 0xA8;
 
     DBG_MEM_ADDR position;
 };

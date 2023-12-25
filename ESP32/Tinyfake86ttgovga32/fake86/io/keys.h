@@ -18,6 +18,12 @@
 #define KEY_2   0x03
 #define KEY_3   0x04
 #define KEY_4   0x05
+#define KEY_5   0x06
+#define KEY_6   0x07
+#define KEY_7   0x08
+#define KEY_8   0x09
+#define KEY_9   0x0A
+#define KEY_0   0x0B
 #define KEY_CURSOR_LEFT 0x4B
 #define KEY_CURSOR_DOWN 0x50
 #define KEY_CURSOR_RIGHT 0x4D
