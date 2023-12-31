@@ -207,7 +207,7 @@ static void write3D8h(uint32_t portnum, uint8_t value)
   (void)portnum;
   LOG("write3D8h(%02x)\n", value);
   port3D8h = value;
-  renderUpdateSettings(port3D8h);
+  renderUpdateSettings(port3D8h, port3D9h);
 }
 
 static void write3D9h(uint32_t portnum, uint8_t value)
@@ -215,7 +215,8 @@ static void write3D9h(uint32_t portnum, uint8_t value)
   (void)portnum;
   LOG("write3D9h(%02x)\n", value);
   port3D9h = value;
-  renderUpdateColor(port3D9h);
+  // renderUpdateColor(port3D9h);
+  renderUpdateSettings(port3D8h, port3D9h);
 }
 
 static uint8_t readDummy(uint32_t portnum)
