@@ -10,6 +10,8 @@
 
 #define KEYBOARD_DATA 32
 #define KEYBOARD_CLK  33
+#define KEYBOARD_RDY  12
+
 #if RG_STORAGE_DRIVER == 1
   #define RG_STORAGE_HOST             HSPI_HOST           // Used by SDSPI and SDMMC
   #define SDSPI_MISO    GPIO_NUM_2

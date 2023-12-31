@@ -8,6 +8,7 @@
 #include "mb/i8259.h"
 #include "io/keys.h"
 #include <Arduino.h>
+#include <esp32-hal-gpio.h>
 
 void IRAM_ATTR kb_interruptHandler(void);
 uint8_t getScancode(void);
@@ -18,6 +19,7 @@ class KeyboardDriver {
     virtual void Reset() = 0;
     virtual uint8_t Poll() = 0;
     virtual uint8_t getLastKey() = 0;
+    virtual void resetRdy();
 };
 
 class KeyboardDriverAT : public KeyboardDriver
@@ -31,19 +33,23 @@ class KeyboardDriverAT : public KeyboardDriver
     virtual void Init() {
       pinMode(KEYBOARD_DATA, INPUT_PULLUP);
       pinMode(KEYBOARD_CLK, INPUT_PULLUP);
+      pinMode(KEYBOARD_RDY, OUTPUT_OPEN_DRAIN);
       digitalWrite(KEYBOARD_DATA, true);
       digitalWrite(KEYBOARD_CLK, true);
+      digitalWrite(KEYBOARD_RDY, true);
       attachInterrupt(digitalPinToInterrupt(KEYBOARD_CLK), kb_interruptHandler, FALLING);
     }
 
     virtual void Reset() {
       incoming = 0;
       lastKey = 0;
+      resetRdy();
     }
 
     virtual uint8_t getLastKey() {
       uint8_t result = lastKey;
       lastKey = 0;
+      resetRdy();
       return result;
     }
 
@@ -51,6 +57,11 @@ class KeyboardDriverAT : public KeyboardDriver
       uint8_t result = incoming;
       incoming = 0;
       return result;
+    }
+
+    virtual void resetRdy()
+    {
+      digitalWrite(KEYBOARD_RDY, true);
     }
 
   private:
