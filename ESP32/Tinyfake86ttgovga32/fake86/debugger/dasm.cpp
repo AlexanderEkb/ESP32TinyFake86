@@ -14,78 +14,20 @@ line_t::line_t()
   addr.segment = 0;
   addr.offset = 0;
   length = 0;
-  ptr = 0;
+  s.clear();
 }
 
 line_t::line_t(DBG_MEM_ADDR address)
 {
   addr = address;
   length = 0;
-  ptr = 0;
+  s.clear();
 }
 
 void line_t::print(const char * text)
 {
-  const uint32_t length = strlen(text);
-  strcpy(&buffer[ptr], text);
-  ptr += length;
+  s.append(text);
 }
-
-// code_t::code_t()
-// {
-//   lines = nullptr;
-//   last = nullptr;
-//   count = 0;
-// }
-
-// code_t::~code_t()
-// {
-//   clear();
-// }
-
-// void code_t::clear()
-// {
-//   line_t * line = lines;
-//   while(line != nullptr)
-//   {
-//     line_t * next = line->next;
-//     delete line;
-//     line = next;
-//   }
-//   lines = nullptr;
-// }
-
-// line_t *code_t::newLine(const DBG_MEM_ADDR addr)
-// {
-//   if(lines == nullptr)
-//   {
-//     lines = new line_t(addr);
-//     last = lines;
-//     result = lines;
-//   }
-//   else
-//   {
-//     last->next = new line_t(addr);
-//     last = last->next;
-//   }
-
-//   return last;
-// }
-
-// char const * code_t::retrieve()
-// {
-//   static const char * endOfText = "=== END ===";
-//   if(result != nullptr)
-//   {
-//     char * text = result->getText();
-//     result = result->next;
-//     return text;
-//   }
-//   else
-//   {
-//     return endOfText;
-//   }
-// }
 
 int32_t operator-(DBG_MEM_ADDR& lhs, DBG_MEM_ADDR& rhs)
 {
@@ -104,12 +46,10 @@ void disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)(uin
 		parse_noop(tmp_buffer) ;
 		return;
 	}
-	uint32_t spacesToFill = 16 ;
 	uint32_t t = 0 ;
 	if (segment_override == NO && rm_segment_override >= 0)
 	{
 		t = 1; 
-		spacesToFill -= 2 ;
 		rm_segment_override = NO ; 
 		segment_override = NO ;
 	}
@@ -117,30 +57,29 @@ void disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)(uin
 
 	if (t == 1)
 	{
-			memset(segment, '\0', 20) ;
-			switch (segment_override)
-			{
-				case ES: snprintf(segment, 2, "es") ; break ;
-				case CS: snprintf(segment, 2, "cs") ; break ;
-				case SS: snprintf(segment, 2, "ss") ; break ;
-				case DS: snprintf(segment, 2, "ds") ; break ;
-			}
-	}
-
-	if (t == 1)
-	{
-		char tmp_string[21] = {0}; 
-		char tmp_string2[21] = {0}; 
-		snprintf(tmp_string, 20, instrTemplate, result) ; 
-		snprintf(tmp_string2, 20, "%s %s", segment, tmp_string) ; 
-		line->print(tmp_string2) ;
-	}
-	else
-  {
+			// switch (segment_override)
+			// {
+			// 	case ES: snprintf(segment, 20, "es") ; break ;
+			// 	case CS: snprintf(segment, 20, "cs") ; break ;
+			// 	case SS: snprintf(segment, 20, "ss") ; break ;
+			// 	case DS: snprintf(segment, 20, "ds") ; break ;
+      //   default: 
+      //     segment[0] = "\0" ; 
+      //     break ;
+			// }
+      // char tmp_string[41] = {0};
+      // char tmp_string2[41] = {0};
+      // snprintf(tmp_string, 40, instrTemplate, result);
+      // snprintf(tmp_string2, 40, "%s %s", segment, tmp_string);
+      // line->print(tmp_string2);
+      line->print("?");
+  }
+  // else
+  // {
     char _tmp[80];
     snprintf(_tmp, 80, instrTemplate, result) ;
     line->print(_tmp);
-  }
+  // }
 }
 
 void disassembler_t::parse_noop(char *instrTemplate)
@@ -170,7 +109,6 @@ DBG_MEM_ADDR disassembler_t::decode(DBG_MEM_ADDR origin, line_t *output)
   segment_override = NO;
   rm_segment_override = NO;
   output->addr = origin;
-  textBuffer = output->buffer;
   preserveLine = true;
 
   instructionLength = 0;
@@ -637,9 +575,7 @@ char str[255] ;
 
 char * disassembler_t::moffs16(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
-	char segment[10] ;
-	memset(segment, '\0', 10) ;
+	char segment[10] = "";
 	if (segment_override >= 0)
 	{
 		switch (segment_override)
@@ -648,6 +584,7 @@ char * disassembler_t::moffs16(uint32_t *err)
 			case CS: snprintf(segment, 10, "cs:") ; break ;
 			case SS: snprintf(segment, 10, "ss:") ; break ;
 			case DS: snprintf(segment, 10, "ds:") ; break ;
+      default: snprintf(segment, 10, "%02X:", segment_override) ; break ;
 		}
 		segment_override = NO ;
 	}
@@ -660,7 +597,6 @@ char * disassembler_t::moffs16(uint32_t *err)
 
 char * disassembler_t::rm8(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	char *s =  rm(8)  ;
 	snprintf(str, 20, "%s", s) ; 
 	return str ;
@@ -668,7 +604,6 @@ char * disassembler_t::rm8(uint32_t *err)
 
 char * disassembler_t::rm16(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	char *s =  rm(16)  ;
 	snprintf(str, 20, "%s", s) ; 
 	return str ;
@@ -676,7 +611,6 @@ char * disassembler_t::rm16(uint32_t *err)
 
 char * disassembler_t::call_inter(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	uint8_t offset_low = fetchByte(); 
 	uint8_t offset_high = fetchByte(); 
 	uint8_t seg_low = fetchByte(); 
@@ -689,7 +623,6 @@ char * disassembler_t::call_inter(uint32_t *err)
 
 char * disassembler_t::m16(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	char *s =  rm(16)  ;
 	snprintf(str, 20, "%s", s) ;
 	return str ;
@@ -697,7 +630,6 @@ char * disassembler_t::m16(uint32_t *err)
 
 char * disassembler_t::sreg_rm16(uint32_t *error) 
 {
-	memset(str, '\0', 255) ;
 	uint8_t reg = ((lookNext() & 0x38) >> 3) ;
 	char *s =  rm(16)  ;
 	if (reg < 4)
@@ -711,7 +643,6 @@ char * disassembler_t::sreg_rm16(uint32_t *error)
 
 char * disassembler_t::rm16_sreg(uint32_t *error)
 {
-	memset(str, '\0', 255) ;
 	uint8_t reg = ((lookNext() & 0x38) >> 3) ;
 	char *s =  rm(16)  ;
 	if (reg < 4)
@@ -725,7 +656,6 @@ char * disassembler_t::rm16_sreg(uint32_t *error)
 
 char * disassembler_t::rm16_imm8(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	char *s = rm(16) ;
 	int8_t imm8 = fetchByte(); 
 	char sign = '+' ;
@@ -740,7 +670,6 @@ char * disassembler_t::rm16_imm8(uint32_t *err)
 
 char * disassembler_t::rm16_imm16(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	char *s = rm(16) ;
 	uint8_t low = fetchByte(); 
 	uint8_t high = fetchByte(); 
@@ -751,7 +680,6 @@ char * disassembler_t::rm16_imm16(uint32_t *err)
 
 char * disassembler_t::rm8_imm8(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	char *s = rm(8) ;
 	uint8_t imm8 = fetchByte(); 
 	snprintf(str, 20, "%s,%02Xh", s, imm8) ;
@@ -760,7 +688,6 @@ char * disassembler_t::rm8_imm8(uint32_t *err)
 
 char * disassembler_t::rel16(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	uint8_t rel_low = fetchByte(); 
 	uint8_t rel_high = fetchByte();
 	int16_t rel = ((rel_high << 8) + rel_low) ;
@@ -771,7 +698,6 @@ char * disassembler_t::rel16(uint32_t *err)
 
 char * disassembler_t::rel8(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	int8_t rel = fetchByte(); 
 	uint16_t result = pointer.offset + rel;
 	snprintf(str, 20, "%02Xh", result) ; 
@@ -780,7 +706,6 @@ char * disassembler_t::rel8(uint32_t *err)
 
 char * disassembler_t::imm8(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	uint8_t imm8 = fetchByte(); 
 	snprintf(str, 20, "%02Xh", imm8) ; 
 	return str ; 
@@ -788,7 +713,6 @@ char * disassembler_t::imm8(uint32_t *err)
 
 char * disassembler_t::imm16(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	uint8_t low = fetchByte(); 
 	uint8_t high = fetchByte(); 
 	uint16_t imm16 = ((high << 8) + low) ;
@@ -798,7 +722,6 @@ char * disassembler_t::imm16(uint32_t *err)
 
 char * disassembler_t::r16_rm16(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	uint8_t reg = ((lookNext() & 0x38) >> 3 ); 
 	char *s = rm(16) ;
 	char *reg16 = regs16[reg] ; 
@@ -808,7 +731,6 @@ char * disassembler_t::r16_rm16(uint32_t *err)
 
 char * disassembler_t::rm8_r8(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	uint8_t reg = ((lookNext() & 0x38) >> 3 ); 
 	char *s = rm(8) ;
 	char *reg8 = regs8[reg] ; 
@@ -818,7 +740,6 @@ char * disassembler_t::rm8_r8(uint32_t *err)
 
 char * disassembler_t::r8_rm8(uint32_t *err)
 {
-	memset(str, '\0', 255) ;
 	uint8_t reg = ((lookNext() & 0x38) >> 3 ); 
 	char *s = rm(8) ;
 	char *reg8 = regs8[reg] ;
@@ -828,7 +749,6 @@ char * disassembler_t::r8_rm8(uint32_t *err)
 
 char * disassembler_t::rm16_r16(uint32_t *err)
 {
-	memset(str, '\0', 255) ; 
 	uint8_t reg = ((lookNext() & 0x38) >> 3 ); 
 	char *s = rm(16) ;
 	char *reg16 = regs16[reg] ; 
@@ -844,7 +764,6 @@ char * disassembler_t::rm(uint8_t type)
 	uint8_t mod = (rm_byte >> 6) ; 
 	uint8_t rm8 = (rm_byte & 7) ; 
 	char segment[10] = {'\0'};
-	memset(rm_str, '\0', 255) ; 
 	if (segment_override >= 0)
 	{
 		switch (segment_override)

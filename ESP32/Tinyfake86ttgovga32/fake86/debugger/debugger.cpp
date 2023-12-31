@@ -11,6 +11,15 @@ debugger_t::debugger_t()
   codePosition = DBG_MEM_ADDR(0, 0);
 }
 
+void debugger_t::cycleActive()
+{
+  browsers[activeBrowser]->isActive = false;
+  browsers[activeBrowser]->refresh();
+  if(++activeBrowser >= BROWSER_COUNT) activeBrowser = 0;
+  browsers[activeBrowser]->isActive = true;
+  browsers[activeBrowser]->refresh();
+}
+
 void debugger_t::execute()
 {
   onEnter();
@@ -31,6 +40,9 @@ void debugger_t::execute()
       case KEY_5:
         exec86(1);
         break;
+      case KEY_TAB:
+        cycleActive();
+        break;
       case (KEY_ESC):
         return;
     }
@@ -44,4 +56,7 @@ void debugger_t::onEnter()
   regBrowser.init();
   memBrowser.init(memPosition);
   codeBrowser.init(&codePosition);
+
+  activeBrowser = 2;
+  codeBrowser.isActive = true;
 }

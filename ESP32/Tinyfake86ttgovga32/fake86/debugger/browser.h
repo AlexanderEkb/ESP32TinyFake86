@@ -21,14 +21,12 @@ static const uint32_t ACTUAL_FONT_HEIGHT = 8; //SERVICE_FONT_HEIGHT + 1;
 class browser_t
 {
   public:
+    bool isActive;
     browser_t() {isActive = false;};
-    virtual void onEnter() {isActive = true; refresh();};
     virtual void onKey(uint8_t scancode) = 0;
-    virtual void onLeave() {isActive = false; refresh();};
     virtual void refresh() = 0;
     virtual void repaint() = 0;
   protected:
-    bool isActive;
     rect_t area;
     virtual uint8_t getDefaultBkg() = 0;
 };

@@ -18,11 +18,10 @@ regBrowser_t::regBrowser_t()
 
 void regBrowser_t::init()
 {
-  area.left = 0;
+  area.left = 34 * ACTUAL_FONT_WIDTH;
   area.top = 0;
-  area.width = 8*(SERVICE_FONT_WIDTH + 1);
-  area.height = _dbgReg__COUNT*(SERVICE_FONT_HEIGHT + 1);
-  svcBar(area.left, area.top, area.height, area.width, BG_INACTIVE);
+  area.width = 8 * ACTUAL_FONT_WIDTH;
+  area.height = _dbgReg__COUNT * ACTUAL_FONT_HEIGHT;
 }
 
 void regBrowser_t::onKey(uint8_t scancode)
@@ -53,6 +52,8 @@ void regBrowser_t::refresh()
 
 void regBrowser_t::repaint()
 {
+  uint8_t background = isActive ? BG_ACTIVE : BG_INACTIVE;
+  svcBar(area.left, area.top, area.height, area.width, background);
   const uint32_t col = 0;
   for(uint32_t i=0; i<_dbgReg__COUNT; i++)
   {
@@ -61,7 +62,6 @@ void regBrowser_t::repaint()
     snprintf(buffer, LENGTH, "%s: %04X", regNames[i], registers[i].value);
 
     const uint32_t foreground         = registers[i].hasChanged?FG_CHANGED:(isActive?FG_ACTIVE:FG_INACTIVE);
-    const uint32_t background         = isActive?BG_ACTIVE:BG_INACTIVE;
     svcPrintText(buffer, area.left, (i+1)*(ACTUAL_FONT_HEIGHT)+area.top, foreground, background, 0);
     registers[i].hasChanged           = false;
   }

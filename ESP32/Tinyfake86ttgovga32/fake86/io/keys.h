@@ -24,6 +24,7 @@
 #define KEY_8   0x09
 #define KEY_9   0x0A
 #define KEY_0   0x0B
+#define KEY_TAB 0x0F
 #define KEY_CURSOR_LEFT 0x4B
 #define KEY_CURSOR_DOWN 0x50
 #define KEY_CURSOR_RIGHT 0x4D

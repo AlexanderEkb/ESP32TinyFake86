@@ -19,10 +19,12 @@ private:
     static const uint32_t REG_WINDOW_WIDTH = 10;
     static const uint32_t CODE_WINDOW_WIDTH = 20;
 
-    static const uint32_t BROWSER_COUNT = 4;
+    static const uint32_t BROWSER_COUNT = 3;
     regBrowser_t regBrowser;
     memBrowser_t memBrowser;
     codeBrowser_t codeBrowser;
+
+    uint32_t activeBrowser;
     browser_t * const browsers[BROWSER_COUNT] = {&regBrowser, &memBrowser, &codeBrowser};
 
     DBG_MEM_ADDR memPosition;
@@ -30,6 +32,7 @@ private:
 
     debugger_t();
     static debugger_t instance;
+    void cycleActive();
     void onEnter();
 };
 

@@ -8,9 +8,9 @@ static disassembler_t dasm;
 
 void codeBrowser_t::init(DBG_MEM_ADDR * position)
 {
-  area.left   = 8 * ACTUAL_FONT_WIDTH;
+  area.left   = 0 * ACTUAL_FONT_WIDTH;
   area.top    = 1 * ACTUAL_FONT_WIDTH;
-  area.width  = 48 * ACTUAL_FONT_WIDTH;
+  area.width  = 34 * ACTUAL_FONT_WIDTH;
   area.height = 14 * ACTUAL_FONT_HEIGHT;
   svcBar(area.left, area.top, area.height, area.width, BG_INACTIVE);
 
@@ -38,6 +38,9 @@ void codeBrowser_t::refresh()
 
 void codeBrowser_t::repaint()
 {
+  const uint8_t BG = isActive ? BG_ACTIVE : BG_INACTIVE;
+  svcBar(area.left, area.top, area.height, area.width, BG);
+
   DBG_MEM_ADDR addr = *position;
   const uint32_t lines = (area.height / ACTUAL_FONT_HEIGHT);
   for(uint32_t i=0; i<lines; i++) 
@@ -57,12 +60,10 @@ void codeBrowser_t::printColored(line_t *line, uint32_t pos)
   const uint8_t FG_OTHER = isActive ? 0x7A : 0x78;
   const uint8_t BG = isActive ? BG_ACTIVE : BG_INACTIVE;
   const uint32_t ROW = area.top + pos * ACTUAL_FONT_HEIGHT;
-  const uint32_t SEG_COL = area.left + 1 * ACTUAL_FONT_WIDTH;
-  const uint32_t SEMICOLON_COL = area.left + 5 * ACTUAL_FONT_WIDTH;
-  const uint32_t OFF_COL = area.left + 6 * ACTUAL_FONT_WIDTH;
-  const uint32_t MNEMONIC_COL = area.left + 11 * ACTUAL_FONT_WIDTH;
-
-  svcPrintText("\xB3", area.left, ROW, FG_DEFAULT, BG, 0);
+  const uint32_t SEG_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
+  const uint32_t SEMICOLON_COL  = area.left + 4 * ACTUAL_FONT_WIDTH;
+  const uint32_t OFF_COL        = area.left + 5 * ACTUAL_FONT_WIDTH;
+  const uint32_t MNEMONIC_COL   = area.left + 10 * ACTUAL_FONT_WIDTH;
 
   char _buf[40];
   sprintf(_buf, "%04X", line->addr.segment);
@@ -72,7 +73,7 @@ void codeBrowser_t::printColored(line_t *line, uint32_t pos)
   svcPrintText(_buf, OFF_COL, ROW, FG_ADDR, BG, 0);
 
   bool mnemo = true;
-  char * c = line->buffer;
+  char const * c = line->s.data();
   uint32_t col = MNEMONIC_COL;
   uint8_t fg = FG_DEFAULT;
   uint8_t bg = BG;
