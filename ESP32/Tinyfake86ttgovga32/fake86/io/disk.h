@@ -19,8 +19,8 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include "sdcard.h"
 
-#define DRIVE_COUNT (2)
 #define SECTOR_SIZE (512)
 
 
@@ -32,7 +32,7 @@ typedef struct DRIVE_DESC
 		uint32_t capacity;
 } DRIVE_DESC;
 
-extern DRIVE_DESC drives[DRIVE_COUNT];
+extern DRIVE_DESC drives[SdCard::DRIVE_COUNT];
 
 typedef struct MEM_ADDR
 {

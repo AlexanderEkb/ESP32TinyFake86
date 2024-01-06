@@ -171,7 +171,7 @@ void updateBIOSDataArea()
 	if (!didbootstrap)
 	{
 		ram[0x410]= 0x61;	// Equipment word: no FPU, no mouse, two floppies, EGA or better
-		ram[0x475]= 0;			// Number of HDDs intalled
+		ram[0x475]= 1;			// Number of HDDs intalled
 
 		unsigned char ram_size_low  = (static_cast<uint8_t>((RAM_SIZE / 1024) >> 0));
 		unsigned char ram_size_high = (static_cast<uint8_t>((RAM_SIZE / 1024) >> 8));

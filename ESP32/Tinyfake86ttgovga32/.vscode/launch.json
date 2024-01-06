@@ -12,9 +12,9 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "d:/_work/ESP32_emulators/ESP32TinyFake86/ESP32/Tinyfake86ttgovga32/.pio/build/esp-wrover-kit/firmware.elf",
+            "executable": "d:/Work/ESP32TinyFake86/ESP32/Tinyfake86ttgovga32/.pio/build/esp-wrover-kit/firmware.elf",
             "projectEnvName": "esp-wrover-kit",
-            "toolchainBinDir": "D:/.platformio/packages/toolchain-xtensa-esp32/bin",
+            "toolchainBinDir": "C:/.platformio/packages/toolchain-xtensa-esp32/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "preLaunchTask": {
                 "type": "PlatformIO",
@@ -25,18 +25,18 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "d:/_work/ESP32_emulators/ESP32TinyFake86/ESP32/Tinyfake86ttgovga32/.pio/build/esp-wrover-kit/firmware.elf",
+            "executable": "d:/Work/ESP32TinyFake86/ESP32/Tinyfake86ttgovga32/.pio/build/esp-wrover-kit/firmware.elf",
             "projectEnvName": "esp-wrover-kit",
-            "toolchainBinDir": "D:/.platformio/packages/toolchain-xtensa-esp32/bin",
+            "toolchainBinDir": "C:/.platformio/packages/toolchain-xtensa-esp32/bin",
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "d:/_work/ESP32_emulators/ESP32TinyFake86/ESP32/Tinyfake86ttgovga32/.pio/build/esp-wrover-kit/firmware.elf",
+            "executable": "d:/Work/ESP32TinyFake86/ESP32/Tinyfake86ttgovga32/.pio/build/esp-wrover-kit/firmware.elf",
             "projectEnvName": "esp-wrover-kit",
-            "toolchainBinDir": "D:/.platformio/packages/toolchain-xtensa-esp32/bin",
+            "toolchainBinDir": "C:/.platformio/packages/toolchain-xtensa-esp32/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "loadMode": "manual"
         }

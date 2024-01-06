@@ -44,9 +44,12 @@ extern void write86 (uint32_t addr32, uint8_t value);
 unsigned char sectorbuffer[SECTOR_SIZE];
 static uint8_t lastResult = 0;
 
-DRIVE_DESC drives[DRIVE_COUNT] = {
-    {80, 2, 18, 1474560},			// A:
-    {80, 2, 18, 1474560},			// B:
+DRIVE_DESC drives[SdCard::DRIVE_COUNT] = {
+    {80, 2, 18, 1474560},      // A:
+    {80, 2, 18, 1474560},      // B:
+    {80, 2, 18, 1474560},      // ?:
+    {80, 2, 18, 1474560},      // ?:
+    {512, 64, 64, 1073741824}, // C:
 };
 
 void setResult(uint8_t _result)
@@ -123,7 +126,8 @@ void diskhandler()
   const uint16_t sector = regs.byteregs[regcl] & 0x3F;
   const uint16_t head = regs.byteregs[regdh];
   const uint16_t sectorCount = regs.byteregs[regal];
-  DISK_ADDR diskAddr = DISK_ADDR(drive, cylinder, head, sector, sectorCount);
+  const uint32_t translatedDrive = (drive >= 0x80) ? (drive - 0x7C) : drive;
+  DISK_ADDR diskAddr = DISK_ADDR(translatedDrive, cylinder, head, sector, sectorCount);
   MEM_ADDR buffer = {segregs[reges], regs.wordregs[regbx]};
   const uint8_t serviceNum = regs.byteregs[regah];
  //Solo una disquetera
@@ -150,14 +154,14 @@ void diskhandler()
       setResult(RESULT_OK);
       regs.byteregs[regch] = static_cast<uint8_t>(drives[drive].cylinders) - 1;
       regs.byteregs[regcl] = static_cast<uint8_t>(drives[drive].sectors) & 63;
-      regs.byteregs[regcl] = regs.byteregs[regcl] + static_cast<uint8_t>(drives[drive].sectors / 256) * 63;
+      regs.byteregs[regcl] = regs.byteregs[regcl] + static_cast<uint8_t>(drives[drive].cylinders / 256) * 63;
       regs.byteregs[regdh] = static_cast<uint8_t>(drives[drive].heads) & 63;
 
       if (regs.byteregs[regdl]<0x80) {
           regs.byteregs[regbl] = 4; //else regs.byteregs[regbl] = 0;
           regs.byteregs[regdl] = 2;
         }
-      else regs.byteregs[regdl] = 0; // hdcount (???)
+      else regs.byteregs[regdl] = 1; // hdcount (???)
     break;
     default:
       setResult(RESULT_GENERAL_FAILURE);
