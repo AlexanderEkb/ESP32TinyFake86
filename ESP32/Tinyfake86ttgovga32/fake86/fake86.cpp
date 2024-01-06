@@ -113,6 +113,25 @@ IOPort port_3EBh = IOPort(0x3EB, 0x00, defaultReader_FF, defaultWriter);
 IOPort port_3F8h = IOPort(0x3F8, 0x00, defaultReader_Stub, defaultWriter);
 IOPort port_3FBh = IOPort(0x3FB, 0x00, defaultReader_FF, defaultWriter);
 
+/*
+IOPort port_3B0h = IOPort(0x3B0, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3B1h = IOPort(0x3B1, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3B2h = IOPort(0x3B2, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3B3h = IOPort(0x3B3, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3B4h = IOPort(0x3B4, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3B5h = IOPort(0x3B5, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3B6h = IOPort(0x3B6, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3B7h = IOPort(0x3B7, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3B8h = IOPort(0x3B8, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3B9h = IOPort(0x3B9, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3BAh = IOPort(0x3BA, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3BBh = IOPort(0x3BB, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3BCh = IOPort(0x3BC, 0x00, defaultReader_FF, defaultWriter);
+IOPort port_3BDh = IOPort(0x3BD, 0x00, defaultReader_FF,   defaultWriter);
+IOPort port_3BEh = IOPort(0x3BE, 0x00, defaultReader_FF,   defaultWriter);
+IOPort port_3BFh = IOPort(0x3BF, 0x00, defaultReader_FF,   defaultWriter);
+
+*/
 IOPort port_3B4h = IOPort(0x3B4, 0x00, defaultReader_Stub, defaultWriter);
 IOPort port_3B5h = IOPort(0x3B5, 0x00, defaultReader_Stub, defaultWriter);
 IOPort port_3B8h = IOPort(0x3B8, 0x00, defaultReader_Stub, defaultWriter);

@@ -6,6 +6,13 @@
 
 static disassembler_t dasm;
 
+DBG_MEM_ADDR codeBrowser_t::getNextInstruction()
+{
+  DBG_MEM_ADDR _pos = *position;
+  line_t line;
+  return dasm.decode(_pos, &line);
+}
+
 void codeBrowser_t::init(DBG_MEM_ADDR * position)
 {
   area.left   = 0 * ACTUAL_FONT_WIDTH;
@@ -22,8 +29,10 @@ void codeBrowser_t::onKey(uint8_t scancode)
   switch (scancode)
   {
   case KEY_CURSOR_UP:
+    position->dec();
     break;
   case KEY_CURSOR_DOWN:
+    position->inc();
     break;
 
   default:
@@ -58,7 +67,8 @@ void codeBrowser_t::printColored(line_t *line, uint32_t pos)
   const uint8_t FG_MNEMONIC = isActive ? 0x7A : 0x78;
   const uint8_t FG_ARGUMENT = isActive ? 0xAA : 0xA8;
   const uint8_t FG_OTHER = isActive ? 0x7A : 0x78;
-  const uint8_t BG = isActive ? BG_ACTIVE : BG_INACTIVE;
+  const bool isCurrentPos = (line->addr == DBG_MEM_ADDR(_dbgGetRegister(_dbgReg_CS), _dbgGetRegister(_dbgReg_IP)));
+  const uint8_t BG = isCurrentPos?BG_CSIP:(isActive ? BG_ACTIVE : BG_INACTIVE);
   const uint32_t ROW = area.top + pos * ACTUAL_FONT_HEIGHT;
   const uint32_t SEG_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
   const uint32_t SEMICOLON_COL  = area.left + 4 * ACTUAL_FONT_WIDTH;

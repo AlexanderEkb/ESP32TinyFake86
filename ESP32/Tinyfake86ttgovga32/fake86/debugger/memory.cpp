@@ -7,7 +7,7 @@ memBrowser_t::memBrowser_t()
 {
 }
 
-void memBrowser_t::init(DBG_MEM_ADDR & position)
+void memBrowser_t::init(DBG_MEM_ADDR * position)
 {
   area.left = 0;
   area.top = 15 * FONT_HEIGHT;
@@ -49,20 +49,20 @@ void memBrowser_t::repaint()
   const uint32_t CHARS_OFF = MEM_COL_COUNT * NUMBER_WIDTH + NUMBERS_OFF;
   const uint8_t  FG_ADDR = isActive ? 0x7A : 0x78;
 
-  DBG_MEM_ADDR position = position;
+  DBG_MEM_ADDR * _pos = position;
   for (uint32_t row = 0; row < MEM_ROW_COUNT; row++)
   {
     static const uint32_t LENGTH = 16;
     char buffer[LENGTH];
-    snprintf(buffer, LENGTH, "%04X:%04X", position.segment, position.offset);
+    snprintf(buffer, LENGTH, "%04X:%04X", _pos->segment, _pos->offset);
     svcPrintText(buffer, area.left, area.top + row * ACTUAL_FONT_HEIGHT, FG_ADDR, background, 0);
     for(uint32_t col=0; col<MEM_COL_COUNT; col++)
     {
-      const char value = read86(position.linear());
+      const char value = read86(_pos->linear());
       svcPrintChar(value, area.left + (CHARS_OFF + col) * ACTUAL_FONT_WIDTH, area.top + row * ACTUAL_FONT_HEIGHT, FG_INACTIVE, background, 0);
       snprintf(buffer, LENGTH, "%02X", value);
       svcPrintText(buffer, (NUMBERS_OFF + col * 3) * ACTUAL_FONT_WIDTH, area.top + row * ACTUAL_FONT_HEIGHT, FG_MEM_CONTENT, background, 0);
-      position++;
+      _pos->inc();
     }
   }
 }

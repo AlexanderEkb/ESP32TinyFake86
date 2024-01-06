@@ -33,6 +33,7 @@ private:
     debugger_t();
     static debugger_t instance;
     void cycleActive();
+    void doSingleStep();
     void onEnter();
 };
 

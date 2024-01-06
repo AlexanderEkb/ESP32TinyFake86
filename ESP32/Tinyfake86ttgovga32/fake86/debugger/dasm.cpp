@@ -88,11 +88,11 @@ void disassembler_t::parse_noop(char *instrTemplate)
 	{
 		switch (segment_override)
 		{
-			case ES: line->print("es") ; break ;         // OUT: (3)Segment override
-			case CS: line->print("cs") ; break ;
-			case SS: line->print("ss") ; break ;
-			case DS: line->print("ds") ; break ;
-      default: line->print("??") ; break ;
+			case ES: line->print("es:") ; break ;         // OUT: (3)Segment override
+			case CS: line->print("cs:") ; break ;
+			case SS: line->print("ss:") ; break ;
+			case DS: line->print("ds:") ; break ;
+      default: line->print("??:") ; break ;
 		}
 		segment_override = NO ;
 		rm_segment_override = NO ; 
@@ -628,6 +628,12 @@ char * disassembler_t::m16(uint32_t *err)
 	return str ;
 }
 
+/*
+8E  - MOV 
+06  - 00.000.110
+A2
+04
+*/
 char * disassembler_t::sreg_rm16(uint32_t *error) 
 {
 	uint8_t reg = ((lookNext() & 0x38) >> 3) ;
@@ -638,7 +644,12 @@ char * disassembler_t::sreg_rm16(uint32_t *error)
 		snprintf(str, 20, "%s,%s", sreg, s) ;
 		*error = 0 ;
 	} else *error = 1 ; 
-	return str ;
+  // {
+  //   char *sreg = segreg[reg & 0x03];
+  //   snprintf(str, 20, "%s?,%s", sreg, s);
+  //   *error = 0;
+  // }
+  return str ;
 }
 
 char * disassembler_t::rm16_sreg(uint32_t *error)
@@ -835,5 +846,5 @@ char * disassembler_t::rm(uint8_t type)
 
 uint8_t disassembler_t::lookNext()
 {
-  return read86(pointer.linear() + 1);
+  return read86(pointer.linear());
 };

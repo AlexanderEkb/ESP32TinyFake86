@@ -8,7 +8,7 @@ class memBrowser_t : public browser_t
 {
   public:
     memBrowser_t();
-    void init(DBG_MEM_ADDR& position);
+    void init(DBG_MEM_ADDR * position);
     virtual void onKey(uint8_t scancode) override;
     virtual void refresh() override;
     virtual void repaint() override;
@@ -24,7 +24,7 @@ class memBrowser_t : public browser_t
     static const uint32_t BG_INACTIVE = 0x00;
     static const uint32_t FG_MEM_CONTENT = 0xA8;
 
-    DBG_MEM_ADDR position;
+    DBG_MEM_ADDR * position;
 };
 
 #endif /* _DEBUGGER_MEMORY_H_ */

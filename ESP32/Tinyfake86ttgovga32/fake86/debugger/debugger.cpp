@@ -20,14 +20,24 @@ void debugger_t::cycleActive()
   browsers[activeBrowser]->refresh();
 }
 
+void debugger_t::doSingleStep()
+{
+  // DBG_MEM_ADDR next = codeBrowser.getNextInstruction();
+  // while(codePosition != next)
+  // {
+    exec86(1);
+  // }
+    codePosition.segment = _dbgGetRegister(_dbgReg_CS);
+    codePosition.offset = _dbgGetRegister(_dbgReg_IP);
+    memPosition.segment = _dbgGetRegister(_dbgReg_CS);
+    memPosition.offset = _dbgGetRegister(_dbgReg_IP) & 0xFFF8;
+}
+
 void debugger_t::execute()
 {
   onEnter();
   while (true)
   {
-    codePosition.segment = _dbgGetRegister(_dbgReg_CS);
-    codePosition.offset = _dbgGetRegister(_dbgReg_PC);
-
     codeBrowser.refresh();
     regBrowser.refresh();
     memBrowser.refresh();
@@ -38,13 +48,15 @@ void debugger_t::execute()
     switch (scancode)
     {
       case KEY_5:
-        exec86(1);
+        doSingleStep();
         break;
       case KEY_TAB:
         cycleActive();
         break;
       case (KEY_ESC):
         return;
+      default:
+        browsers[activeBrowser]->onKey(scancode);
     }
   }
 }
@@ -52,9 +64,11 @@ void debugger_t::execute()
 void debugger_t::onEnter()
 {
   codePosition.segment = _dbgGetRegister(_dbgReg_CS);
-  codePosition.offset   = _dbgGetRegister(_dbgReg_PC);
+  codePosition.offset   = _dbgGetRegister(_dbgReg_IP);
+  memPosition.segment = _dbgGetRegister(_dbgReg_CS);
+  memPosition.offset = _dbgGetRegister(_dbgReg_IP) & 0xFFF8;
   regBrowser.init();
-  memBrowser.init(memPosition);
+  memBrowser.init(&memPosition);
   codeBrowser.init(&codePosition);
 
   activeBrowser = 2;

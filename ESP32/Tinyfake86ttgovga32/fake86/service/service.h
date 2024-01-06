@@ -31,6 +31,18 @@ typedef struct DBG_MEM_ADDR
   DBG_MEM_ADDR(uint16_t seg, uint16_t off) : segment(seg),
                                              offset(off) {}
   uint32_t linear() { return ((uint32_t)segment << 4) + offset; }
+  void dec()
+  {
+    offset--;
+    if(offset == 0)
+      segment--;
+  };
+  void inc()
+  {
+    offset++;
+    if(offset == 0)
+      segment++;
+  };
   DBG_MEM_ADDR &operator=(const DBG_MEM_ADDR &rvalue)
   {
     this->segment = rvalue.segment;
@@ -55,6 +67,14 @@ typedef struct DBG_MEM_ADDR
       this->segment++;
     }
     return prev;
+  }
+  bool operator== (DBG_MEM_ADDR rvalue)
+  {
+    return (this->segment == rvalue.segment) && (this->offset == rvalue.offset);
+  }
+  bool operator!=(DBG_MEM_ADDR &rvalue)
+  {
+    return (this->segment != rvalue.segment) || (this->offset != rvalue.offset);
   }
 } DBG_MEM_ADDR;
 

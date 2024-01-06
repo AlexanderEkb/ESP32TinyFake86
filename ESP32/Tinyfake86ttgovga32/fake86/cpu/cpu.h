@@ -45,7 +45,7 @@
 
 typedef enum : uint32_t
 {
-  _dbgReg_PC,
+  _dbgReg_IP,
   _dbgReg_AX,
   _dbgReg_BX,
   _dbgReg_CX,
