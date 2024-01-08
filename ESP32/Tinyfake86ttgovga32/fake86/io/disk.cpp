@@ -41,6 +41,8 @@ extern uint8_t * ram;
 extern uint8_t read86 (uint32_t addr32);
 extern void write86 (uint32_t addr32, uint8_t value);
 
+static void getDriveParameters(uint8_t drive);
+
 unsigned char sectorbuffer[SECTOR_SIZE];
 static uint8_t lastResult = 0;
 
@@ -49,7 +51,7 @@ DRIVE_DESC drives[SdCard::DRIVE_COUNT] = {
     {80, 2, 18, 1474560},      // B:
     {80, 2, 18, 1474560},      // ?:
     {80, 2, 18, 1474560},      // ?:
-    {512, 64, 64, 1073741824}, // C:
+    {512, 64, 63, 1056964608}, // C:
 };
 
 void setResult(uint8_t _result)
@@ -151,18 +153,15 @@ void diskhandler()
       break;
     case 8: //get drive parameters
       cf = 0;
+      getDriveParameters(translatedDrive);
       setResult(RESULT_OK);
-      regs.byteregs[regch] = static_cast<uint8_t>(drives[drive].cylinders) - 1;
-      regs.byteregs[regcl] = static_cast<uint8_t>(drives[drive].sectors) & 63;
-      regs.byteregs[regcl] = regs.byteregs[regcl] + static_cast<uint8_t>(drives[drive].cylinders / 256) * 63;
-      regs.byteregs[regdh] = static_cast<uint8_t>(drives[drive].heads) & 63;
-
-      if (regs.byteregs[regdl]<0x80) {
-          regs.byteregs[regbl] = 4; //else regs.byteregs[regbl] = 0;
-          regs.byteregs[regdl] = 2;
-        }
-      else regs.byteregs[regdl] = 1; // hdcount (???)
-    break;
+      break;
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+      break;
     default:
       setResult(RESULT_GENERAL_FAILURE);
 	}
@@ -172,3 +171,29 @@ void diskhandler()
 	  ram[0x474]= regs.byteregs[regah];
   }
 }
+
+static void getDriveParameters(uint8_t drive)
+{
+  const uint32_t maxCylIndex = drives[drive].cylinders - 1;
+  regs.byteregs[regch] = static_cast<uint8_t>(maxCylIndex & 0xFF);
+  regs.byteregs[regcl] = static_cast<uint8_t>(drives[drive].sectors) & 0x3F;
+  regs.byteregs[regcl] = regs.byteregs[regcl] | static_cast<uint8_t>((maxCylIndex >> 2) & 0xC0);
+  regs.byteregs[regdh] = static_cast<uint8_t>(drives[drive].heads - 1) & 0x3F;
+
+  if (drive < 4)
+  {
+    regs.byteregs[regbl] = 4; // Floppy type. 04h means 3.5" 1.44M
+    regs.byteregs[regdl] = 2; // Drive count
+  }
+  else
+  {
+    regs.byteregs[regbl] = 0; // Floppy type. Don't know what has to be returned for a HDD.
+    regs.byteregs[regdl] = 1; // Drive count
+  }
+  LOG("INT13:09 drive=%i\n", drive);
+  LOG("BL: %02Xh\n", regs.byteregs[regbl]);
+  LOG("CH: %02Xh\n", regs.byteregs[regch]);
+  LOG("CL: %02Xh\n", regs.byteregs[regcl]);
+  LOG("DH: %02Xh\n", regs.byteregs[regdh]);
+  LOG("DL: %02Xh\n", regs.byteregs[regdl]);
+  }
