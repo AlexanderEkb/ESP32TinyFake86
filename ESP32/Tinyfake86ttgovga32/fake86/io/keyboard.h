@@ -9,6 +9,8 @@
 #include "io/keys.h"
 #include <Arduino.h>
 #include <esp32-hal-gpio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
 void IRAM_ATTR kb_interruptHandler(void);
 uint8_t getScancode(void);
@@ -27,8 +29,8 @@ class KeyboardDriverAT : public KeyboardDriver
   public:
     static const uint32_t KEY_COUNT = 53;
     KeyboardDriverAT() {
-      incoming = 0;
       lastKey  = 0;
+      q = xQueueCreate(16, 1);
     }
     virtual void Init() {
       pinMode(KEYBOARD_DATA, INPUT_PULLUP);
@@ -41,7 +43,6 @@ class KeyboardDriverAT : public KeyboardDriver
     }
 
     virtual void Reset() {
-      incoming = 0;
       lastKey = 0;
       resetRdy();
     }
@@ -54,8 +55,9 @@ class KeyboardDriverAT : public KeyboardDriver
     }
 
     uint8_t Poll() {
-      uint8_t result = incoming;
-      incoming = 0;
+      uint8_t result;
+      if(xQueueReceive(q, &result, 0) != pdTRUE)
+        result = 0;
       return result;
     }
 
@@ -65,10 +67,11 @@ class KeyboardDriverAT : public KeyboardDriver
     }
 
   private:
-    static uint8_t incoming;
     static uint8_t lastKey;
-    static void OnKey(uint8_t scancode) { 
-      incoming = scancode;
+    static QueueHandle_t q;
+    static void OnKey(uint8_t scancode) {
+      portBASE_TYPE foo;
+      xQueueSendFromISR(q, &scancode, &foo);
       if(!(scancode & 0x80))
       {
         lastKey = scancode;
