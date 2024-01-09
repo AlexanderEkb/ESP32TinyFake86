@@ -22,66 +22,75 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "io/keyboard.h"
 #include "mb/i8259.h"
 #include "cpu/ports.h"
 #include "config/gbConfig.h"
 #include "gbGlobals.h"
 
+extern KeyboardDriver *keyboard;
+
 struct structpic i8259;
 
 uint8_t keyboardwaitack;
-//  set_port_write_redirector(0x20, 0x21, (void *)&out8259);
-//  set_port_read_redirector(0x20, 0x21, (void *)&in8259);
-static uint8_t in8259(uint32_t portnum);
+
+static uint8_t read_20h(uint32_t address);
+static uint8_t read_21h(uint32_t address);
+static void write_20h(uint32_t address, uint8_t value);
+static void write_21h(uint32_t address, uint8_t value);
+
 static void out8259(uint32_t portnum, uint8_t value);
 
-IOPort port_020h = IOPort(0x020, 0xFF, in8259, out8259);
-IOPort port_021h = IOPort(0x021, 0xFF, in8259, out8259);
+IOPort port_020h = IOPort(0x020, 0xFF, read_20h, write_20h);
+IOPort port_021h = IOPort(0x021, 0xFF, read_21h, write_21h);
 IOPort port_0A0h = IOPort(0x0A0, 0xFF, nullptr, nullptr);
 
-uint8_t in8259(uint32_t portnum)
+static uint8_t read_20h(uint32_t address)
 {
-  switch (portnum & 1) {
-		   case 0:
-			if (i8259.readmode==0) return(i8259.irr); else return(i8259.isr);
-		   case 1: //read mask register
-			return(i8259.imr);
-	}
-	return (0);
+  return (i8259.readmode==0)?(i8259.irr):(i8259.isr);
 }
 
-extern uint32_t makeupticks;
-void out8259(uint32_t portnum, uint8_t value) {
-	 uint8_t i;
-	 switch (portnum & 1) {
-		case 0:
-		 if (value & 0x10) { //begin initialization sequence
-			i8259.icwstep = 1;
-			i8259.imr = 0; //clear interrupt mask register
-			i8259.icw[i8259.icwstep++] = value;
-			return;
-		 }
-		 if ((value & 0x98)==8) { //it's an OCW3
-			if (value & 2) i8259.readmode = value & 2;
-		 }
-		 if (value & 0x20) { //EOI command
-	keyboardwaitack = 0;
-			for (i=0; i<8; i++)
-			if ((i8259.isr >> i) & 1) {
-			   i8259.isr ^= (1 << i);
-        // Figure out why this shit is here: 
-			  //  if ((i==0) && (makeupticks>0)) { makeupticks = 0; i8259.irr |= 1; }
-			   return;
-			}
-		 }
-		 break;
-		case 1:
+static uint8_t read_21h(uint32_t address)
+{
+  return(i8259.imr);
+}
+
+static void write_20h(uint32_t address, uint8_t value)
+{
+  if (value & 0x10)
+  { // begin initialization sequence
+    i8259.icwstep = 1;
+    i8259.imr = 0; // clear interrupt mask register
+    i8259.icw[i8259.icwstep++] = value;
+    return;
+  }
+  if ((value & 0x98) == 8)
+  { // it's an OCW3
+    if (value & 2)
+      i8259.readmode = value & 2;
+  }
+  if (value & 0x20)
+  { // EOI command
+    keyboardwaitack = 0;
+    for (uint32_t i = 0; i < 8; i++)
+      if ((i8259.isr >> i) & 1)
+      {
+        i8259.isr ^= (1 << i);
+        if(i == 1)
+        {
+          keyboard->resetRdy();
+        }
+        return;
+      }
+  }
+}
+
+static void write_21h(uint32_t address, uint8_t value)
+{
 		 if ((i8259.icwstep==3) && (i8259.icw[1] & 2)) i8259.icwstep = 4; //single mode, so don't read ICW3
 		 if (i8259.icwstep<5) { i8259.icw[i8259.icwstep++] = value; return; }
 		 //if we get to this point, this is just a new IMR value
 		 i8259.imr = value;
-		 break;
-	 }
 }
 
 uint8_t nextintr() {
@@ -101,20 +110,20 @@ uint8_t nextintr() {
 #else
  void doirq(unsigned char irqnum)
  {
-  static uint32_t counter_1C = 0;
-  static uint32_t timestamp_1C = millis();
-  if (irqnum == 0x00)
-  {
-    counter_1C++;
-    if (counter_1C >= 1000)
-    {
-       uint32_t now = millis();
-       uint32_t period = (now - timestamp_1C);
-       LOG("INT 1Ch: 1000 per %i ms\n", period);
-       timestamp_1C = now;
-       counter_1C = 0;
-    }
-  }
+  // static uint32_t counter_1C = 0;
+  // static uint32_t timestamp_1C = millis();
+  // if (irqnum == 0x00)
+  // {
+  //   counter_1C++;
+  //   if (counter_1C >= 1000)
+  //   {
+  //      uint32_t now = millis();
+  //      uint32_t period = (now - timestamp_1C);
+  //      LOG("INT 1Ch: 1000 per %i ms\n", period);
+  //      timestamp_1C = now;
+  //      counter_1C = 0;
+  //   }
+  // }
 
   i8259.irr |= (1 << irqnum);
   if (irqnum == 1)
@@ -126,6 +135,4 @@ uint8_t nextintr() {
 
 void init8259() {
 	 memset((void *)&i8259, 0, sizeof(i8259));
-	//  set_port_write_redirector(0x20, 0x21, (void *)&out8259);
-	//  set_port_read_redirector(0x20, 0x21, (void *)&in8259);
 }

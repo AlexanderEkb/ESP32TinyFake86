@@ -325,7 +325,6 @@ void execKeyboard()
       IOPortSpace::getInstance().get(0x060)->value = scancode;
       uint8_t val = IOPortSpace::getInstance().get(0x064)->value;
       IOPortSpace::getInstance().get(0x064)->value = val |= 2;
-      keyboard->resetRdy();
       doirq(1);
       // Serial.printf("key: 0x%02x\n", scancode);
     }
