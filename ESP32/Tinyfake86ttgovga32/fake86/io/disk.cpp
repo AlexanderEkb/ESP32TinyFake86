@@ -190,10 +190,4 @@ static void getDriveParameters(uint8_t drive)
     regs.byteregs[regbl] = 0; // Floppy type. Don't know what has to be returned for a HDD.
     regs.byteregs[regdl] = 1; // Drive count
   }
-  LOG("INT13:09 drive=%i\n", drive);
-  LOG("BL: %02Xh\n", regs.byteregs[regbl]);
-  LOG("CH: %02Xh\n", regs.byteregs[regch]);
-  LOG("CL: %02Xh\n", regs.byteregs[regcl]);
-  LOG("DH: %02Xh\n", regs.byteregs[regdh]);
-  LOG("DL: %02Xh\n", regs.byteregs[regdl]);
-  }
+}

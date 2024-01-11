@@ -1342,59 +1342,46 @@ extern void nethandler();
 #endif
 extern void diskhandler();
 
-void intcall86 (unsigned char intnum)
+void intcall86(unsigned char intnum)
 {
-	static uint16_t lastint10ax;
-	uint16_t oldregax;
-	//JJ didintr = 1;
-
-	if (intnum == 0x19) didbootstrap = 1;
-
- #ifdef use_lib_debug_interrupt
-  if (gb_interrupt_before != intnum)
+  switch (intnum)
   {
-   gb_interrupt_before= intnum;
-   //printf("Int:%02X AL:%02X AH:%02X \n",intnum,GetRegAL(),GetRegAH());
-   //fflush(stdout);
-  }
- #endif
-
-
-	switch (intnum)
+  /************************************/
+  /******** INT19H : Bootstrap ********/
+  /************************************/
+  case 0x19: // bootstrap
+    didbootstrap = 1;
+    if (bootdrive < 255)
+    { // read first sector of boot drive into 07C0:0000 and execute it
+      regs.byteregs[regdl] = bootdrive;
+      DISK_ADDR src = DISK_ADDR(bootdrive, 0, 0, 1, 1);
+      MEM_ADDR dst = MEM_ADDR(0x07C0, 0x0000);
+      readdisk(src, dst);
+      segregs[regcs] = 0x0000;
+      ip = 0x7C00;
+    }
+    else
     {
-      /************************************/
-      /******** INT19H : Bootstrap ********/
-      /************************************/
-			case 0x19: //bootstrap
-				if (bootdrive<255) { //read first sector of boot drive into 07C0:0000 and execute it
-						regs.byteregs[regdl] = bootdrive;
-            DISK_ADDR src = DISK_ADDR(bootdrive, 0, 0, 1, 1);
-            MEM_ADDR dst = MEM_ADDR(0x07C0, 0x0000);
-						readdisk (src, dst);
-						segregs[regcs] = 0x0000;
-						ip = 0x7C00;
-					}
-				else {
-						segregs[regcs] = 0xF600;	//start ROM BASIC at bootstrap if requested
-						ip = 0x0000;
-					}
-				return;
-      /************************************/
-      /********** INT13H : Disks **********/
-      /************************************/
-			case 0x13:
-			case 0xFD:
-				diskhandler();
-				return;
-		}
+      segregs[regcs] = 0xF600; // start ROM BASIC at bootstrap if requested
+      ip = 0x0000;
+    }
+    return;
+  /************************************/
+  /********** INT13H : Disks **********/
+  /************************************/
+  case 0x13:
+  case 0xFD:
+    diskhandler();
+    return;
+  }
 
-	push (makeflagsword() );
-	push (segregs[regcs]);
-	push (ip);
-	segregs[regcs] = getmem16 (0, (uint16_t) intnum * 4 + 2);
-	ip = getmem16 (0, (uint16_t) intnum * 4);
-	ifl = 0;
-	tf = 0;
+  push(makeflagsword());
+  push(segregs[regcs]);
+  push(ip);
+  segregs[regcs] = getmem16(0, (uint16_t)intnum * 4 + 2);
+  ip = getmem16(0, (uint16_t)intnum * 4);
+  ifl = 0;
+  tf = 0;
 }
 
 extern uint8_t	nextintr();
@@ -1423,11 +1410,6 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
         videoExecCpu();
         i8253Exec();
       }
-
-            //if ( (totalexec & 0x07) == 0)
-			//{
-            // delayMicroseconds(gb_delay_tick_cpu_micros);
-            //}
 
 			if (trap_toggle) {
 					intcall86 (1);
@@ -1495,11 +1477,6 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 
 			totalexec++;
 
-			/*
-			 * if (printops == 1) { printf("%04X:%04X - %s\n", savecs, saveip, oplist[opcode]);
-			 * }
-			 */
-      // XXX: !!!
       typedef void (* opcode_t)(void);
       static const opcode_t opcodes[256] = {
           opcode0x00, opcode0x01, opcode0x02, opcode0x03, opcode0x04, opcode0x05, opcode0x06, opcode0x07, opcode0x08, opcode0x09, opcode0x0A, opcode0x0B, opcode0x0C, opcode0x0D, opcode0x0E, opcode0x0F,

@@ -2144,10 +2144,9 @@ void opcode0xCF()
   ip = pop();
   segregs[regcs] = pop();
   decodeflagsword(pop());
-
-  /*
-   * if (net.enabled) net.canrecv = 1;
-   */
+  uint8_t opcode = getmem8(segregs[regcs], ip);
+  if(opcode == 0xF4)  // HLT
+    ip++;
 }
 
 void opcode0xD0()
