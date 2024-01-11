@@ -452,7 +452,7 @@ void ShowTinyVideoMenu()
 
 //*******************************************
 //Very small tiny osd
-OSD_RESULT_t do_tinyOSD()
+OSD_RESULT_t do_tinyOSD(  )
 {
  int auxVol;
  int auxFrec;  

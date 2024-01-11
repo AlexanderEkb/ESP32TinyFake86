@@ -3,6 +3,7 @@
 #include "video/gb_sdl_font8x8.h"
 #include "video/render.h"
 #include <string.h>
+#include "video/CompositeColorOutput.h"
 
 extern char **bufferNTSC;
 static uint8_t const *const font = getFont();
@@ -22,9 +23,12 @@ void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
 
 void svcClearScreen(uint8_t color)
 {
+  const uint32_t BORDER_WIDTH = 8;
+  const uint32_t FIELD_WIDTH = CompositeColorOutput::XRES - 2 * BORDER_WIDTH;
+  const uint32_t RIGHT_POS = CompositeColorOutput::XRES - BORDER_WIDTH;
   for (int y = 0; y < OSD_VERTICAL_OFFSET; y++)
   {
-    for (uint32_t x = 0; x < 335; x++)
+    for (uint32_t x = 0; x < CompositeColorOutput::XRES; x++)
     {
       bufferNTSC[y][x] = DEFAULT_BORDER;
       bufferNTSC[y + EFFECTIVE_HEIGHT + OSD_VERTICAL_OFFSET][x] = DEFAULT_BORDER;
@@ -32,12 +36,13 @@ void svcClearScreen(uint8_t color)
   }
   for (int y = 0; y < EFFECTIVE_HEIGHT; y++)
   {
-    for (int x = 0; x < 8; x++)
+    for (int x = 0; x < BORDER_WIDTH; x++)
+    {
       bufferNTSC[y + OSD_VERTICAL_OFFSET][x] = DEFAULT_BORDER;
-    for (int x = 0; x < 320; x++)
-      bufferNTSC[y + OSD_VERTICAL_OFFSET][x + 8] = color;
-    for (int x = 0; x < 8; x++)
-      bufferNTSC[y + OSD_VERTICAL_OFFSET][x + 328] = DEFAULT_BORDER;
+      bufferNTSC[y + OSD_VERTICAL_OFFSET][x + RIGHT_POS] = DEFAULT_BORDER;
+    }
+    for (int x = 0; x < FIELD_WIDTH; x++)
+      bufferNTSC[y + OSD_VERTICAL_OFFSET][x + BORDER_WIDTH] = color;
   }
 }
 
