@@ -2015,6 +2015,113 @@ void opcode0xBF()
   StepIP(2);
 }
 
+uint8_t op_grp2_8(uint8_t cnt)
+{
+  uint16_t s;
+  uint16_t shift;
+  uint16_t oldcf;
+  uint16_t msb;
+
+  s = oper1b;
+  oldcf = cf;
+#ifdef CPU_V20 // 80186/V20 class CPUs limit shift count to 31
+  cnt &= 0x1F;
+#endif
+  switch (reg)
+  {
+  case 0: // ROL r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      cf = (s & 0x80) ? 1 : 0;
+      s = s << 1;
+      s = s | cf;
+    }
+
+    if (cnt == 1)
+    {
+      of = cf ^ ((s >> 7) & 1);
+    }
+    break;
+
+  case 1: // ROR r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      cf = s & 1;
+      s = (s >> 1) | (cf << 7);
+    }
+
+    if (cnt == 1)
+    {
+      of = (s >> 7) ^ ((s >> 6) & 1);
+    }
+    break;
+
+  case 2: // RCL r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      oldcf = cf;
+      cf = (s & 0x80) ? 1 : 0;
+      s = s << 1;
+      s = s | oldcf;
+    }
+
+    if (cnt == 1)
+    {
+      of = cf ^ ((s >> 7) & 1);
+    }
+    break;
+
+  case 3: // RCR r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      oldcf = cf;
+      cf = s & 1;
+      s = (s >> 1) | (oldcf << 7);
+    }
+
+    if (cnt == 1)
+    {
+      of = (s >> 7) ^ ((s >> 6) & 1);
+    }
+    break;
+
+  case 4:
+  case 6: // SHL r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      cf = (s & 0x80) ? 1 : 0;
+      s = (s << 1) & 0xFF;
+    }
+    of = ((cnt == 1) && (cf == (s >> 7))) ? 0 : 1;
+    flag_szp8((unsigned char)s);
+    break;
+
+  case 5: // SHR r/m8
+    of = ((cnt == 1) && (s & 0x80)) ? 1 : 0;
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      cf = s & 1;
+      s = s >> 1;
+    }
+    flag_szp8((unsigned char)s);
+    break;
+
+  case 7: // SAR r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      msb = s & 0x80;
+      cf = s & 1;
+      s = (s >> 1) | msb;
+    }
+
+    of = 0;
+    flag_szp8((unsigned char)s);
+    break;
+  }
+
+  return s & 0xFF;
+}
+
 void opcode0xC0()
 { /* C0 GRP2 byte imm8 (80186+) */
   modregrm();
@@ -2022,6 +2129,112 @@ void opcode0xC0()
   oper2b = getmem8(segregs[regcs], ip);
   StepIP(1);
   writerm8(rm, op_grp2_8(oper2b));
+}
+
+static inline uint16_t op_grp2_16(uint8_t cnt)
+{
+  uint32_t s;
+  uint32_t shift;
+  uint32_t oldcf;
+  uint32_t msb;
+
+  s = oper1;
+  oldcf = cf;
+#ifdef CPU_V20 // 80186/V20 class CPUs limit shift count to 31
+  cnt &= 0x1F;
+#endif
+  switch (reg)
+  {
+  case 0: // ROL r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      cf = (s & 0x8000) ? 1 : 0;
+      s = s << 1;
+      s = s | cf;
+    }
+    if (cnt == 1)
+    {
+      of = cf ^ ((s >> 15) & 1);
+    }
+    break;
+
+  case 1: // ROR r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      cf = s & 1;
+      s = (s >> 1) | (cf << 15);
+    }
+
+    if (cnt == 1)
+    {
+      of = (s >> 15) ^ ((s >> 14) & 1);
+    }
+    break;
+
+  case 2: // RCL r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      oldcf = cf;
+      cf = (s & 0x8000) ? 1 : 0;
+      s = s << 1;
+      s = s | oldcf;
+    }
+
+    if (cnt == 1)
+    {
+      of = cf ^ ((s >> 15) & 1);
+    }
+    break;
+
+  case 3: // RCR r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      oldcf = cf;
+      cf = s & 1;
+      s = (s >> 1) | (oldcf << 15);
+    }
+
+    if (cnt == 1)
+    {
+      of = (s >> 15) ^ ((s >> 14) & 1);
+    }
+    break;
+
+  case 4:
+  case 6: // SHL r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      cf = (s & 0x8000) ? 1 : 0;
+      s = (s << 1) & 0xFFFF;
+    }
+    of = ((cnt == 1) && (cf == (s >> 15))) ? 0 : 1;
+    flag_szp16((unsigned short int)s);
+    break;
+
+  case 5: // SHR r/m8
+    of = ((cnt == 1) && (s & 0x8000)) ? 1 : 0;
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      cf = s & 1;
+      s = s >> 1;
+    }
+    flag_szp16((unsigned short int)s);
+    break;
+
+  case 7: // SAR r/m8
+    for (shift = 1; shift <= cnt; shift++)
+    {
+      msb = s & 0x8000;
+      cf = s & 1;
+      s = (s >> 1) | msb;
+    }
+
+    of = 0;
+    flag_szp16((unsigned short int)s);
+    break;
+  }
+
+  return (unsigned short int)s & 0xFFFF;
 }
 
 void opcode0xC1()
@@ -2363,22 +2576,292 @@ void opcode0xF5()
   cf= (!cf)?1:0;
 }
 
+static inline void op_div8(unsigned short int valdiv, unsigned char divisor)
+{
+  if (divisor == 0)
+  {
+    intcall86(0);
+    return;
+  }
+
+  if ((valdiv / (unsigned short int)divisor) > 0xFF)
+  {
+    intcall86(0);
+    return;
+  }
+
+  regs.byteregs[regah] = valdiv % (unsigned short int)divisor;
+  regs.byteregs[regal] = valdiv / (unsigned short int)divisor;
+}
+
+static inline void op_idiv8(uint16_t valdiv, uint8_t divisor)
+{
+
+  uint16_t s1;
+  uint16_t s2;
+  uint16_t d1;
+  uint16_t d2;
+  int sign;
+
+  if (divisor == 0)
+  {
+    intcall86(0);
+    return;
+  }
+
+  s1 = valdiv;
+  s2 = divisor;
+  sign = (((s1 ^ s2) & 0x8000) != 0);
+  s1 = (s1 < 0x8000) ? s1 : ((~s1 + 1) & 0xffff);
+  s2 = (s2 < 0x8000) ? s2 : ((~s2 + 1) & 0xffff);
+  d1 = s1 / s2;
+  d2 = s1 % s2;
+  if (d1 & 0xFF00)
+  {
+    intcall86(0);
+    return;
+  }
+
+  if (sign)
+  {
+    d1 = (~d1 + 1) & 0xff;
+    d2 = (~d2 + 1) & 0xff;
+  }
+
+  regs.byteregs[regah] = (uint8_t)d2;
+  regs.byteregs[regal] = (uint8_t)d1;
+}
+
 void opcode0xF6()
 { /* F6 GRP3a Eb */
   modregrm();
   oper1b = readrm8(rm);
-  op_grp3_8();
+
+  oper1 = signext(oper1b);
+  oper2 = signext(oper2b);
+  switch (reg)
+  {
+  case 0:
+  case 1: // TEST
+    flag_log8(oper1b & getmem8(segregs[regcs], ip));
+    StepIP(1);
+    break;
+
+  case 2: // NOT
+    res8 = ~oper1b;
+    break;
+
+  case 3: // NEG
+    res8 = (~oper1b) + 1;
+    flag_sub8(0, oper1b);
+    cf = (res8 == 0) ? 0 : 1;
+    break;
+
+  case 4: /* MUL */
+    temp1 = (uint32_t)oper1b * (uint32_t)regs.byteregs[regal];
+    putreg16(regax, temp1 & 0xFFFF);
+    flag_szp8((uint8_t)temp1);
+    if (regs.byteregs[regah])
+    {
+      cf = 1;
+      of = 1;
+    }
+    else
+    {
+      cf = 0;
+      of = 0;
+    }
+#ifndef CPU_V20
+    zf = 0;
+#endif
+    break;
+
+  case 5: /* IMUL */
+    oper1 = signext(oper1b);
+    temp1 = signext(regs.byteregs[regal]);
+    temp2 = oper1;
+    if ((temp1 & 0x80) == 0x80)
+    {
+      temp1 = temp1 | 0xFFFFFF00;
+    }
+
+    if ((temp2 & 0x80) == 0x80)
+    {
+      temp2 = temp2 | 0xFFFFFF00;
+    }
+
+    temp3 = (temp1 * temp2) & 0xFFFF;
+    putreg16(regax, temp3 & 0xFFFF);
+    if (regs.byteregs[regah])
+    {
+      cf = 1;
+      of = 1;
+    }
+    else
+    {
+      cf = 0;
+      of = 0;
+    }
+#ifndef CPU_V20
+    zf = 0;
+#endif
+    break;
+
+  case 6: /* DIV */
+    op_div8(getreg16(regax), oper1b);
+    break;
+
+  case 7: /* IDIV */
+    op_idiv8(getreg16(regax), oper1b);
+    break;
+  }
+
   if ((reg > 1) && (reg < 4))
   {
     writerm8(rm, res8);
   }
 }
 
+void op_div16(uint32_t valdiv, uint16_t divisor)
+{
+  if (divisor == 0)
+  {
+    intcall86(0);
+    return;
+  }
+
+  if ((valdiv / (uint32_t)divisor) > 0xFFFF)
+  {
+    intcall86(0);
+    return;
+  }
+
+  putreg16(regdx, valdiv % (uint32_t)divisor);
+  putreg16(regax, valdiv / (uint32_t)divisor);
+}
+
+void op_idiv16(uint32_t valdiv, uint16_t divisor)
+{
+
+  uint32_t d1;
+  uint32_t d2;
+  uint32_t s1;
+  uint32_t s2;
+  int sign;
+
+  if (divisor == 0)
+  {
+    intcall86(0);
+    return;
+  }
+
+  s1 = valdiv;
+  s2 = divisor;
+  s2 = (s2 & 0x8000) ? (s2 | 0xffff0000) : s2;
+  sign = (((s1 ^ s2) & 0x80000000) != 0);
+  s1 = (s1 < 0x80000000) ? s1 : ((~s1 + 1) & 0xffffffff);
+  s2 = (s2 < 0x80000000) ? s2 : ((~s2 + 1) & 0xffffffff);
+  d1 = s1 / s2;
+  d2 = s1 % s2;
+  if (d1 & 0xFFFF0000)
+  {
+    intcall86(0);
+    return;
+  }
+
+  if (sign)
+  {
+    d1 = (~d1 + 1) & 0xffff;
+    d2 = (~d2 + 1) & 0xffff;
+  }
+
+  putreg16(regax, d1);
+  putreg16(regdx, d2);
+}
+
 void opcode0xF7()
 { /* F7 GRP3b Ev */
   modregrm();
   oper1 = readrm16(rm);
-  op_grp3_16();
+
+  switch (reg)
+  {
+  case 0:
+  case 1: /* TEST */
+    flag_log16(oper1 & getmem16(segregs[regcs], ip));
+    StepIP(2);
+    break;
+
+  case 2: /* NOT */
+    res16 = ~oper1;
+    break;
+
+  case 3: // NEG
+    res16 = (~oper1) + 1;
+    flag_sub16(0, oper1);
+    cf = (res16) ? 1 : 0;
+    break;
+
+  case 4: /* MUL */
+    temp1 = (uint32_t)oper1 * (uint32_t)getreg16(regax);
+    putreg16(regax, temp1 & 0xFFFF);
+    putreg16(regdx, temp1 >> 16);
+    flag_szp16((uint16_t)temp1);
+    if (getreg16(regdx))
+    {
+      cf = 1;
+      of = 1;
+    }
+    else
+    {
+      cf = 0;
+      of = 0;
+    }
+#ifndef CPU_V20
+    zf = 0;
+#endif
+    break;
+
+  case 5: /* IMUL */
+    temp1 = getreg16(regax);
+    temp2 = oper1;
+    if (temp1 & 0x8000)
+    {
+      temp1 |= 0xFFFF0000;
+    }
+
+    if (temp2 & 0x8000)
+    {
+      temp2 |= 0xFFFF0000;
+    }
+
+    temp3 = temp1 * temp2;
+    putreg16(regax, temp3 & 0xFFFF); /* into register ax */
+    putreg16(regdx, temp3 >> 16);    /* into register dx */
+    if (getreg16(regdx))
+    {
+      cf = 1;
+      of = 1;
+    }
+    else
+    {
+      cf = 0;
+      of = 0;
+    }
+#ifndef CPU_V20
+    zf = 0;
+#endif
+    break;
+
+  case 6: /* DIV */
+    op_div16(((uint32_t)getreg16(regdx) << 16) + getreg16(regax), oper1);
+    break;
+
+  case 7: /* DIV */
+    op_idiv16(((uint32_t)getreg16(regdx) << 16) + getreg16(regax), oper1);
+    break;
+  }
+
   if ((reg > 1) && (reg < 4))
   {
     writerm16(rm, res16);
@@ -2442,7 +2925,51 @@ void opcode0xFF()
 { /* FF GRP5 Ev */
   modregrm();
   oper1 = readrm16(rm);
-  op_grp5();
+  switch (reg)
+  {
+  case 0: /* INC Ev */
+    oper2 = 1;
+    tempcf = cf;
+    op_add16();
+    cf = tempcf;
+    writerm16(rm, res16);
+    break;
+
+  case 1: /* DEC Ev */
+    oper2 = 1;
+    tempcf = cf;
+    op_sub16();
+    cf = tempcf;
+    writerm16(rm, res16);
+    break;
+
+  case 2: /* CALL Ev */
+    push(ip);
+    ip = oper1;
+    break;
+
+  case 3: /* CALL Mp */
+    push(segregs[regcs]);
+    push(ip);
+    getea(rm);
+    ip = (uint16_t)read86(ea) + (uint16_t)read86(ea + 1) * 256;
+    segregs[regcs] = (uint16_t)read86(ea + 2) + (uint16_t)read86(ea + 3) * 256;
+    break;
+
+  case 4: /* JMP Ev */
+    ip = oper1;
+    break;
+
+  case 5: /* JMP Mp */
+    getea(rm);
+    ip = (uint16_t)read86(ea) + (uint16_t)read86(ea + 1) * 256;
+    segregs[regcs] = (uint16_t)read86(ea + 2) + (uint16_t)read86(ea + 3) * 256;
+    break;
+
+  case 6: /* PUSH Ev */
+    push(oper1);
+    break;
+  }
 }
 
 void opcodeStub()

@@ -9,7 +9,7 @@ I. Video
 6. ~~Increase master video frequency to fit 640 pixels to the scanline~~ Made in a slightly different way :)
 7. ~~Adjust colors (make, say, red more red than now). Especially light ones.~~
 8. ~~Align different video modes horizontally~~
-9. Fix border width (top and bottom parts)
+9. ~~Fix border width (top and bottom parts)~~
 
 II. Disks
 =========

@@ -45,6 +45,7 @@ class KeyboardDriverAT : public KeyboardDriver
     virtual void Reset() {
       lastKey = 0;
       resetRdy();
+      xQueueReset(q);
     }
 
     virtual uint8_t getLastKey() {

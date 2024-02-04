@@ -118,23 +118,12 @@ void SetCF(unsigned short int a){ cf= a; }
 
 unsigned char gb_check_memory_before;
 
-#ifdef use_lib_fast_makeflagsword
  #define makeflagsword() \
 	( \
 	2 | (uint16_t) cf | ((uint16_t) pf << 2) | ((uint16_t) af << 4) | ((uint16_t) zf << 6) | ((uint16_t) sf << 7) | \
 	((uint16_t) tf << 8) | ((uint16_t) ifl << 9) | ((uint16_t) df << 10) | ((uint16_t) of << 11) \
 	)
-#else
- static inline unsigned short int makeflagsword()
- {
-  return (
-	2 | (unsigned short int) cf | ((unsigned short int) pf << 2) | ((unsigned short int) af << 4) | ((unsigned short int) zf << 6) | ((unsigned short int) sf << 7) |
-	((unsigned short int) tf << 8) | ((unsigned short int) ifl << 9) | ((unsigned short int) df << 10) | ((unsigned short int) of << 11)
-	);
- }
-#endif
 
-#ifdef use_lib_fast_decodeflagsword
  static inline void decodeflagsword(unsigned short int x)
  {//Es mas rapido metodo inline que define original
   temp16 = x;
@@ -148,22 +137,6 @@ unsigned char gb_check_memory_before;
   df = (temp16 >> 10) & 1;
   of = (temp16 >> 11) & 1;
  }
-#else
- #define decodeflagsword(x) { \
-	temp16 = x; \
-	cf = temp16 & 1; \
-	pf = (temp16 >> 2) & 1; \
-	af = (temp16 >> 4) & 1; \
-	zf = (temp16 >> 6) & 1; \
-	sf = (temp16 >> 7) & 1; \
-	tf = (temp16 >> 8) & 1; \
-	ifl = (temp16 >> 9) & 1; \
-	df = (temp16 >> 10) & 1; \
-	of = (temp16 >> 11) & 1; \
-	}
-#endif
-
-
 
 //Lo saco fuera de Read86. Se ejecuta al inicio y en timer 54 ms.
 void updateBIOSDataArea()
@@ -212,20 +185,11 @@ void write86 (unsigned int addr32, unsigned char value)
 
 }
 
-#ifdef use_lib_fast_op_writew86
  static inline void writew86 (unsigned int addr32, unsigned short int value)
  {
   write86 (addr32, (unsigned char) value);
   write86 (addr32 + 1, (unsigned char) (value >> 8) );
  } 
-#else
- void writew86 (unsigned int addr32, unsigned short int value)
- {
-  write86 (addr32, (unsigned char) value);
-  write86 (addr32 + 1, (unsigned char) (value >> 8) );
- }
-#endif 
-
 
 unsigned char read86 (unsigned int addr32) 
 {
@@ -269,22 +233,14 @@ unsigned char read86 (unsigned int addr32)
  return 0xFF; 
 }
 
-#ifdef use_lib_fast_readw86
  static inline unsigned short int readw86 (unsigned int addr32)
-#else
- unsigned short int readw86 (unsigned int addr32)
-#endif 
  {
   return ( (unsigned short int) read86 (addr32) | (unsigned short int) (read86 (addr32 + 1) << 8) );
  }
 
 
 
-#ifdef use_lib_fast_flag_szp8
  static inline void flag_szp8(unsigned char value)
-#else
- void flag_szp8(unsigned char value)
-#endif 
  {
   zf= (!value)?1:0; //set or clear zero flag  
   sf= (value & 0x80)?1:0; //set or clear sign flag
@@ -292,22 +248,14 @@ unsigned char read86 (unsigned int addr32)
  }
 
 
-#ifdef use_lib_fast_flag_szp16
  static inline void flag_szp16(unsigned short int value)
-#else
- void flag_szp16(unsigned short int value)
-#endif 
  {	 
   zf= (!value)?1:0; //set or clear zero flag
   sf= (value & 0x8000)?1:0; //set or clear sign flag
   pf = parity[value & 255];	//retrieve parity state from lookup table
  }
 
-#ifdef use_lib_fast_flag_log8
  static inline void flag_log8(unsigned char value)
-#else
- void flag_log8(unsigned char value)
-#endif 
  {
   flag_szp8(value);
   cf=0;
@@ -315,22 +263,14 @@ unsigned char read86 (unsigned int addr32)
  }
 
 
-#ifdef use_lib_fast_flag_log16
  static inline void flag_log16(unsigned short int value)
-#else
- void flag_log16(unsigned short int value)
-#endif 
  {
   flag_szp16(value);
   cf=0;
   of=0; //bitwise logic ops always clear carry and overflow
  }
 
-#ifdef use_lib_fast_flag_adc8
  static inline void flag_adc8 (unsigned char v1, unsigned char v2, unsigned char v3)
-#else
- void flag_adc8 (unsigned char v1, unsigned char v2, unsigned char v3)
-#endif 
 {//v1 = destination operand, v2 = source operand, v3 = carry flag 
  unsigned short int dst;
  dst = (unsigned short int) v1 + (unsigned short int) v2 + (unsigned short int) v3;
@@ -340,11 +280,7 @@ unsigned char read86 (unsigned int addr32)
  af= ( ( (v1 ^ v2 ^ dst) & 0x10) == 0x10)?1:0; // set or clear auxilliary flag
 }
 
-#ifdef use_lib_fast_flag_adc16
  static inline void flag_adc16 (unsigned short int v1, unsigned short int v2, unsigned short int v3)
-#else
- void flag_adc16 (unsigned short int v1, unsigned short int v2, unsigned short int v3)
-#endif 
  {
   unsigned int dst;
   dst = (unsigned int) v1 + (unsigned int) v2 + (unsigned int) v3;
@@ -355,11 +291,7 @@ unsigned char read86 (unsigned int addr32)
  }
 
 
-#ifdef use_lib_fast_flag_add8
  static inline void flag_add8 (unsigned char v1, unsigned char v2)
-#else
- void flag_add8 (unsigned char v1, unsigned char v2)
-#endif 
  {
   //v1 = destination operand, v2 = source operand
   unsigned short int dst;
@@ -371,11 +303,7 @@ unsigned char read86 (unsigned int addr32)
  }
 
 
-#ifdef use_lib_fast_flag_add16
  static inline void flag_add16 (uint16_t v1, uint16_t v2)
-#else
- void flag_add16 (uint16_t v1, uint16_t v2)
-#endif 
  {
   //v1 = destination operand, v2 = source operand
   unsigned int dst;
@@ -387,11 +315,7 @@ unsigned char read86 (unsigned int addr32)
  }
 
 
-#ifdef use_lib_fast_flag_sbb8
  static inline void flag_sbb8 (unsigned char v1, unsigned char v2, unsigned char v3)
-#else
- void flag_sbb8 (unsigned char v1, unsigned char v2, unsigned char v3)
-#endif 
  {
   //v1 = destination operand, v2 = source operand, v3 = carry flag
   unsigned short int dst;
@@ -404,11 +328,7 @@ unsigned char read86 (unsigned int addr32)
  }
 
 
-#ifdef use_lib_fast_flag_sbb16 
  static inline void flag_sbb16 (unsigned short int v1, unsigned short int v2, unsigned short int v3)
-#else 
- void flag_sbb16 (unsigned short int v1, unsigned short int v2, unsigned short int v3)
-#endif 
  {
   //v1 = destination operand, v2 = source operand, v3 = carry flag
   unsigned int dst;
@@ -421,11 +341,7 @@ unsigned char read86 (unsigned int addr32)
  }
  
 
-#ifdef use_lib_fast_flag_sub8
  static inline void flag_sub8 (unsigned char v1, unsigned char v2)
-#else
- void flag_sub8 (unsigned char v1, unsigned char v2)
-#endif 
  {//v1 = destination operand, v2 = source operand
   unsigned short int dst;
   dst = (unsigned short int) v1 - (unsigned short int) v2;
@@ -435,11 +351,7 @@ unsigned char read86 (unsigned int addr32)
   af= ( (v1 ^ v2 ^ dst) & 0x10)?1:0;
  }
 
-#ifdef use_lib_fast_flag_sub16
  static inline void flag_sub16 (unsigned short int v1, unsigned short int v2)
-#else
- void flag_sub16 (unsigned short int v1, unsigned short int v2)
-#endif 
  {//v1 = destination operand, v2 = source operand
   unsigned int dst;
   dst = (unsigned int) v1 - (unsigned int) v2;
@@ -449,63 +361,39 @@ unsigned char read86 (unsigned int addr32)
   af= ( (v1 ^ v2 ^ dst) & 0x10)?1:0;
  }
 
-#ifdef use_lib_fast_op_adc8
  static inline void op_adc8()
-#else
- void op_adc8()
-#endif 
  {
   res8 = oper1b + oper2b + cf;
   flag_adc8 (oper1b, oper2b, cf);
  }
 
-#ifdef use_lib_fast_op_adc16
  static inline void op_adc16()
-#else
- void op_adc16()
-#endif 
  {
   res16 = oper1 + oper2 + cf;
   flag_adc16 (oper1, oper2, cf);
  }
 
-#ifdef use_lib_fast_op_add8
  static inline void op_add8()
-#else
- void op_add8()
-#endif 
  {
   res8 = oper1b + oper2b;
   flag_add8 (oper1b, oper2b);
  }
 
-#ifdef use_lib_fast_op_add16
  static inline void op_add16()
-#else
- void op_add16()
-#endif  
  {
   res16 = oper1 + oper2;
   flag_add16 (oper1, oper2);
  }
 
 
-#ifdef use_lib_fast_op_and8
  static inline void op_and8()
-#else
- void op_and8()
-#endif
  {
   res8 = oper1b & oper2b;
   flag_log8 (res8);
  }
 
 
-#ifdef use_lib_fast_op_and16
  static inline void op_and16()
-#else
- void op_and16()
-#endif 
  {
   res16 = oper1 & oper2;
   flag_log16 (res16);
@@ -513,85 +401,53 @@ unsigned char read86 (unsigned int addr32)
 
 
 
-#ifdef use_lib_fast_op_or8
  static inline void op_or8()
-#else
- void op_or8()
-#endif 
  {
   res8 = oper1b | oper2b;
   flag_log8 (res8);
  } 
 
 
-#ifdef use_lib_fast_op_or16
  static inline void op_or16()
-#else
- void op_or16()
-#endif 
  {
   res16 = oper1 | oper2;
   flag_log16 (res16);
  }
 
 
-#ifdef use_lib_fast_op_xor8
  static inline void op_xor8()
-#else
- void op_xor8()
-#endif 
  {
   res8 = oper1b ^ oper2b;
   flag_log8 (res8);
  }
 
 
-#ifdef use_lib_fast_op_xor16
  static inline void op_xor16()
-#else
- void op_xor16()
-#endif  
  {
   res16 = oper1 ^ oper2;
   flag_log16((unsigned short int)res16);
  }
 
-#ifdef use_lib_fast_op_sub8
  static inline void op_sub8()
-#else
- void op_sub8()
-#endif
  {
   res8 = oper1b - oper2b;
   flag_sub8 (oper1b, oper2b);
  }
 
-#ifdef use_lib_fast_op_sub16
  static inline void op_sub16()
-#else
- void op_sub16()
-#endif  
  {
   res16 = oper1 - oper2;
   flag_sub16 (oper1, oper2);
  }
 
 
-#ifdef use_lib_fast_op_sbb8
  static inline void op_sbb8()
-#else
- void op_sbb8()
-#endif 
  {
   res8 = oper1b - (oper2b + cf);
   flag_sbb8 (oper1b, oper2b, cf);
  }
 
-#ifdef use_lib_fast_op_sbb16
  static inline void op_sbb16()
-#else
- void op_sbb16()
-#endif 
  {
   res16 = oper1 - (oper2 + cf);
   flag_sbb16 (oper1, oper2, cf);
@@ -708,66 +564,24 @@ void getea (uint8_t rmval)
 	ea = (tempea & 0xFFFF) + (useseg << 4);
 }
 
-#ifdef use_lib_fast_push 
  #define push(x) \ 
   putreg16(regsp,getreg16(regsp)-2); \
   putmem16(segregs[regss],getreg16(regsp),x); \
    
-#else
- void push (unsigned short int pushval)
- {
-  putreg16 (regsp, getreg16 (regsp) - 2);
-  putmem16 (segregs[regss], getreg16 (regsp), pushval);
- }
-#endif
-
-#ifdef use_lib_fast_pop
- //En gcc se puede usar una macro statement expressions
  static inline unsigned short int pop()
  {
   uint16_t tempval = getmem16 (segregs[regss], getreg16 (regsp) );
   putreg16 (regsp, getreg16 (regsp) + 2);
   return tempval;
  }  
-#else
- unsigned short int pop()
- {
-  unsigned short int tempval;
-  tempval = getmem16 (segregs[regss], getreg16 (regsp) );
-  putreg16 (regsp, getreg16 (regsp) + 2);
-  return tempval;
- }
-#endif 
-
-
-//void SetCSLoadCom()
-//{
-// ///Memoria 0x1F400 128000  
-// //segregs[regcs] = 0x1040;
-// segregs[regcs] = 0x07C0;
-// ip=0x100;//0x100;
-// //ip = 0x0C00;
-// segregs[regds] = 0x07C0;
-// segregs[reges] = 0x07C0;
-// segregs[regss] = 0x07C0;
-// //ip = 0x0100;
-// //segregs[regcs] = 0x7000;
-// //ip = 0x0100;
-//}
 
 void reset86() {
 	segregs[regcs] = 0xFFFF;
 	ip = 0x0000;
-  updateBIOSDataArea(); // Al inicio
-
-  //regs.wordregs[regsp] = 0xFFFE;
+  updateBIOSDataArea();
 }
 
-#ifdef use_lib_fast_readrm16
  static inline unsigned short int readrm16 (unsigned char rmval)
-#else
- unsigned short int readrm16 (unsigned char rmval)
-#endif 
  {
   if (mode < 3)
   {
@@ -780,11 +594,7 @@ void reset86() {
   }
 }
 
-#ifdef use_lib_fast_readrm8
  static inline unsigned char readrm8 (unsigned char rmval) 
-#else
- unsigned char readrm8 (unsigned char rmval) 
-#endif 
  {
   if (mode < 3)
   {
@@ -797,11 +607,7 @@ void reset86() {
   }
 }
 
-#ifdef use_lib_fast_writerm16
  static inline void writerm16 (unsigned char rmval, unsigned short int value)
-#else
- void writerm16 (unsigned char rmval, unsigned short int value)
-#endif 
  {
   if (mode < 3)
   {
@@ -815,11 +621,7 @@ void reset86() {
   }
 }
 
-#ifdef use_lib_fast_writerm8
  static inline void writerm8 (unsigned char rmval, unsigned char value)
-#else
- void writerm8 (unsigned char rmval, unsigned char value) 
-#endif 
  {
   if (mode < 3)
   {
@@ -832,514 +634,6 @@ void reset86() {
   }
 }
 
-uint8_t op_grp2_8 (uint8_t cnt)
-{
-	uint16_t	s;
-	uint16_t	shift;
-	uint16_t	oldcf;
-	uint16_t	msb;
-
-	s = oper1b;
-	oldcf = cf;
-#ifdef CPU_V20 //80186/V20 class CPUs limit shift count to 31
-	cnt &= 0x1F;
-#endif
-	switch (reg) {
-			case 0: // ROL r/m8
-				for (shift = 1; shift <= cnt; shift++)
-				{
-				 cf= (s & 0x80)?1:0;
-				 s = s << 1;
-				 s = s | cf;
-				}
-
-				if (cnt == 1)
-				{
-				 of = cf ^ ( (s >> 7) & 1);
-				}
-				break;
-
-			case 1: // ROR r/m8
-				for (shift = 1; shift <= cnt; shift++) {
-						cf = s & 1;
-						s = (s >> 1) | (cf << 7);
-					}
-
-				if (cnt == 1) {
-						of = (s >> 7) ^ ( (s >> 6) & 1);
-					}
-				break;
-
-			case 2: // RCL r/m8
-				for (shift = 1; shift <= cnt; shift++)
-				{
-				 oldcf = cf;
-				 cf= (s & 0x80)?1:0;
-				 s = s << 1;
-				 s = s | oldcf;
-				}
-
-				if (cnt == 1)
-				{
-				 of = cf ^ ( (s >> 7) & 1);
-				}
-				break;
-
-			case 3: // RCR r/m8
-				for (shift = 1; shift <= cnt; shift++) {
-						oldcf = cf;
-						cf = s & 1;
-						s = (s >> 1) | (oldcf << 7);
-					}
-
-				if (cnt == 1) {
-						of = (s >> 7) ^ ( (s >> 6) & 1);
-					}
-				break;
-
-			case 4:
-			case 6: // SHL r/m8
-				for (shift = 1; shift <= cnt; shift++) 
-				{
-                 cf= (s & 0x80)?1:0;
-  				 s = (s << 1) & 0xFF;
-				}
-                of= ( (cnt == 1) && (cf == (s >> 7) ) )?0:1;
-				flag_szp8 ( (unsigned char) s);
-				break;
-
-			case 5: // SHR r/m8
-			    of= ( (cnt == 1) && (s & 0x80) )?1:0; 
-				for (shift = 1; shift <= cnt; shift++) 
-				{
-				 cf = s & 1;
-				 s = s >> 1;
-				}
-				flag_szp8 ( (unsigned char) s);
-				break;
-
-			case 7: // SAR r/m8
-				for (shift = 1; shift <= cnt; shift++) {
-						msb = s & 0x80;
-						cf = s & 1;
-						s = (s >> 1) | msb;
-					}
-
-				of = 0;
-				flag_szp8 ( (unsigned char) s);
-				break;
-		}
-
-	return s & 0xFF;
-}
-
-uint16_t op_grp2_16 (uint8_t cnt)
-{
-	uint32_t	s;
-	uint32_t	shift;
-	uint32_t	oldcf;
-	uint32_t	msb;
-
-	s = oper1;
-	oldcf = cf;
-#ifdef CPU_V20 //80186/V20 class CPUs limit shift count to 31
-	cnt &= 0x1F;
-#endif
-	switch (reg) {
-			case 0: //ROL r/m8
-				for (shift = 1; shift <= cnt; shift++) 
-				{
-  				 cf= (s & 0x8000)?1:0;
- 				 s = s << 1;
-				 s = s | cf;
-				}
-				if (cnt == 1){
-				 of = cf ^ ( (s >> 15) & 1);
-				}
-				break;
-
-			case 1: //ROR r/m8
-				for (shift = 1; shift <= cnt; shift++) {
-						cf = s & 1;
-						s = (s >> 1) | (cf << 15);
-					}
-
-				if (cnt == 1) {
-						of = (s >> 15) ^ ( (s >> 14) & 1);
-					}
-				break;
-
-			case 2: // RCL r/m8 
-				for (shift = 1; shift <= cnt; shift++)
-				{
-				 oldcf = cf;
-				 cf= (s & 0x8000)?1:0;
-				 s = s << 1;
-				 s = s | oldcf;
-				}
-
-				if (cnt == 1) {
-				 of = cf ^ ( (s >> 15) & 1);
-				}
-				break;
-
-			case 3: //RCR r/m8
-				for (shift = 1; shift <= cnt; shift++)
-				{
-				 oldcf = cf;
-				 cf = s & 1;
-				 s = (s >> 1) | (oldcf << 15);
-				}
-
-				if (cnt == 1) {
-				 of = (s >> 15) ^ ( (s >> 14) & 1);
-				}
-				break;
-
-			case 4:
-			case 6: //SHL r/m8
-				for (shift = 1; shift <= cnt; shift++)
-				{
-				 cf= (s & 0x8000)?1:0;
-				 s = (s << 1) & 0xFFFF;
-				}
-                of= ( (cnt == 1) && (cf == (s >> 15) ) )?0:1;
-				flag_szp16 ( (unsigned short int) s);
-				break;
-
-			case 5: // SHR r/m8
-			    of= ( (cnt == 1) && (s & 0x8000) )?1:0; 
-				for (shift = 1; shift <= cnt; shift++)
-				{
-				 cf = s & 1;
-				 s = s >> 1;
-				}
-				flag_szp16 ( (unsigned short int) s);
-				break;
-
-			case 7: // SAR r/m8
-				for (shift = 1; shift <= cnt; shift++) {
-						msb = s & 0x8000;
-						cf = s & 1;
-						s = (s >> 1) | msb;
-					}
-
-				of = 0;
-				flag_szp16 ( (unsigned short int) s);
-				break;
-		}
-
-	return (unsigned short int) s & 0xFFFF;
-}
-
-
-#ifdef use_lib_fast_op_div8
- static inline void op_div8 (unsigned short int valdiv, unsigned char divisor)
-#else
- void op_div8 (unsigned short int valdiv, unsigned char divisor)
-#endif 
- {
-  if (divisor == 0)
-  {
-   intcall86 (0);
-   return;
-  }
-
-  if ( (valdiv / (unsigned short int) divisor) > 0xFF)
-  {
-   intcall86 (0);
-   return;
-  }
-
-  regs.byteregs[regah] = valdiv % (unsigned short int) divisor;
-  regs.byteregs[regal] = valdiv / (unsigned short int) divisor;
-}
-
-void op_idiv8 (uint16_t valdiv, uint8_t divisor) {
-
-	uint16_t	s1;
-	uint16_t	s2;
-	uint16_t	d1;
-	uint16_t	d2;
-	int	sign;
-
-	if (divisor == 0) {
-			intcall86 (0);
-			return;
-		}
-
-	s1 = valdiv;
-	s2 = divisor;
-	sign = ( ( (s1 ^ s2) & 0x8000) != 0);
-	s1 = (s1 < 0x8000) ? s1 : ( (~s1 + 1) & 0xffff);
-	s2 = (s2 < 0x8000) ? s2 : ( (~s2 + 1) & 0xffff);
-	d1 = s1 / s2;
-	d2 = s1 % s2;
-	if (d1 & 0xFF00) {
-			intcall86 (0);
-			return;
-		}
-
-	if (sign) {
-			d1 = (~d1 + 1) & 0xff;
-			d2 = (~d2 + 1) & 0xff;
-		}
-
-	regs.byteregs[regah] = (uint8_t) d2;
-	regs.byteregs[regal] = (uint8_t) d1;
-}
-
-void op_grp3_8() {
-	oper1 = signext (oper1b);
-	oper2 = signext (oper2b);
-	switch (reg) {
-			case 0:
-			case 1: //TEST
-				flag_log8 (oper1b & getmem8 (segregs[regcs], ip) );
-				StepIP (1);
-				break;
-
-			case 2: //NOT
-				res8 = ~oper1b;
-				break;
-
-			case 3: //NEG
-				res8 = (~oper1b) + 1;
-				flag_sub8 (0, oper1b);
-				cf= (res8 == 0)?0:1;
-				break;
-
-			case 4: /* MUL */
-				temp1 = (uint32_t) oper1b * (uint32_t) regs.byteregs[regal];
-				putreg16 (regax, temp1 & 0xFFFF);
-				flag_szp8 ( (uint8_t) temp1);
-				if (regs.byteregs[regah]) {
-						cf = 1;
-						of = 1;
-					}
-				else {
-						cf = 0;
-						of = 0;
-					}
-#ifndef CPU_V20
-				zf = 0;
-#endif
-				break;
-
-			case 5: /* IMUL */
-				oper1 = signext (oper1b);
-				temp1 = signext (regs.byteregs[regal]);
-				temp2 = oper1;
-				if ( (temp1 & 0x80) == 0x80) {
-						temp1 = temp1 | 0xFFFFFF00;
-					}
-
-				if ( (temp2 & 0x80) == 0x80) {
-						temp2 = temp2 | 0xFFFFFF00;
-					}
-
-				temp3 = (temp1 * temp2) & 0xFFFF;
-				putreg16 (regax, temp3 & 0xFFFF);
-				if (regs.byteregs[regah]) {
-						cf = 1;
-						of = 1;
-					}
-				else {
-						cf = 0;
-						of = 0;
-					}
-#ifndef CPU_V20
-				zf = 0;
-#endif
-				break;
-
-			case 6: /* DIV */
-				op_div8 (getreg16 (regax), oper1b);
-				break;
-
-			case 7: /* IDIV */
-				op_idiv8 (getreg16 (regax), oper1b);
-				break;
-		}
-}
-
-void op_div16 (uint32_t valdiv, uint16_t divisor) {
-	if (divisor == 0) {
-			intcall86 (0);
-			return;
-		}
-
-	if ( (valdiv / (uint32_t) divisor) > 0xFFFF) {
-			intcall86 (0);
-			return;
-		}
-
-	putreg16 (regdx, valdiv % (uint32_t) divisor);
-	putreg16 (regax, valdiv / (uint32_t) divisor);
-}
-
-void op_idiv16 (uint32_t valdiv, uint16_t divisor) {
-
-	uint32_t	d1;
-	uint32_t	d2;
-	uint32_t	s1;
-	uint32_t	s2;
-	int	sign;
-
-	if (divisor == 0) {
-			intcall86 (0);
-			return;
-		}
-
-	s1 = valdiv;
-	s2 = divisor;
-	s2 = (s2 & 0x8000) ? (s2 | 0xffff0000) : s2;
-	sign = ( ( (s1 ^ s2) & 0x80000000) != 0);
-	s1 = (s1 < 0x80000000) ? s1 : ( (~s1 + 1) & 0xffffffff);
-	s2 = (s2 < 0x80000000) ? s2 : ( (~s2 + 1) & 0xffffffff);
-	d1 = s1 / s2;
-	d2 = s1 % s2;
-	if (d1 & 0xFFFF0000) {
-			intcall86 (0);
-			return;
-		}
-
-	if (sign) {
-			d1 = (~d1 + 1) & 0xffff;
-			d2 = (~d2 + 1) & 0xffff;
-		}
-
-	putreg16 (regax, d1);
-	putreg16 (regdx, d2);
-}
-
-void op_grp3_16() {
-	switch (reg) {
-			case 0:
-			case 1: /* TEST */
-				flag_log16 (oper1 & getmem16 (segregs[regcs], ip) );
-				StepIP (2);
-				break;
-
-			case 2: /* NOT */
-				res16 = ~oper1;
-				break;
-
-			case 3: //NEG
-				res16 = (~oper1) + 1;
-				flag_sub16 (0, oper1);
-                cf= (res16)?1:0;
-				break;
-
-			case 4: /* MUL */
-				temp1 = (uint32_t) oper1 * (uint32_t) getreg16 (regax);
-				putreg16 (regax, temp1 & 0xFFFF);
-				putreg16 (regdx, temp1 >> 16);
-				flag_szp16 ( (uint16_t) temp1);
-				if (getreg16 (regdx) ) {
-						cf = 1;
-						of = 1;
-					}
-				else {
-						cf = 0;
-						of = 0;
-					}
-#ifndef CPU_V20
-				zf = 0;
-#endif
-				break;
-
-			case 5: /* IMUL */
-				temp1 = getreg16 (regax);
-				temp2 = oper1;
-				if (temp1 & 0x8000) {
-						temp1 |= 0xFFFF0000;
-					}
-
-				if (temp2 & 0x8000) {
-						temp2 |= 0xFFFF0000;
-					}
-
-				temp3 = temp1 * temp2;
-				putreg16 (regax, temp3 & 0xFFFF);	/* into register ax */
-				putreg16 (regdx, temp3 >> 16);	/* into register dx */
-				if (getreg16 (regdx) ) {
-						cf = 1;
-						of = 1;
-					}
-				else {
-						cf = 0;
-						of = 0;
-					}
-#ifndef CPU_V20
-				zf = 0;
-#endif
-				break;
-
-			case 6: /* DIV */
-				op_div16 ( ( (uint32_t) getreg16 (regdx) << 16) + getreg16 (regax), oper1);
-				break;
-
-			case 7: /* DIV */
-				op_idiv16 ( ( (uint32_t) getreg16 (regdx) << 16) + getreg16 (regax), oper1);
-				break;
-		}
-}
-
-void op_grp5() {
-	switch (reg) {
-			case 0: /* INC Ev */
-				oper2 = 1;
-				tempcf = cf;
-				op_add16();
-				cf = tempcf;
-				writerm16 (rm, res16);
-				break;
-
-			case 1: /* DEC Ev */
-				oper2 = 1;
-				tempcf = cf;
-				op_sub16();
-				cf = tempcf;
-				writerm16 (rm, res16);
-				break;
-
-			case 2: /* CALL Ev */
-				push (ip);
-				ip = oper1;
-				break;
-
-			case 3: /* CALL Mp */
-				push (segregs[regcs]);
-				push (ip);
-				getea (rm);
-				ip = (uint16_t) read86 (ea) + (uint16_t) read86 (ea + 1) * 256;
-				segregs[regcs] = (uint16_t) read86 (ea + 2) + (uint16_t) read86 (ea + 3) * 256;
-				break;
-
-			case 4: /* JMP Ev */
-				ip = oper1;
-				break;
-
-			case 5: /* JMP Mp */
-				getea (rm);
-				ip = (uint16_t) read86 (ea) + (uint16_t) read86 (ea + 1) * 256;
-				segregs[regcs] = (uint16_t) read86 (ea + 2) + (uint16_t) read86 (ea + 3) * 256;
-				break;
-
-			case 6: /* PUSH Ev */
-				push (oper1);
-				break;
-		}
-}
-
-//JJ uint8_t dolog = 0, didintr = 0;
-//JJ FILE	*logout;//No necesito log
-//uint8_t printops = 0;
-
-#ifdef NETWORKING_ENABLED
-extern void nethandler();
-#endif
 extern void diskhandler();
 
 void intcall86(unsigned char intnum)
@@ -1351,6 +645,7 @@ void intcall86(unsigned char intnum)
   /************************************/
   case 0x19: // bootstrap
     didbootstrap = 1;
+    bootdrive = getBootDrive();
     if (bootdrive < 255)
     { // read first sector of boot drive into 07C0:0000 and execute it
       regs.byteregs[regdl] = bootdrive;
@@ -1401,7 +696,7 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 	for (loopcount = 0; loopcount < execloops; loopcount++)
 	{
 
-     #ifdef use_lib_speaker_cpu
+   #ifdef use_lib_speaker_cpu
       my_callback_speaker_func();
 	 #endif 
 
@@ -1478,6 +773,7 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 			totalexec++;
 
       typedef void (* opcode_t)(void);
+      #ifdef CPU_V20
       static const opcode_t opcodes[256] = {
           opcode0x00, opcode0x01, opcode0x02, opcode0x03, opcode0x04, opcode0x05, opcode0x06, opcode0x07, opcode0x08, opcode0x09, opcode0x0A, opcode0x0B, opcode0x0C, opcode0x0D, opcode0x0E, opcode0x0F,
           opcode0x10, opcode0x11, opcode0x12, opcode0x13, opcode0x14, opcode0x15, opcode0x16, opcode0x17, opcode0x18, opcode0x19, opcode0x1A, opcode0x1B, opcode0x1C, opcode0x1D, opcode0x1E, opcode0x1F,
@@ -1496,6 +792,26 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
           opcode0xE0, opcode0xE1, opcode0xE2, opcode0xE3, opcode0xE4, opcode0xE5, opcode0xE6, opcode0xE7, opcode0xE8, opcode0xE9, opcode0xEA, opcode0xEB, opcode0xEC, opcode0xED, opcode0xEE, opcode0xEF,
           opcode0xF0, opcodeInv , opcodeStub, opcodeStub, opcode0xF4, opcode0xF5, opcode0xF6, opcode0xF7, opcode0xF8, opcode0xF9, opcode0xFA, opcode0xFB, opcode0xFC, opcode0xFD, opcode0xFE, opcode0xFF,
       };
+      #else
+      static const opcode_t opcodes[256] = {
+          opcode0x00, opcode0x01, opcode0x02, opcode0x03, opcode0x04, opcode0x05, opcode0x06, opcode0x07, opcode0x08, opcode0x09, opcode0x0A, opcode0x0B, opcode0x0C, opcode0x0D, opcode0x0E, opcode0x0F,
+          opcode0x10, opcode0x11, opcode0x12, opcode0x13, opcode0x14, opcode0x15, opcode0x16, opcode0x17, opcode0x18, opcode0x19, opcode0x1A, opcode0x1B, opcode0x1C, opcode0x1D, opcode0x1E, opcode0x1F,
+          opcode0x20, opcode0x21, opcode0x22, opcode0x23, opcode0x24, opcode0x25, opcodeStub, opcode0x27, opcode0x28, opcode0x29, opcode0x2A, opcode0x2B, opcode0x2C, opcode0x2D, opcodeStub, opcode0x2F,
+          opcode0x30, opcode0x31, opcode0x32, opcode0x33, opcode0x34, opcode0x35, opcodeStub, opcode0x37, opcode0x38, opcode0x39, opcode0x3A, opcode0x3B, opcode0x3C, opcode0x3D, opcodeStub, opcode0x3F,
+          opcode0x40, opcode0x41, opcode0x42, opcode0x43, opcode0x44, opcode0x45, opcode0x46, opcode0x47, opcode0x48, opcode0x49, opcode0x4A, opcode0x4B, opcode0x4C, opcode0x4D, opcode0x4E, opcode0x4F,
+          opcode0x50, opcode0x51, opcode0x52, opcode0x53, opcode0x54, opcode0x55, opcode0x56, opcode0x57, opcode0x58, opcode0x59, opcode0x5A, opcode0x5B, opcode0x5C, opcode0x5D, opcode0x5E, opcode0x5F,
+          opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv , opcodeInv ,
+          opcode0x70, opcode0x71, opcode0x72, opcode0x73, opcode0x74, opcode0x75, opcode0x76, opcode0x77, opcode0x78, opcode0x79, opcode0x7A, opcode0x7B, opcode0x7C, opcode0x7D, opcode0x7E, opcode0x7F,
+          opcode0x80, opcode0x81, opcode0x82, opcode0x83, opcode0x84, opcode0x85, opcode0x86, opcode0x87, opcode0x88, opcode0x89, opcode0x8A, opcode0x8B, opcode0x8C, opcode0x8D, opcode0x8E, opcode0x8F,
+          opcode0x90, opcode0x91, opcode0x92, opcode0x93, opcode0x94, opcode0x95, opcode0x96, opcode0x97, opcode0x98, opcode0x99, opcode0x9A, opcode0x9B, opcode0x9C, opcode0x9D, opcode0x9E, opcode0x9F,
+          opcode0xA0, opcode0xA1, opcode0xA2, opcode0xA3, opcode0xA4, opcode0xA5, opcode0xA6, opcode0xA7, opcode0xA8, opcode0xA9, opcode0xAA, opcode0xAB, opcode0xAC, opcode0xAD, opcode0xAE, opcode0xAF,
+          opcode0xB0, opcode0xB1, opcode0xB2, opcode0xB3, opcode0xB4, opcode0xB5, opcode0xB6, opcode0xB7, opcode0xB8, opcode0xB9, opcode0xBA, opcode0xBB, opcode0xBC, opcode0xBD, opcode0xBE, opcode0xBF,
+          opcode0xC0, opcode0xC1, opcode0xC2, opcode0xC3, opcode0xC4, opcode0xC5, opcode0xC6, opcode0xC7, opcode0xC8, opcode0xC9, opcode0xCA, opcode0xCB, opcode0xCC, opcode0xCD, opcode0xCE, opcode0xCF,
+          opcode0xD0, opcode0xD1, opcode0xD2, opcode0xD3, opcode0xD4, opcode0xD5, opcode0xD6, opcode0xD7, opcodeSkip, opcodeSkip, opcodeSkip, opcodeSkip, opcodeSkip, opcodeSkip, opcodeSkip, opcodeSkip,
+          opcode0xE0, opcode0xE1, opcode0xE2, opcode0xE3, opcode0xE4, opcode0xE5, opcode0xE6, opcode0xE7, opcode0xE8, opcode0xE9, opcode0xEA, opcode0xEB, opcode0xEC, opcode0xED, opcode0xEE, opcode0xEF,
+          opcode0xF0, opcodeInv , opcodeStub, opcodeStub, opcode0xF4, opcode0xF5, opcode0xF6, opcode0xF7, opcode0xF8, opcode0xF9, opcode0xFA, opcode0xFB, opcode0xFC, opcode0xFD, opcode0xFE, opcode0xFF,
+      };
+      #endif
       opcodes[opcode]();
 		}
 }

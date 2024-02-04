@@ -65,5 +65,6 @@ typedef struct DISK_ADDR
 void diskInit(void);
 void readdisk (DISK_ADDR & src, MEM_ADDR & dst);
 void writedisk (DISK_ADDR & dst, MEM_ADDR & src);
+uint8_t getBootDrive();
 
 #endif

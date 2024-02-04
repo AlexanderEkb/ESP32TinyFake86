@@ -68,6 +68,7 @@ void diskInit()
 
 void readdisk (DISK_ADDR & src, MEM_ADDR & dst)
 {
+  LOG("Read D%02X C%04X H%04X S%04X\n", src.drive, src.cylinder, src.sector, src.head);
   const bool isValid = src.isValid();
   if(isValid)
   {
@@ -94,6 +95,7 @@ void readdisk (DISK_ADDR & src, MEM_ADDR & dst)
 
 void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
 {
+  LOG("Write D%02X C%04X H%04X S%04X\n", dst.drive, dst.cylinder, dst.sector, dst.head);
   const bool isValid = dst.isValid();
   if(isValid)
   {
@@ -190,4 +192,22 @@ static void getDriveParameters(uint8_t drive)
     regs.byteregs[regbl] = 0; // Floppy type. Don't know what has to be returned for a HDD.
     regs.byteregs[regdl] = 1; // Drive count
   }
+}
+
+uint8_t getBootDrive()
+{
+  if(sdcard.getImageIndex(0) != -1)
+  {
+    LOG("Booting from drive A:\n");
+    return 0x00;
+  }
+  else if(sdcard.getImageIndex(4) != -1)
+  {
+    LOG("Booting from drive C:\n");
+    return 0x80;
+  }
+  else
+    LOG("Booting to BASIC\n");
+
+  return 0xFF;
 }

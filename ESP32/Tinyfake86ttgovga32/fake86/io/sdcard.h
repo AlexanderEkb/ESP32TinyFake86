@@ -149,22 +149,6 @@ class SdCard {
         return disk_mounted;
     }
 
-    void OnMountSuccess()
-    {
-      RG_LOGI("Storage mounted at %s. driver=%d\n", RG_STORAGE_ROOT, RG_STORAGE_DRIVER);
-      scandir();
-      uint32_t count = 0;
-      while (imgList[count].name[0] != 0)
-      {
-        if (!strcmp(imgList[count].name, "boot622.img"))
-        {
-          OpenImage(0, count);
-        }
-        count++;
-      }
-      OpenImage(4, "hdd0.img");
-    }
-
     bool OpenImage(uint32_t drive, int32_t index)
     {
       if(index < 0)
@@ -197,7 +181,7 @@ class SdCard {
       drives[drive].pImage = fopen(fullpath, "r+");
       const bool result = (drives[drive].pImage != nullptr);
       Serial.printf(result ? "OK\n" : "FAILED!\n");
-      drives[drive].imgIndex = -1;
+      drives[drive].imgIndex = 0;
       return result;
     }
 
@@ -213,6 +197,9 @@ class SdCard {
 
     bool Read(uint32_t drive, void * pDest, uint32_t offset, uint32_t size)
     {
+      if(drive >= 0x80)
+        drive -= 0x7C;
+
         if(drives[drive].pImage != nullptr)
         {
             fseek(drives[drive].pImage, offset, SEEK_SET);
@@ -341,6 +328,22 @@ class SdCard {
         RG_LOGI("%i entries found.\r\n", count);
         closedir(dir);
         return imgList;
+    }
+
+    void OnMountSuccess()
+    {
+      RG_LOGI("Storage mounted at %s. driver=%d\n", RG_STORAGE_ROOT, RG_STORAGE_DRIVER);
+      scandir();
+      uint32_t count = 0;
+      // while (imgList[count].name[0] != 0)
+      // {
+      //   if (!strcmp(imgList[count].name, "boot622.img"))
+      //   {
+      //     OpenImage(0, count);
+      //   }
+      //   count++;
+      // }
+      OpenImage(4, "hdd0.img");
     }
 };
 

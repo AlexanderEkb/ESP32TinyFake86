@@ -521,6 +521,8 @@ static void osdLeave()
 {
   osd.active = false;
   composite.restoreSettings();
+  extern KeyboardDriver *keyboard;
+  keyboard->Reset();
 }
 
 void svcDrawTableLoRes(uint32_t p)
