@@ -455,7 +455,7 @@ static void printChar_c(char code, uint32_t x, uint32_t y, uint8_t color, uint8_
   {
     const bool cbFill = (row >= cursor.getStart()) && (row <= cursor.getEnd()) && cbTime;
     unsigned char bLine = ((row >= 6) && (cbTime)) ? 0xFF : font[nBaseOffset + row];
-    for (int col = 0; col < 8; col++)
+    for (int col = 0; col < render.charHeight; col++)
     {
       unsigned char Pixel = ((bLine >> col) & 0x01);
       const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
@@ -496,8 +496,9 @@ void draw()
 
 void renderSetCharHeight(uint8_t height)
 {
-  render.charHeight = height + 1;
-  render.lineCount = EFFECTIVE_HEIGHT / render.charHeight;
+  pendingRender.charHeight = height + 1;
+  pendingRender.lineCount = EFFECTIVE_HEIGHT / pendingRender.charHeight;
+  LOG("CharHeight=%i LineCount=%i\n", pendingRender.charHeight, pendingRender.lineCount);
 }
 
 void renderSetColorburstOverride(uint32_t value)

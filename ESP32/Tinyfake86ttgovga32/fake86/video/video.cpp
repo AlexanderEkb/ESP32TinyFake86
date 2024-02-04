@@ -194,8 +194,10 @@ uint8_t read3D5h (uint32_t portnum)
 
 static uint8_t read3DAh(uint32_t portnum)
 {
+  static uint8_t retrace = 0;
   (void)portnum;
-  return (port3DAh);
+  retrace = ~retrace;
+  return (port3DAh & 0xFE | retrace);
 }
 
 static void write3D8h(uint32_t portnum, uint8_t value)
