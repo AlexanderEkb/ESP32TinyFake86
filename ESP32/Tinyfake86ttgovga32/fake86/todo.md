@@ -16,7 +16,7 @@ II. Disks
 1. ~~B: as independent drive~~
 2. Possibility to use disk images of different capacity, as it's possible on physical drives
 3. ~~HDD (at least one)~~
-4. Activity LED
+4. ~~Activity LED~~
 
 III. Hardware
 =============
@@ -26,7 +26,7 @@ III. Hardware
 4. ~~Implement keyboard "typematic" feature~~
 5. Reliable keyboard (get rid of missing presses/releases)
 6. Two-way communication with the keyboard (let STM32 serve LEDs, also this may be useful for gamepad support) ???
-7. Grey '+' and '-' in Fn layer
+7. ~~Grey '+' and '-' in Fn layer~~
 
 IV. Others
 ===========

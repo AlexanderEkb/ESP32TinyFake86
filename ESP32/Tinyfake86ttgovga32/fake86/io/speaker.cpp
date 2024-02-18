@@ -8,13 +8,13 @@ volatile unsigned int gb_cont_my_callbackfunc = 0;
 volatile unsigned char gb_estado_sonido = 0;
 volatile unsigned char speaker_pin_estado = LOW;
 
-unsigned char speakerenabled = 0;
-unsigned char gb_frec_speaker_low = 0;
-unsigned char gb_frec_speaker_high = 0;
-unsigned char gb_cont_frec_speaker = 0;
-volatile int gb_frecuencia01 = 0;
-volatile int gb_volumen01 = 0;
-unsigned char gb_silence = 0;
+uint8_t gb_frec_speaker_low = 0;
+uint8_t gb_frec_speaker_high = 0;
+static bool speakerDrivenByTimer = true;
+
+volatile uint8_t gb_frecuencia01 = 0;
+volatile uint8_t gb_volumen01 = 0;
+uint8_t gb_silence = 0;
 
 static void onPort0x61Write(uint32_t address, uint8_t val);
 
@@ -30,13 +30,16 @@ static void CalculaPulsosSonido(int freq)
 
 void onPort0x61Write(uint32_t address, uint8_t val)
 {
+  static const uint8_t GATE_TIM_CH2_TO_SPEAKER  = 0x01;
+  static const uint8_t DRIVE_SPEAKER            = 0x02;
   (void)address;
-  speakerenabled = ((val & 3) == 3) ? 1 : 0;
-  unsigned int aData = (gb_frec_speaker_high << 8) | gb_frec_speaker_low;
-  aData = (aData != 0) ? (1193180 / aData) : 0;
-  CalculaPulsosSonido(aData);
-  if (speakerenabled)
+  speakerDrivenByTimer = (val & GATE_TIM_CH2_TO_SPEAKER);
+  if (speakerDrivenByTimer)
   {
+    uint32_t data = (gb_frec_speaker_high << 8) | gb_frec_speaker_low;
+    updateFrequency(data);
+    uint32_t aData = (data != 0) ? (1193180 / data) : 0;
+    CalculaPulsosSonido(aData);
     gb_volumen01 = 128;
     gb_frecuencia01 = aData;
   }
@@ -44,27 +47,38 @@ void onPort0x61Write(uint32_t address, uint8_t val)
   {
     gb_volumen01 = 0;
     gb_frecuencia01 = 0;
+    uint8_t level = (val & DRIVE_SPEAKER)?HIGH:LOW;
+    digitalWrite(SPEAKER_PIN, level);
   }
 }
 
 void my_callback_speaker_func()
 {
   gb_cont_my_callbackfunc++;
-  if (gb_cont_my_callbackfunc >= gb_pulsos_onda)
+  if(speakerDrivenByTimer)
   {
-    gb_cont_my_callbackfunc = 0;
-    gb_estado_sonido = (~gb_estado_sonido) & 0x1;
-    if ((gb_volumen01 == 0) || (gb_frecuencia01 == 0) || (gb_silence == 1))
+    if (gb_cont_my_callbackfunc >= gb_pulsos_onda)
     {
-      digitalWrite(SPEAKER_PIN, LOW);
-    }
-    else
-    {
-      if (speaker_pin_estado != gb_estado_sonido)
+      gb_cont_my_callbackfunc = 0;
+      gb_estado_sonido = (~gb_estado_sonido) & 0x1;
+      if ((gb_volumen01 == 0) || (gb_frecuencia01 == 0) || (gb_silence == 1))
       {
-        digitalWrite(SPEAKER_PIN, (gb_estado_sonido == LOW) ? LOW : HIGH);
-        speaker_pin_estado = gb_estado_sonido;
+        digitalWrite(SPEAKER_PIN, LOW);
+      }
+      else
+      {
+        if (speaker_pin_estado != gb_estado_sonido)
+        {
+          digitalWrite(SPEAKER_PIN, (gb_estado_sonido == LOW) ? LOW : HIGH);
+          speaker_pin_estado = gb_estado_sonido;
+        }
       }
     }
   }
+}
+
+void updateFrequency(uint16_t data)
+{
+  gb_frec_speaker_low = data & 0x00FF;
+  gb_frec_speaker_high = static_cast<uint8_t>(data >> 8);
 }

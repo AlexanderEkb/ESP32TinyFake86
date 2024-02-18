@@ -26,6 +26,7 @@
 #define SDIO_CLK      14
 #define SDIO_CMD      15
 #endif
+#define DISK_LED      13
 
 #define RED_H         22         
 #define RED_L         21

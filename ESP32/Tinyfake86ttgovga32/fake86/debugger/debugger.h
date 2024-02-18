@@ -6,9 +6,8 @@
 #include "memory.h"
 #include "code.h"
 
-
-  class debugger_t
-  {
+class debugger_t
+{
 public:
     static debugger_t &getInstance() { return instance; };
     void execute();

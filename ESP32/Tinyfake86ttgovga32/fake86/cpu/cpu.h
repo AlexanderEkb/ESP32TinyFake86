@@ -86,7 +86,7 @@ void SetCF(unsigned short int a);
 unsigned char read86 (unsigned int addr32);
 void write86 (unsigned int addr32, unsigned char value);
 void reset86(void);
-void exec86 (uint32_t execloops);
+void exec86 (uint32_t count);
 
 void updateBIOSDataArea(void);
 void ExternalSetCF(unsigned char valor);
@@ -94,5 +94,5 @@ void ExternalSetCF(unsigned char valor);
 void my_callback_speaker_func(void);
 
 uint16_t _dbgGetRegister(_dbgReg_t reg);
+void _dbgSetRegister(_dbgReg_t reg, uint16_t val);
 #endif
-

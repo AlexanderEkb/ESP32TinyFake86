@@ -14,8 +14,6 @@ class codeBrowser_t : public browser_t
       virtual void refresh() override;
       virtual void repaint() override;
       DBG_MEM_ADDR getNextInstruction();
-  protected:
-    virtual uint8_t getDefaultBkg() { return BG_INACTIVE; };
   private:
     static const uint32_t FG_ACTIVE = 0x0F;
     static const uint32_t FG_CHANGED = 0x48;

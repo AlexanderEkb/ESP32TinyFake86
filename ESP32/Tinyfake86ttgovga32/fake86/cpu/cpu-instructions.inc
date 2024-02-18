@@ -1533,17 +1533,9 @@ void opcode0xA4()
   }
 
   putmem8(segregs[reges], getreg16(regdi), getmem8(useseg, getreg16(regsi)));
-  if (df)
-  {
-    putreg16(regsi, getreg16(regsi) - 1);
-    putreg16(regdi, getreg16(regdi) - 1);
-  }
-  else
-  {
-    putreg16(regsi, getreg16(regsi) + 1);
-    putreg16(regdi, getreg16(regdi) + 1);
-  }
-
+  const int16_t delta = df?-1:1;
+  putreg16(regsi, getreg16(regsi) + delta);
+  putreg16(regdi, getreg16(regdi) + delta);
   if (reptype)
   {
     putreg16(regcx, getreg16(regcx) - 1);
@@ -1567,16 +1559,9 @@ void opcode0xA5()
   }
 
   putmem16(segregs[reges], getreg16(regdi), getmem16(useseg, getreg16(regsi)));
-  if (df)
-  {
-    putreg16(regsi, getreg16(regsi) - 2);
-    putreg16(regdi, getreg16(regdi) - 2);
-  }
-  else
-  {
-    putreg16(regsi, getreg16(regsi) + 2);
-    putreg16(regdi, getreg16(regdi) + 2);
-  }
+  const int16_t step = df?-2:2;
+  putreg16(regsi, getreg16(regsi) + step);
+  putreg16(regdi, getreg16(regdi) + step);
 
   if (reptype)
   {

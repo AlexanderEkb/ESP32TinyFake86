@@ -63,12 +63,14 @@ void setResult(uint8_t _result)
 
 void diskInit()
 {
+  pinMode(DISK_LED, OUTPUT_OPEN_DRAIN);
   lastResult = RESULT_OK;
 }
 
 void readdisk (DISK_ADDR & src, MEM_ADDR & dst)
 {
-  LOG("Read D%02X C%04X H%04X S%04X\n", src.drive, src.cylinder, src.sector, src.head);
+  digitalWrite(DISK_LED, false);
+  // LOG("Read D%02X C%04X H%04X S%04X\n", src.drive, src.cylinder, src.sector, src.head);
   const bool isValid = src.isValid();
   if(isValid)
   {
@@ -91,11 +93,13 @@ void readdisk (DISK_ADDR & src, MEM_ADDR & dst)
   {
     setResult(RESULT_WRONG_PARAM);
   }
+  digitalWrite(DISK_LED, true);
 }
 
 void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
 {
-  LOG("Write D%02X C%04X H%04X S%04X\n", dst.drive, dst.cylinder, dst.sector, dst.head);
+  digitalWrite(DISK_LED, false);
+  // LOG("Write D%02X C%04X H%04X S%04X\n", dst.drive, dst.cylinder, dst.sector, dst.head);
   const bool isValid = dst.isValid();
   if(isValid)
   {
@@ -119,6 +123,7 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
     RG_LOGE("Error writing drive %i sector %i\n", dst.drive, dst.sector);
     setResult(RESULT_WRONG_PARAM);
   }
+  digitalWrite(DISK_LED, true);
 }
 
 void diskhandler()

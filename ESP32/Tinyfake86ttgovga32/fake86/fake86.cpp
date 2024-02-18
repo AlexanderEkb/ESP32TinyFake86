@@ -61,7 +61,7 @@ unsigned char gb_force_load_com = 0;
 unsigned char cf;
 
 // static void ClearRAM();
-static void execCPU();
+static void execCPU(uint32_t count);
 static void execKeyboard();
 static void execVideo();
 static void execMisc();
@@ -175,18 +175,15 @@ void inithardware()
   LOG("OK\n");
 }
 
-void PerformSpecialActions()
+void DoSoftReset()
 {
-  if (gb_reset == 1)
-  {
-    gb_reset = 0;
-    // ClearRAM();
-    memset(gb_video_cga, 0, 16384);
-    keyboard->Reset();
-    reset86();
-    inithardware();
-    return;
-  }
+  gb_reset = 0;
+  // ClearRAM();
+  memset(gb_video_cga, 0, 16384);
+  keyboard->Reset();
+  reset86();
+  inithardware();
+  return;
 }
 
 //****************************
@@ -198,14 +195,13 @@ void CreateRAM()
   LOG("RAM initialized: core #%i, addr:0x%08X\n", coreID, ramAddr);
 }
 
-// Setup principal
 void setup()
 {
-  // disableCore0WDT();
-  // delay(100);
-  // disableCore1WDT();
+  disableCore0WDT();
+  delay(100);
+  disableCore1WDT();
 
-  // WiFi.mode(WIFI_OFF);
+  WiFi.mode(WIFI_OFF);
   // btStop();
 
   if (esp_spiram_init() != ESP_OK)
@@ -222,7 +218,6 @@ void setup()
 #endif
   sdcard.Init();
   CreateRAM();
-  // ClearRAM();
   
   renderInit();
   LOG("VGA %d\n", ESP.getFreeHeap());
@@ -234,9 +229,7 @@ void setup()
   inithardware();
 
 #ifndef use_lib_singlecore
-  // BEGIN TASK video
   xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
-// END Task video
 #endif
 
 #ifndef use_lib_speaker_cpu
@@ -272,23 +265,18 @@ unsigned int tiene_que_tardar = 0;
 void loop()
 {
   stats.startIteration();
-  execCPU();
+  execCPU(10000);
   stats.countCPUTime();
+
   execKeyboard();
   execMisc();
+#ifdef use_lib_singlecore
   execVideo();
-  stats.exec();
-
-#ifndef use_lib_singlecore
-  // TASK video BEGIN
-  TIMERG0.wdt_wprotect = TIMG_WDT_WKEY_VALUE;
-  TIMERG0.wdt_feed = 1;
-  TIMERG0.wdt_wprotect = 0;
-  vTaskDelay(0); // important to avoid task watchdog timeouts - change this to slow down emu
 #endif
+  stats.exec();
 }
 
-void execCPU()
+void execCPU(uint32_t const count)
 {
 #ifdef use_lib_singlecore
   static bool gb_cpunoexe = false;
@@ -308,7 +296,7 @@ void execCPU()
   }
 
 #else
-  exec86(10000); // Tarda 22 milis usar 2 cores
+    exec86(count); // Tarda 22 milis usar 2 cores
 #endif
 }
 
@@ -331,9 +319,9 @@ void execKeyboard()
   }
 }
 
+#ifdef use_lib_singlecore
 void execVideo()
 {
-#ifdef use_lib_singlecore
   static uint32_t gb_ini_vga, gb_cur_vga;
   gb_cur_vga = millis();
   if ((gb_cur_vga - gb_ini_vga) >= gb_vga_poll_milis)
@@ -341,8 +329,8 @@ void execVideo()
     draw();
     gb_ini_vga = gb_cur_vga;
   }
-#endif
 }
+#endif
 
 void execMisc()
 {
@@ -350,7 +338,10 @@ void execMisc()
   const uint32_t now = millis();
   if ((now - before) > gb_keyboard_poll_milis)
   {
-    PerformSpecialActions();
+    if (gb_reset == 1)
+    {
+      DoSoftReset();
+    }
     OSD_RESULT_t result = do_tinyOSD();
     if (result == OSD_RESULT_PREPARE)
     {
@@ -362,5 +353,7 @@ void execMisc()
       renderUpdateBorder();
       vTaskResume(videoTaskHandle);
     }
+
+    before = millis();
   }
 }

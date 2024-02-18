@@ -84,26 +84,15 @@ const char * colorMenu[COLOR_MENU_ITEM_COUNT]={
  "Disable"
 };
 
-#define max_gb_speed_menu 4
+#define max_gb_speed_menu 2
 const char * gb_speed_menu[max_gb_speed_menu]={
  "CPU delay",
  "Timer poll",
- "VGA poll",
- "Keyboard poll"
 };
 
 
 #define max_gb_vga_poll_menu 4
 const char * gb_vga_poll_menu[max_gb_vga_poll_menu]={
- "20",
- "30",
- "40",
- "50"
-};
-
-#define max_gb_keyboard_poll_menu 5
-const char * gb_keyboard_poll_menu[max_gb_keyboard_poll_menu]={
- "10",
  "20",
  "30",
  "40",
@@ -283,20 +272,6 @@ void ShowTinyVGApollMenu()
  }
 }
 
-void ShowTinyKeyboardPollMenu()
-{
- unsigned char aSelNum;
- aSelNum = ShowTinyMenu("> Keyboard poll",gb_keyboard_poll_menu,max_gb_keyboard_poll_menu, 15, 202);
- switch (aSelNum)
- {
-  case 0: gb_keyboard_poll_milis= 10; break;
-  case 1: gb_keyboard_poll_milis= 20; break;
-  case 2: gb_keyboard_poll_milis= 30; break;
-  case 3: gb_keyboard_poll_milis= 40; break;
-  case 4: gb_keyboard_poll_milis= 50; break;
- } 
-}
-
 //Menu velocidad emulador
 void ShowTinySpeedMenu()
 {
@@ -306,8 +281,6 @@ void ShowTinySpeedMenu()
  {
   case 0: ShowTinyCPUDelayMenu(); break;
   case 1: ShowTinyTimerDelayMenu(); break;
-  case 2: ShowTinyVGApollMenu(); break;
-  case 3: ShowTinyKeyboardPollMenu(); break;
  } 
 }
 

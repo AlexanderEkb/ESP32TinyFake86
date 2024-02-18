@@ -62,6 +62,9 @@
 #include <stdio.h>
 #include <string.h>
 
+// #define LOG_WRITE_PORT(...) Serial.printf(__VA_ARGS__)
+#define LOG_WRITE_PORT(...) (void)(__VA_ARGS__)
+
 #define PORT_3D8_BLINKING			(0x20)
 #define PORT_3D8_HIRES_GRAPH	(0x10)
 #define PORT_3D8_OE						(0x08)
@@ -126,44 +129,44 @@ static void write3D5h (uint32_t portnum, uint8_t value)
   switch (mc6845RegSelector)
   {
   case MC6845_REG_HTOTAL:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_HDISP:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_HSYNC:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_VTOTAL:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_VTOTAL_ADJUST:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_VDISP_POS:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_VSYNC_POS:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_MAX_ROWS:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     renderSetCharHeight(value);
     break;
   case MC6845_REG_CURSOS_START:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     cursor.updateStart(value);
     break;
   case MC6845_REG_CURSOR_END:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     cursor.updateEnd(value);
     break;
   case MC6845_REG_START_ADDR_MSB:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     renderSetStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
     break;
   case MC6845_REG_START_ADDR_LSB:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     renderSetStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
     break;
   case MC6845_REG_CURSOR_ADDR_MSB:
@@ -173,10 +176,10 @@ static void write3D5h (uint32_t portnum, uint8_t value)
     cursor.updateLSB(value);
     break;
   case MC6845_REG_LPEN_MSB:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   case MC6845_REG_LPEN_LSB:
-    LOG("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
     break;
   }
 }
@@ -207,7 +210,7 @@ static void write3D8h(uint32_t portnum, uint8_t value)
   
   */
   (void)portnum;
-  LOG("write3D8h(%02x)\n", value);
+  LOG_WRITE_PORT("write3D8h(%02x)\n", value);
   port3D8h = value;
   renderUpdateSettings(port3D8h, port3D9h);
 }
@@ -215,7 +218,7 @@ static void write3D8h(uint32_t portnum, uint8_t value)
 static void write3D9h(uint32_t portnum, uint8_t value)
 {
   (void)portnum;
-  LOG("write3D9h(%02x)\n", value);
+  LOG_WRITE_PORT("write3D9h(%02x)\n", value);
   port3D9h = value;
   // renderUpdateColor(port3D9h);
   renderUpdateSettings(port3D8h, port3D9h);

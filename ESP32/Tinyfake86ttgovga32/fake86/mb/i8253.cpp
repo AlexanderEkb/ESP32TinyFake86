@@ -28,10 +28,11 @@
 #include "cpu/ports.h"
 #include <Arduino.h>
 #include <string.h>
+#include "io/speaker.h"
 
 struct i8253_s i8253;
 
-extern uint64_t hostfreq, curtick, totalexec;
+extern uint64_t hostfreq, curtick;
 
 static void out8253(uint32_t portnum, uint8_t value);
 static uint8_t in8253(uint32_t portnum);
@@ -60,20 +61,19 @@ void out8253(uint32_t portnum, uint8_t value)
       i8253.effectivedata[portnum] = i8253.chandata[portnum];
     i8253.active[portnum] = 1;
 
-    // Ya no lo necesito fuerzo 54 ms
-    //  tickgap = (uint64_t) ( (float) hostfreq / (float) ( (float) 1193182 / (float) i8253.effectivedata[0]) );
-
     if (i8253.accessmode[portnum] == PIT_MODE_TOGGLE)
       i8253.bytetoggle[portnum] = (~i8253.bytetoggle[portnum]) & 1;
     i8253.chanfreq[portnum] = (float)((uint32_t)(((float)1193182.0 / (float)i8253.effectivedata[portnum]) * (float)1000.0)) / (float)1000.0;
-    // Serial.printf("[DEBUG] PIT channel %u counter changed to %u (%f Hz) Tickgap %u\n", portnum, i8253.chandata[portnum], i8253.chanfreq[portnum],tickgap);
-    // printf("[DEBUG] PIT channel %u counter changed to %u (%f Hz)\n", portnum, i8253.chandata[portnum], i8253.chanfreq[portnum]);
     break;
   case 3: // mode/command
     i8253.accessmode[value >> 6] = (value >> 4) & 3;
     if (i8253.accessmode[value >> 6] == PIT_MODE_TOGGLE)
       i8253.bytetoggle[value >> 6] = 0;
     break;
+  }
+  if(portnum == 0x02)
+  {
+    updateFrequency(i8253.chandata[2]);
   }
 }
 

@@ -14,19 +14,15 @@ debugger_t::debugger_t()
 void debugger_t::cycleActive()
 {
   browsers[activeBrowser]->isActive = false;
-  browsers[activeBrowser]->refresh();
+  browsers[activeBrowser]->repaint();
   if(++activeBrowser >= BROWSER_COUNT) activeBrowser = 0;
   browsers[activeBrowser]->isActive = true;
-  browsers[activeBrowser]->refresh();
+  browsers[activeBrowser]->repaint();
 }
 
 void debugger_t::doSingleStep()
 {
-  // DBG_MEM_ADDR next = codeBrowser.getNextInstruction();
-  // while(codePosition != next)
-  // {
     exec86(1);
-  // }
     codePosition.segment = _dbgGetRegister(_dbgReg_CS);
     codePosition.offset = _dbgGetRegister(_dbgReg_IP);
     memPosition.segment = _dbgGetRegister(_dbgReg_CS);
@@ -38,15 +34,23 @@ void debugger_t::execute()
   onEnter();
   while (true)
   {
+    memBrowser.refresh();
     codeBrowser.refresh();
     regBrowser.refresh();
-    memBrowser.refresh();
 
     extern KeyboardDriver *keyboard;
     uint8_t scancode = 0;
     while (!(scancode = keyboard->getLastKey()));
     switch (scancode)
     {
+      case KEY_I:
+        {
+          uint16_t _if = _dbgGetRegister(_dbgReg_F);
+          _if ^= (1 << 9);
+          _dbgSetRegister(_dbgReg_F, _if);
+          regBrowser.refresh();
+        }
+        break;
       case KEY_5:
         doSingleStep();
         break;

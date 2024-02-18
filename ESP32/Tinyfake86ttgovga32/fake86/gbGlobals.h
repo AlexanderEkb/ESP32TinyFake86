@@ -17,7 +17,7 @@ extern unsigned char cf;
 
 extern unsigned char didbootstrap;
 
-extern unsigned char speakerenabled;
+// extern unsigned char speakerenabled;
 
 extern unsigned short int segregs[4];
 extern unsigned char gb_video_cga[16384];
@@ -27,13 +27,13 @@ extern unsigned char gb_reset;
  
 
 
- extern volatile int gb_frecuencia01;
- extern volatile int gb_volumen01;
+ extern volatile uint8_t gb_frecuencia01;
+ extern volatile uint8_t gb_volumen01;
 
  extern unsigned char gb_delay_tick_cpu_milis;
  extern unsigned char gb_vga_poll_milis;
  extern unsigned char gb_keyboard_poll_milis;
  extern unsigned char gb_timers_poll_milis;
 
- extern unsigned char gb_silence;
+ extern uint8_t gb_silence;
 #endif

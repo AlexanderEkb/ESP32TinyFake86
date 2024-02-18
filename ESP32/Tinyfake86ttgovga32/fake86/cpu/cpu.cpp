@@ -125,7 +125,7 @@ unsigned char gb_check_memory_before;
 	)
 
  static inline void decodeflagsword(unsigned short int x)
- {//Es mas rapido metodo inline que define original
+ {
   temp16 = x;
   cf = temp16 & 1;
   pf = (temp16 >> 2) & 1;
@@ -695,30 +695,27 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 
 	for (loopcount = 0; loopcount < execloops; loopcount++)
 	{
+    if ( (totalexec & 31) == 0)
+    {
+      videoExecCpu();
+      i8253Exec();
+    }
 
-   #ifdef use_lib_speaker_cpu
-      my_callback_speaker_func();
-	 #endif 
+    if (trap_toggle)
+    {
+      intcall86 (1);
+    }
+    trap_toggle=  (tf)?1:0;
+    if (!trap_toggle && (ifl && (i8259.irr & (~i8259.imr) ) ) )
+    {
+      intcall86 (nextintr() );	/* get next interrupt from the i8259, if any */
+    }
 
-			if ( (totalexec & 31) == 0)
-      {
-        videoExecCpu();
-        i8253Exec();
-      }
-
-			if (trap_toggle) {
-					intcall86 (1);
-				}
-            trap_toggle=  (tf)?1:0;
-			if (!trap_toggle && (ifl && (i8259.irr & (~i8259.imr) ) ) ) {
-					intcall86 (nextintr() );	/* get next interrupt from the i8259, if any */
-				}
-
-			reptype = 0;
-			segoverride = 0;
-			useseg = segregs[regds];
-			docontinue = 0;
-			firstip = ip;
+    reptype = 0;
+    segoverride = 0;
+    useseg = segregs[regds];
+    docontinue = 0;
+    firstip = ip;
 
 			if ( (segregs[regcs] == 0xF000) && (ip == 0xE066) ) {
         didbootstrap = 0; //detect if we hit the BIOS entry point to clear didbootstrap because we've rebooted
@@ -850,5 +847,56 @@ uint16_t _dbgGetRegister(_dbgReg_t reg)
       return segregs[reges];
     default:
       return 0;
+  }
+}
+
+void _dbgSetRegister(_dbgReg_t reg, uint16_t val)
+{
+  switch (reg)
+  {
+  case _dbgReg_IP:
+    ip = val;
+    return;
+  case _dbgReg_AX:
+    regs.wordregs[regax] = val;
+    return;
+  case _dbgReg_BX:
+    regs.wordregs[regbx] = val;
+    return;
+  case _dbgReg_CX:
+    regs.wordregs[regcx] = val;
+    return;
+  case _dbgReg_DX:
+    regs.wordregs[regdx] = val;
+    return;
+  case _dbgReg_SI:
+    regs.wordregs[regsi] = val;
+    return;
+  case _dbgReg_DI:
+    regs.wordregs[regdi] = val;
+    return;
+  case _dbgReg_F:
+    decodeflagsword(val);
+    return;
+  case _dbgReg_SP:
+    regs.wordregs[regsp] = val;
+    return;
+  case _dbgReg_BP:
+    regs.wordregs[regbp] = val;
+    return;
+  case _dbgReg_CS:
+    segregs[regcs] = val;
+    return;
+  case _dbgReg_DS:
+    segregs[regds] = val;
+    return;
+  case _dbgReg_SS:
+    segregs[regss] = val;
+    return;
+  case _dbgReg_ES:
+    segregs[reges] = val;
+    return;
+  default:
+    return;
   }
 }

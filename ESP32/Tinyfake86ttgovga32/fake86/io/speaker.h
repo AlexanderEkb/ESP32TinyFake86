@@ -10,5 +10,6 @@
 #endif
 
 void my_callback_speaker_func();
+void updateFrequency(uint16_t data);
 
 #endif /* SPEAKER_H */

@@ -28,7 +28,6 @@ class browser_t
     virtual void repaint() = 0;
   protected:
     rect_t area;
-    virtual uint8_t getDefaultBkg() = 0;
 };
 
 #endif /* _DEBUGGER_BROWSER_H_ */
