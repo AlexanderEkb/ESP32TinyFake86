@@ -1,16 +1,26 @@
 #ifndef SIMPLE_DEBUGGER_H
 #define SIMPLE_DEBUGGER_H
 
+#include "service/list.h"
 #include "service/service.h"
+#include "service/widget.h"
 #include "registers.h"
 #include "memory.h"
 #include "code.h"
 
-class debugger_t
+class debugger_t : public SimpleList_t
 {
 public:
     static debugger_t &getInstance() { return instance; };
     void execute();
+    virtual void next()
+    {
+      Widget_t * widget = reinterpret_cast<Widget_t *>(getSelection());
+      ASSERT(widget);
+      widget->onDeselected();
+      SimpleList_t::next();
+      widget->onSelected();
+    }
 
 private:
     static const uint32_t HEADER_HEIGHT = 2;
@@ -23,6 +33,7 @@ private:
     memBrowser_t memBrowser;
     codeBrowser_t codeBrowser;
 
+    SimpleList_t _browsers;
     uint32_t activeBrowser;
     browser_t * const browsers[BROWSER_COUNT] = {&regBrowser, &memBrowser, &codeBrowser};
 

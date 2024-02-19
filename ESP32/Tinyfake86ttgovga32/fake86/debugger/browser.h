@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "service/service.h"
+#include "service/widget.h"
 
 #define FONT_HEIGHT (8)
 #define FONT_WIDTH  (8)
@@ -18,16 +19,12 @@
 static const uint32_t ACTUAL_FONT_WIDTH = 8; //SERVICE_FONT_WIDTH + 1;
 static const uint32_t ACTUAL_FONT_HEIGHT = 8; //SERVICE_FONT_HEIGHT + 1;
 
-class browser_t
+class browser_t : public Widget_t
 {
   public:
     bool isActive;
     browser_t() {isActive = false;};
-    virtual void onKey(uint8_t scancode) = 0;
     virtual void refresh() = 0;
-    virtual void repaint() = 0;
-  protected:
-    rect_t area;
 };
 
 #endif /* _DEBUGGER_BROWSER_H_ */

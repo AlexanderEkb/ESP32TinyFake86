@@ -3,23 +3,13 @@
 
 #include <stdint.h>
 
-typedef struct rect_t
-{
-  uint32_t left;
-  uint32_t top;
-  uint32_t width;
-  uint32_t height;
-  rect_t() : left(0), top(0), width(0), height(0){};
-  rect_t(uint32_t left, uint32_t top, uint32_t width, uint32_t height) : left(left), top(top), width(width), height(height){};
-  rect_t& operator=(rect_t &rvalue)
-  {
-    this->left = rvalue.left;
-    this->top = rvalue.top;
-    this->width = rvalue.width;
-    this->height = rvalue.height;
-    return *this;
-  }
-} rect_t;
+#ifdef use_lib_log_serial
+#define LOG(...) Serial.printf(__VA_ARGS__)
+#else
+#define LOG(...) (void)(__VA_ARGS__)
+#endif
+
+#define ASSERT(X) if(X == 0) {LOG("Assertion failed at %s line %i", __FILE__, __LINE__); while(1);}
 
 typedef struct DBG_MEM_ADDR
 {
