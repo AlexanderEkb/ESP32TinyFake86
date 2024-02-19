@@ -268,13 +268,19 @@ void loop()
   execCPU(10000);
   stats.countCPUTime();
 
-  execKeyboard();
-  execMisc();
+  static uint32_t before;
+  const uint32_t now = millis();
+  if ((now - before) > gb_keyboard_poll_milis)
+  {
+    before = now;
+    execKeyboard();
+    execMisc();
+  }
 #ifdef use_lib_singlecore
   execVideo();
 #endif
   stats.exec();
-}
+  }
 
 void execCPU(uint32_t const count)
 {
@@ -302,20 +308,13 @@ void execCPU(uint32_t const count)
 
 void execKeyboard()
 {
-  static uint32_t before;
-  const uint32_t now = millis();
-  if ((now - before) > gb_keyboard_poll_milis)
+  const uint8_t scancode = keyboard->Poll();
+  if (scancode != 0)
   {
-    before = now;
-    const uint8_t scancode = keyboard->Poll();
-    if (scancode != 0)
-    {
-      IOPortSpace::getInstance().get(0x060)->value = scancode;
-      uint8_t val = IOPortSpace::getInstance().get(0x064)->value;
-      IOPortSpace::getInstance().get(0x064)->value = val |= 2;
-      doirq(1);
-      // Serial.printf("key: 0x%02x\n", scancode);
-    }
+    IOPortSpace::getInstance().get(0x060)->value = scancode;
+    uint8_t val = IOPortSpace::getInstance().get(0x064)->value;
+    IOPortSpace::getInstance().get(0x064)->value = val |= 2;
+    doirq(1);
   }
 }
 
@@ -334,26 +333,19 @@ void execVideo()
 
 void execMisc()
 {
-  static uint32_t before;
-  const uint32_t now = millis();
-  if ((now - before) > gb_keyboard_poll_milis)
+  if (gb_reset == 1)
   {
-    if (gb_reset == 1)
-    {
-      DoSoftReset();
-    }
-    OSD_RESULT_t result = do_tinyOSD();
-    if (result == OSD_RESULT_PREPARE)
-    {
-      vTaskSuspend(videoTaskHandle);
-    }
-    else if (result == OSD_RESULT_RETURN)
-    {
-      renderExec();
-      renderUpdateBorder();
-      vTaskResume(videoTaskHandle);
-    }
-
-    before = millis();
+    DoSoftReset();
+  }
+  OSD_RESULT_t result = do_tinyOSD();
+  if (result == OSD_RESULT_PREPARE)
+  {
+    vTaskSuspend(videoTaskHandle);
+  }
+  else if (result == OSD_RESULT_RETURN)
+  {
+    renderExec();
+    renderUpdateBorder();
+    vTaskResume(videoTaskHandle);
   }
 }

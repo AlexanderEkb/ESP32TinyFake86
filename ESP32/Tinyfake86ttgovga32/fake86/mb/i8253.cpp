@@ -30,6 +30,20 @@
 #include <string.h>
 #include "io/speaker.h"
 
+#define PIT_MODE_LATCHCOUNT 0
+#define PIT_MODE_LOBYTE 1
+#define PIT_MODE_HIBYTE 2
+#define PIT_MODE_TOGGLE 3
+
+typedef struct i8253_s
+{
+  uint16_t update[3];
+  uint8_t accessmode[3];
+  bool MSB[3];
+  bool active[3];
+  uint16_t counter[3];
+} i8253_s;
+
 struct i8253_s i8253;
 
 extern uint64_t hostfreq, curtick;
@@ -37,123 +51,115 @@ extern uint64_t hostfreq, curtick;
 static void out8253(uint32_t portnum, uint8_t value);
 static uint8_t in8253(uint32_t portnum);
 
-IOPort port_040h = IOPort(0x040, 0xFF, in8253, out8253);
-IOPort port_041h = IOPort(0x041, 0xFF, in8253, out8253);
-IOPort port_042h = IOPort(0x042, 0xFF, in8253, out8253);
-IOPort port_043h = IOPort(0x043, 0xFF, in8253, out8253);
+static void writeCounter(uint32_t address, uint8_t value);
+static void writeControl(uint32_t address, uint8_t value);
+static uint8_t readCounter(uint32_t address);
+static uint8_t readControl(uint32_t address);
 
-void out8253(uint32_t portnum, uint8_t value)
+// IOPort port_040h = IOPort(0x040, 0xFF, in8253, out8253);
+// IOPort port_041h = IOPort(0x041, 0xFF, in8253, out8253);
+// IOPort port_042h = IOPort(0x042, 0xFF, in8253, out8253);
+// IOPort port_043h = IOPort(0x043, 0xFF, in8253, out8253);
+IOPort port_040h = IOPort(0x040, 0xFF, readCounter, writeCounter);
+IOPort port_041h = IOPort(0x041, 0xFF, readCounter, writeCounter);
+IOPort port_042h = IOPort(0x042, 0xFF, readCounter, writeCounter);
+IOPort port_043h = IOPort(0x043, 0xFF, readControl, writeControl);
+
+static void writeCounter(uint32_t address, uint8_t value)
 {
-  portnum &= 3;
-  switch (portnum)
-  {
-  case 0:
-  case 1:
-  case 2: // channel data
-    if ((i8253.accessmode[portnum] == PIT_MODE_LOBYTE) || ((i8253.accessmode[portnum] == PIT_MODE_TOGGLE) && (i8253.bytetoggle[portnum] == 0)))
-      i8253.chandata[portnum] = (i8253.chandata[portnum] & 0xFF00) | value;                   // Lower byte
-    else if ((i8253.accessmode[portnum] == PIT_MODE_HIBYTE) || ((i8253.accessmode[portnum] == PIT_MODE_TOGGLE) && (i8253.bytetoggle[portnum] == 1)))
-      i8253.chandata[portnum] = (i8253.chandata[portnum] & 0x00FF) | ((uint16_t)value << 8);  // Upper byte
+  const uint32_t channel = address & 0x03;
+  // LOG("Write ch%i: %02x\n", channel, value);
+  const bool lobyte = 
+    (i8253.accessmode[channel] == PIT_MODE_LOBYTE) || 
+    ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && !i8253.MSB[channel]);
+  const bool hibyte = 
+    (i8253.accessmode[channel] == PIT_MODE_HIBYTE) || 
+    ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && i8253.MSB[channel]);
 
-    if (i8253.chandata[portnum] == 0)
-      i8253.effectivedata[portnum] = 65536;
-    else
-      i8253.effectivedata[portnum] = i8253.chandata[portnum];
-    i8253.active[portnum] = 1;
+  uint16_t & update = i8253.update[channel];
+  if (lobyte)
+    update = (update & 0xFF00) | value; // Lower byte
+  else if (hibyte)
+    update = (update & 0x00FF) | ((uint16_t)value << 8); // Upper byte
 
-    if (i8253.accessmode[portnum] == PIT_MODE_TOGGLE)
-      i8253.bytetoggle[portnum] = (~i8253.bytetoggle[portnum]) & 1;
-    i8253.chanfreq[portnum] = (float)((uint32_t)(((float)1193182.0 / (float)i8253.effectivedata[portnum]) * (float)1000.0)) / (float)1000.0;
-    break;
-  case 3: // mode/command
-    i8253.accessmode[value >> 6] = (value >> 4) & 3;
-    if (i8253.accessmode[value >> 6] == PIT_MODE_TOGGLE)
-      i8253.bytetoggle[value >> 6] = 0;
-    break;
-  }
-  if(portnum == 0x02)
+  i8253.active[channel] = true;
+
+  if (i8253.accessmode[channel] == PIT_MODE_TOGGLE)
+    i8253.MSB[channel] = !i8253.MSB[channel];
+
+  if (channel == 0x02)
   {
-    updateFrequency(i8253.chandata[2]);
+    updateFrequency(i8253.update[2]);
   }
 }
 
-uint8_t in8253(uint32_t portnum)
+static void writeControl(uint32_t address, uint8_t value)
 {
-  uint8_t curbyte;
-  portnum &= 3;
-  switch (portnum)
-  {
-  case 0:
-  case 1:
-  case 2: // channel data
-    if ((i8253.accessmode[portnum] == 0) || (i8253.accessmode[portnum] == PIT_MODE_LOBYTE) || ((i8253.accessmode[portnum] == PIT_MODE_TOGGLE) && (i8253.bytetoggle[portnum] == 0)))
-      curbyte = 0;
-    else if ((i8253.accessmode[portnum] == PIT_MODE_HIBYTE) || ((i8253.accessmode[portnum] == PIT_MODE_TOGGLE) && (i8253.bytetoggle[portnum] == 1)))
-      curbyte = 1;
-    if ((i8253.accessmode[portnum] == 0) || (i8253.accessmode[portnum] == PIT_MODE_LOBYTE) || ((i8253.accessmode[portnum] == PIT_MODE_TOGGLE) && (i8253.bytetoggle[portnum] == 0)))
-      curbyte = 0;
-    else if ((i8253.accessmode[portnum] == PIT_MODE_HIBYTE) || ((i8253.accessmode[portnum] == PIT_MODE_TOGGLE) && (i8253.bytetoggle[portnum] == 1)))
-      curbyte = 1;
-    if ((i8253.accessmode[portnum] == 0) || (i8253.accessmode[portnum] == PIT_MODE_TOGGLE))
-      i8253.bytetoggle[portnum] = (~i8253.bytetoggle[portnum]) & 1;
-    if (curbyte == 0)
-    { // low byte
-      return ((uint8_t)i8253.counter[portnum]);
-    }
-    else
-    { // high byte
-      return ((uint8_t)(i8253.counter[portnum] >> 8));
-    }
-    break;
-  }
-  return (0);
+  const uint32_t channel = value >> 6;
+  const uint8_t accessmode = (value >> 4) & 3;
+  const uint8_t mode = (value >> 1) & 7;
+  LOG("Write CR: ch%02xh a%02x m%02x\n", channel, accessmode, mode);
+
+  i8253.accessmode[channel] = accessmode;
+  if (i8253.accessmode[channel] == PIT_MODE_TOGGLE)
+    i8253.MSB[channel] = false;
+}
+
+static uint8_t readCounter(uint32_t address)
+{
+  const uint32_t channel = address & 0x03;
+  uint8_t curbyte = 0;
+
+  if ((i8253.accessmode[channel] == 0) || (i8253.accessmode[channel] == PIT_MODE_LOBYTE) || ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && (i8253.MSB[channel] == 0)))
+    curbyte = 0;
+  else if ((i8253.accessmode[channel] == PIT_MODE_HIBYTE) || ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && (i8253.MSB[channel] == 1)))
+    curbyte = 1;
+  if ((i8253.accessmode[channel] == 0) || (i8253.accessmode[channel] == PIT_MODE_LOBYTE) || ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && (i8253.MSB[channel] == 0)))
+    curbyte = 0;
+  else if ((i8253.accessmode[channel] == PIT_MODE_HIBYTE) || ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && (i8253.MSB[channel] == 1)))
+    curbyte = 1;
+  if ((i8253.accessmode[channel] == 0) || (i8253.accessmode[channel] == PIT_MODE_TOGGLE))
+    i8253.MSB[channel] = !i8253.MSB[channel];
+
+  const uint8_t result = (curbyte == 0) ? ((uint8_t)i8253.counter[channel]) : ((uint8_t)(i8253.counter[channel] >> 8));
+  LOG("Read ch%i: %02x\n", address, result);
+  return result;
+}
+
+static uint8_t readControl(uint32_t address)
+{
+  (void)address;
+  return 0;
 }
 
 void init8253()
 {
-  memset(&i8253, 0, sizeof(i8253));
+  for(uint32_t channel=0; channel<3; channel++)
+  {
+    i8253.update[channel] = 0x0001;
+    i8253.accessmode[channel] = 0x00;
+    i8253.MSB[channel] = false;
+    i8253.active[channel] = false;
+    i8253.counter[channel] = 0x0001;
+  }
 }
 
-void i8253Exec()
+/// @brief Handles CGA retrace bits in 3DAh port. Gets called each 4th CPU instruction executed.
+/// @param  none
+void __attribute__((optimize("-Ofast"))) IRAM_ATTR i8253Exec()
 {
-  static uint32_t timestamp = millis();
-  
-
-  uint32_t now  = millis();
-  uint32_t delta = (now - timestamp);
-  if (delta >= gb_timers_poll_milis)
+  for (uint32_t channel = 0; channel < 3; channel++)
   {
-    timestamp = now;
-    void updateBIOSDataArea();
-    updateBIOSDataArea(); // Cada 54 milis
-    if (i8253.active[0])
+    if (i8253.active[channel])
     {
-      doirq(0);
-    }
-
-    for (uint32_t i8253chan = 0; i8253chan < 3; i8253chan++)
-    {
-      if (i8253.active[i8253chan])
+      uint16_t & CNTR = i8253.counter[channel];
+      CNTR -= 0x10;
+ 
+      if(CNTR < 0x10)
       {
-        if (i8253.counter[i8253chan] < 10)
-          i8253.counter[i8253chan] = i8253.chandata[i8253chan];
-        i8253.counter[i8253chan] -= 10;
+        CNTR = i8253.update[channel];
+        if (channel == 0) doirq(0);
       }
     }
   }
-
-  // auxCurTick= (jj_lasti8253_ms_tick - jj_cur_ms_tick);
-  // if (auxCurTick >= 54)
-  //{
-  //  jj_lasti8253_ms_tick = jj_cur_ms_tick;
-  //  for (i8253chan=0; i8253chan<3; i8253chan++)
-  //  {
-  //   if (i8253.active[i8253chan])
-  //   {
-  //    if (i8253.counter[i8253chan] < 10)
-  //     i8253.counter[i8253chan] = i8253.chandata[i8253chan];
-  //    i8253.counter[i8253chan] -= 10;
-  //   }
-  //  }
-  // }
 }

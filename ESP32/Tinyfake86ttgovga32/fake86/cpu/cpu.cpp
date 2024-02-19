@@ -61,7 +61,6 @@
 #define putsegreg(regid, writeval) segregs[regid] = writeval
 #define segbase(x) ((uint32_t)x << 4)
 
-extern struct i8253_s i8253;
 extern uint8_t * ram;
 extern struct structpic i8259;
 uint64_t curtimer, lasttimer, timerfreq;
@@ -695,9 +694,14 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 
 	for (loopcount = 0; loopcount < execloops; loopcount++)
 	{
+    // Get rid of totalexec
     if ( (totalexec & 31) == 0)
     {
       videoExecCpu();
+      updateBIOSDataArea(); // Cada 54 milis
+    }
+    if ((totalexec & 3) == 0)
+    {
       i8253Exec();
     }
 
