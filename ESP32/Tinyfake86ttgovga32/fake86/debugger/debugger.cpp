@@ -7,6 +7,9 @@ debugger_t debugger_t::instance;
 
 debugger_t::debugger_t()
 {
+  _browsers.add(&codeBrowser);
+  _browsers.add(&regBrowser);
+  _browsers.add(&memBrowser);
   memPosition = DBG_MEM_ADDR(0, 0);
   codePosition = DBG_MEM_ADDR(0, 0);
 }
