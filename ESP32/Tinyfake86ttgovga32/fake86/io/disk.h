@@ -63,7 +63,7 @@ typedef struct DISK_ADDR
 } DISK_ADDR;
 
 void diskInit(void);
-void readdisk (DISK_ADDR & src, MEM_ADDR & dst);
+void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_ADDR &dst);
 void writedisk (DISK_ADDR & dst, MEM_ADDR & src);
 uint8_t getBootDrive();
 

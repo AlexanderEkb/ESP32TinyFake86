@@ -232,6 +232,11 @@ unsigned char read86 (unsigned int addr32)
  return 0xFF; 
 }
 
+uint8_t * getramloc(uint32_t addr)
+{
+  return &ram[addr];
+}
+
  static inline unsigned short int readw86 (unsigned int addr32)
  {
   return ( (unsigned short int) read86 (addr32) | (unsigned short int) (read86 (addr32 + 1) << 8) );

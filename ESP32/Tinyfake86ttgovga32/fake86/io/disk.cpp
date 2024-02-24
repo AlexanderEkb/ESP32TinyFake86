@@ -33,6 +33,13 @@
 #define RESULT_SECT_NOT_FOUND   (0x04)
 #define RESULT_GENERAL_FAILURE  (0x20)
 
+#define USE_OPTIMIZATION (1)
+
+#ifdef use_lib_log_serial
+#define LOG(...) Serial.printf(__VA_ARGS__)
+#else
+#define LOG(...) (void)
+#endif
 
 extern SdCard sdcard;
 extern union _bytewordregs_ regs;
@@ -64,27 +71,41 @@ void setResult(uint8_t _result)
 void diskInit()
 {
   pinMode(DISK_LED, OUTPUT_OPEN_DRAIN);
+  digitalWrite(DISK_LED, true);
   lastResult = RESULT_OK;
 }
 
-void readdisk (DISK_ADDR & src, MEM_ADDR & dst)
+void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_ADDR &dst)
 {
   digitalWrite(DISK_LED, false);
-  // LOG("Read D%02X C%04X H%04X S%04X\n", src.drive, src.cylinder, src.sector, src.head);
   const bool isValid = src.isValid();
   if(isValid)
   {
     uint32_t filePos = src.lba() * SECTOR_SIZE;
     uint32_t memdest = dst.linear();
     uint32_t sector;
+  #if USE_OPTIMIZATION
+    uint8_t *rambuf = getramloc(memdest);
+  #endif
     for (sector=0; sector<src.sectorCount; sector++)
     {
-      sdcard.Read(src.drive, sectorbuffer, filePos, SECTOR_SIZE);
+#if USE_OPTIMIZATION
+      bool result = sdcard.Read(src.drive, rambuf, filePos, SECTOR_SIZE);
+      rambuf += SECTOR_SIZE;
+#else
+      bool result = sdcard.Read(src.drive, sectorbuffer, filePos, SECTOR_SIZE);
+      for (uint32_t sectoffset = 0; sectoffset < SECTOR_SIZE; sectoffset++)
+        write86(memdest++, sectorbuffer[sectoffset]);
+#endif
+      if(!result)
+      {
+        LOG("Error reading drive %i off %i\n", src.drive, filePos);
+        setResult(RESULT_GENERAL_FAILURE);
+        return;
+      }
       filePos += SECTOR_SIZE;
       if (filePos >= (drives[src.drive].capacity-1))
         break;
-      for (uint32_t sectoffset=0; sectoffset<SECTOR_SIZE; sectoffset++)
-        write86 (memdest++, sectorbuffer[sectoffset]);
     }
     regs.byteregs[regal] = sector;
     setResult(0);
@@ -106,11 +127,19 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
     uint32_t filePos = dst.lba() * SECTOR_SIZE;
     uint32_t srcAddr = src.linear();
     uint32_t sector;
+#if USE_OPTIMIZATION    
+    uint8_t *rambuf = getramloc(srcAddr);
+#endif    
     for (sector=0; sector<dst.sectorCount; sector++)
     {
+#if !USE_OPTIMIZATION      
       for (uint32_t i=0; i<SECTOR_SIZE; i++)
         sectorbuffer[i] = read86(srcAddr++);
       sdcard.Write(dst.drive, sectorbuffer, filePos, SECTOR_SIZE);
+#else
+      sdcard.Write(dst.drive, rambuf, filePos, SECTOR_SIZE);
+      rambuf += SECTOR_SIZE;
+#endif      
       filePos += SECTOR_SIZE;
       if (filePos >= (drives[dst.drive].capacity-1))
         break;
@@ -209,7 +238,7 @@ uint8_t getBootDrive()
   else if(sdcard.getImageIndex(4) != -1)
   {
     LOG("Booting from drive C:\n");
-    return 0x80;
+    return 0x04;
   }
   else
     LOG("Booting to BASIC\n");

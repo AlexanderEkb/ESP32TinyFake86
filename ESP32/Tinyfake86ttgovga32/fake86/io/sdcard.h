@@ -11,7 +11,7 @@
 #include <esp_vfs_fat.h>
 #include <sys/stat.h>
 
-#define RG_STORAGE_SPEED SDMMC_FREQ_DEFAULT // Used by driver 1 and 2
+#define RG_STORAGE_SPEED SDMMC_FREQ_52M     // Used by driver 1 and 2
 #define RG_STORAGE_ROOT "/sd"               // Storage mount point
 #define RG_PATH_MAX 255
 
@@ -197,21 +197,15 @@ class SdCard {
 
     bool Read(uint32_t drive, void * pDest, uint32_t offset, uint32_t size)
     {
-      if(drive >= 0x80)
-        drive -= 0x7C;
-
-        if(drives[drive].pImage != nullptr)
-        {
-            fseek(drives[drive].pImage, offset, SEEK_SET);
-            fread(pDest, size, 1, drives[drive].pImage);
-            return true;
-        }
-        else
-        {
-            RG_LOGE("Error reading drive %i off %i length %i\n", drive, offset, size);
-            return false;
-        }
+      if(drives[drive].pImage == nullptr)
+        return false;
+      if(fseek(drives[drive].pImage, offset, SEEK_SET) != 0)
+        return false;
+      if(fread(pDest, size, 1, drives[drive].pImage) != 1)
+        return false;
+      return true;
     }
+    
     bool Write(uint32_t drive, void * pSrc, uint32_t offset, uint32_t size)
     {
         if(drives[drive].pImage != nullptr)
