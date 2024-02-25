@@ -54,20 +54,13 @@ const char * gb_delay_cpu_menu[max_gb_delay_cpu_menu]={
  "40","41","42","43","44","45","46","47","48","49"
 };
 
-#define max_gb_sound_menu 2
-const char * gb_sound_menu[max_gb_sound_menu]={
- "Sound ON"
- ,"Sound OFF"
-};
-
-#define max_gb_main_menu 7
+#define max_gb_main_menu 6
 const char *gb_main_menu[max_gb_main_menu] = {
     "Drive A:",
     "Drive B:",
     "Reset",
     "Speed",
     "Video",
-    "Sound",
     "Debug"};
 
 #define max_gb_video_menu 3
@@ -284,14 +277,6 @@ void ShowTinySpeedMenu()
  } 
 }
 
-//Menu sonido
-void ShowTinySoundMenu()
-{
- unsigned char aSelNum;
- aSelNum = ShowTinyMenu("Sound",gb_sound_menu,max_gb_sound_menu, 10, 90);
- gb_silence= (aSelNum==0)?0:1;
-}
-
 //Menu resetear
 void ShowTinyResetMenu()
 {
@@ -471,9 +456,6 @@ OSD_RESULT_t do_tinyOSD(  )
     ShowTinyVideoMenu();
     break;
    case 5:
-    ShowTinySoundMenu();
-    break;
-  case 6:
     debugger_t::getInstance().execute();
     break;
    default:

@@ -98,7 +98,7 @@ static void writeControl(uint32_t address, uint8_t value)
   const uint32_t channel = value >> 6;
   const uint8_t accessmode = (value >> 4) & 3;
   const uint8_t mode = (value >> 1) & 7;
-  LOG("Write CR: ch%02xh a%02x m%02x\n", channel, accessmode, mode);
+  LOG("Write CR %02x: ch%02xh a%02x m%02x\n", value,  channel, accessmode, mode);
 
   i8253.accessmode[channel] = accessmode;
   if (i8253.accessmode[channel] == PIT_MODE_TOGGLE)
@@ -144,7 +144,7 @@ void init8253()
   }
 }
 
-/// @brief Handles CGA retrace bits in 3DAh port. Gets called each 4th CPU instruction executed.
+/// @brief Feeds clock to the timer. Gets called each 4th CPU instruction executed.
 /// @param  none
 void __attribute__((optimize("-Ofast"))) IRAM_ATTR i8253Exec()
 {

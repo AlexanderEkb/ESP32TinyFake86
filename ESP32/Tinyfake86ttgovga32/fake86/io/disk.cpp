@@ -77,42 +77,26 @@ void diskInit()
 
 void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_ADDR &dst)
 {
-  digitalWrite(DISK_LED, false);
   const bool isValid = src.isValid();
-  if(isValid)
+  if(!isValid)
   {
-    uint32_t filePos = src.lba() * SECTOR_SIZE;
-    uint32_t memdest = dst.linear();
-    uint32_t sector;
-  #if USE_OPTIMIZATION
-    uint8_t *rambuf = getramloc(memdest);
-  #endif
-    for (sector=0; sector<src.sectorCount; sector++)
-    {
-#if USE_OPTIMIZATION
-      bool result = sdcard.Read(src.drive, rambuf, filePos, SECTOR_SIZE);
-      rambuf += SECTOR_SIZE;
-#else
-      bool result = sdcard.Read(src.drive, sectorbuffer, filePos, SECTOR_SIZE);
-      for (uint32_t sectoffset = 0; sectoffset < SECTOR_SIZE; sectoffset++)
-        write86(memdest++, sectorbuffer[sectoffset]);
-#endif
-      if(!result)
-      {
-        LOG("Error reading drive %i off %i\n", src.drive, filePos);
-        setResult(RESULT_GENERAL_FAILURE);
-        return;
-      }
-      filePos += SECTOR_SIZE;
-      if (filePos >= (drives[src.drive].capacity-1))
-        break;
-    }
-    regs.byteregs[regal] = sector;
+    setResult(RESULT_WRONG_PARAM);
+    return;
+  }
+  digitalWrite(DISK_LED, false);
+  uint32_t filePos = src.lba() * SECTOR_SIZE;
+  uint32_t memdest = dst.linear();
+  uint8_t *rambuf = getramloc(memdest);
+  bool result = sdcard.Read(src.drive, rambuf, filePos, src.sectorCount * SECTOR_SIZE);
+  if(result)
+  {
+    regs.byteregs[regal] = src.sectorCount;
     setResult(0);
   }
   else
   {
-    setResult(RESULT_WRONG_PARAM);
+    LOG("Error reading drive %i off %i\n", src.drive, filePos);
+    setResult(RESULT_GENERAL_FAILURE);
   }
   digitalWrite(DISK_LED, true);
 }

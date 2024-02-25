@@ -34,6 +34,4 @@ extern unsigned char gb_reset;
  extern unsigned char gb_vga_poll_milis;
  extern unsigned char gb_keyboard_poll_milis;
  extern unsigned char gb_timers_poll_milis;
-
- extern uint8_t gb_silence;
 #endif
