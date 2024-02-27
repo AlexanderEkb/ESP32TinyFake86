@@ -14,12 +14,13 @@
 //  You should have received a copy of the GNU General Public License
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-#ifndef _DISK_H
- #define _DISK_H
+#ifndef _DISK_IO_H
+ #define _DISK_IO_H
 
 #include <stdint.h>
 #include <stdio.h>
 #include "sdcard.h"
+#include "cache.h"
 
 #define SECTOR_SIZE (512)
 
@@ -67,4 +68,4 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_
 void writedisk (DISK_ADDR & dst, MEM_ADDR & src);
 uint8_t getBootDrive();
 
-#endif
+#endif /* _DISK_IO_H */

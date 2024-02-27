@@ -14,7 +14,7 @@
 #include "driver/timer.h"
 #include "fake86.h"
 #include "gbGlobals.h"
-#include "io/disk.h"
+#include "io/diskio.h"
 // #include "gb_sdl_font8x8.h"
 #include "config/hardware.h"
 #include "cpu/ports.h"

@@ -16,10 +16,11 @@
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // disk.c: disk emulation routines for Fake86. works at the BIOS interrupt 13h level.
 
+#include "cache.h"
 #include "config/gbConfig.h"
 #include "cpu/cpu.h"
 #include "gbGlobals.h"
-#include "io/disk.h"
+#include "io/diskio.h"
 #include "io/sdcard.h"
 #include <Arduino.h>
 #include <esp_heap_caps.h>
@@ -52,6 +53,8 @@ static void getDriveParameters(uint8_t drive);
 
 unsigned char sectorbuffer[SECTOR_SIZE];
 static uint8_t lastResult = 0;
+
+static Cache_t cache = Cache_t(ram + RAM_SIZE);
 
 DRIVE_DESC drives[SdCard::DRIVE_COUNT] = {
     {80, 2, 18, 1474560},      // A:

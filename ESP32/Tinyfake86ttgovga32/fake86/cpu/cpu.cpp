@@ -36,7 +36,7 @@
 #include "dataFlash/bios/biospcxt.h"
 #include "dataFlash/rom/rombasic.h"
 #include "dataFlash/rom/videorom.h"
-#include "io/disk.h"
+#include "io/diskio.h"
 #include "gbGlobals.h"
 #include "mb/i8253.h"
 #include "mb/i8259.h"
