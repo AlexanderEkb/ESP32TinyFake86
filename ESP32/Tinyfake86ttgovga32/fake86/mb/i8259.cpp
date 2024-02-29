@@ -110,21 +110,6 @@ uint8_t nextintr() {
 #else
  void doirq(unsigned char irqnum)
  {
-  // static uint32_t counter_1C = 0;
-  // static uint32_t timestamp_1C = millis();
-  // if (irqnum == 0x00)
-  // {
-  //   counter_1C++;
-  //   if (counter_1C >= 1000)
-  //   {
-  //      uint32_t now = millis();
-  //      uint32_t period = (now - timestamp_1C);
-  //      LOG("INT 1Ch: 1000 per %i ms\n", period);
-  //      timestamp_1C = now;
-  //      counter_1C = 0;
-  //   }
-  // }
-
   i8259.irr |= (1 << irqnum);
   if (irqnum == 1)
   {

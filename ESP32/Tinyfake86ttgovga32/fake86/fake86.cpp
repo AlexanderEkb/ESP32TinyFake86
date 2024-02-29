@@ -5,7 +5,6 @@
 //  Single core and dual core
 
 #include <Arduino.h>
-#include <WiFi.h>
 #ifndef use_lib_speaker_cpu
 #include <Ticker.h>
 #endif
@@ -201,7 +200,7 @@ void setup()
   delay(100);
   disableCore1WDT();
 
-  WiFi.mode(WIFI_OFF);
+  // WiFi.mode(WIFI_OFF);
   // btStop();
 
   if (esp_spiram_init() != ESP_OK)

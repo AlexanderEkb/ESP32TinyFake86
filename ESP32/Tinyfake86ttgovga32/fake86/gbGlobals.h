@@ -27,8 +27,7 @@ extern unsigned char gb_reset;
  
 
 
- extern volatile uint8_t gb_frecuencia01;
- extern volatile uint8_t gb_volumen01;
+ extern volatile bool speakerMute;
 
  extern unsigned char gb_delay_tick_cpu_milis;
  extern unsigned char gb_vga_poll_milis;

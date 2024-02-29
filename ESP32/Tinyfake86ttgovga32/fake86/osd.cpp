@@ -412,8 +412,6 @@ void ShowTinyVideoMenu()
 //Very small tiny osd
 OSD_RESULT_t do_tinyOSD(  )
 {
- int auxVol;
- int auxFrec;  
  unsigned char aSelNum;
  extern KeyboardDriver *keyboard;
  uint8_t scancode = keyboard->getLastKey();
@@ -433,9 +431,7 @@ OSD_RESULT_t do_tinyOSD(  )
   svcPrintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
   svcPrintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
 
-  auxVol= gb_volumen01;
-  auxFrec= gb_frecuencia01;
-  gb_volumen01= gb_frecuencia01=0;
+  speakerMute = true;
 
   aSelNum = ShowTinyMenu("MAIN MENU",gb_main_menu,max_gb_main_menu, 10, 10);
   switch (aSelNum)
@@ -462,8 +458,7 @@ OSD_RESULT_t do_tinyOSD(  )
     break;
   }
 
-  gb_volumen01= auxVol;
-  gb_frecuencia01= auxFrec;
+  speakerMute= false;
   keyboard->Reset();
   osdLeave();
   return OSD_RESULT_RETURN;
