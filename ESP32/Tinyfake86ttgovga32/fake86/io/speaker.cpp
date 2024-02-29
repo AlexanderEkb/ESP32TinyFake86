@@ -8,9 +8,7 @@ static uint8_t gb_frec_speaker_low = 0;
 static uint8_t gb_frec_speaker_high = 0;
 static bool speakerDrivenByTimer = true;
 
-volatile uint8_t gb_frecuencia01 = 0;
-volatile uint8_t gb_volumen01 = 0;
-uint8_t gb_silence = 0;
+volatile bool speakerMute = false;
 
 static void onPort0x61Write(uint32_t address, uint8_t val);
 
@@ -32,17 +30,8 @@ void onPort0x61Write(uint32_t address, uint8_t val)
   static const uint8_t ENABLE_SPEAKER          = 0x02;
 
   static const uint8_t TIMER_DRIVEN            = (GATE_TIM_CH2_TO_SPEAKER | ENABLE_SPEAKER);
-  speakerDrivenByTimer = ((val & TIMER_DRIVEN) == TIMER_DRIVEN);
-  if (speakerDrivenByTimer)
-  {
-    uint32_t data = (gb_frec_speaker_high << 8) | gb_frec_speaker_low;
-    // updateFrequency(data);
-    uint32_t aData = (data != 0) ? (1193180 / data) : 0;
-    calculatePeriod(aData);
-    gb_volumen01 = 128;
-    gb_frecuencia01 = aData;
-  }
-  else
+  speakerDrivenByTimer                         = ((val & TIMER_DRIVEN) == TIMER_DRIVEN);
+  if (!speakerDrivenByTimer)
   {
     uint8_t level = (val & ENABLE_SPEAKER) ? HIGH : LOW;
     digitalWrite(SPEAKER_PIN, level);
@@ -61,7 +50,7 @@ void my_callback_speaker_func()
     {
       counter = 0;
       speaker ^= true;
-      if ((gb_volumen01 != 0) && (gb_frecuencia01 != 0))
+      if (!speakerMute)
       {
         digitalWrite(SPEAKER_PIN, speaker); // ? HIGH : LOW);
       }
@@ -73,4 +62,6 @@ void updateFrequency(uint16_t data)
 {
   gb_frec_speaker_low = data & 0x00FF;
   gb_frec_speaker_high = static_cast<uint8_t>(data >> 8);
+  uint32_t aData = (data != 0) ? (1193180 / data) : 0;
+  calculatePeriod(aData);
 }
