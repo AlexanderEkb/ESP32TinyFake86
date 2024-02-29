@@ -225,10 +225,10 @@ class SdCard {
     typedef struct DRIVE_DESC
     {
         static const uint32_t MAX_NAME_LENGTH = 256;
-        uint32_t    heads;
-        uint32_t    cylinders;
-        uint32_t    sectors;
-        uint32_t    sectorSize;
+        // uint32_t    heads;
+        // uint32_t    cylinders;
+        // uint32_t    sectors;
+        // uint32_t    sectorSize;
         FILE *      pImage;
         int32_t     imgIndex;
     };

@@ -38,12 +38,31 @@ class Cache_t : public sortedList
         add(&cache[i]);
       }
     };
+
     uint8_t * get(uint32_t address)
     {
-      CacheEntry_t * ce = reinterpret_cast<CacheEntry_t *>(_root);
+      CacheEntry_t * e = find(address);
+      if(e == nullptr)
+      {
+
+      }
+      else 
+        return e->buffer;
+
     }
   protected:
     CacheEntry_t cache[CACHE_CAPACITY];
+    CacheEntry_t * find(uint32_t address)
+    {
+      CacheEntry_t * ce = reinterpret_cast<CacheEntry_t *>(_root);
+      while(ce->address != address)
+      {
+        if(ce->_next == _root)
+          return nullptr;
+        ce = reinterpret_cast<CacheEntry_t *>(ce->_next);
+      }
+      return ce;
+    }
 };
 
 #endif /* _IO_CACHE_H_ */

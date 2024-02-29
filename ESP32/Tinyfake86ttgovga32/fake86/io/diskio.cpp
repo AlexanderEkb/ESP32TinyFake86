@@ -53,8 +53,8 @@ static void getDriveParameters(uint8_t drive);
 
 unsigned char sectorbuffer[SECTOR_SIZE];
 static uint8_t lastResult = 0;
-
-static Cache_t cache = Cache_t(ram + RAM_SIZE);
+static uint8_t * const CACHE_LOCATION = ram + RAM_SIZE;
+static Cache_t cache = Cache_t(CACHE_LOCATION);
 
 DRIVE_DESC drives[SdCard::DRIVE_COUNT] = {
     {80, 2, 18, 1474560},      // A:
