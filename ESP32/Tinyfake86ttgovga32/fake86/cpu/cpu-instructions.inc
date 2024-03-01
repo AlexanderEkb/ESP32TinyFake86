@@ -564,7 +564,7 @@ void opcode0x3F()
 
 void opcode0x40()
 { /* 40 INC eAX */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regax);
   oper2 = 1;
   op_add16();
@@ -574,7 +574,7 @@ void opcode0x40()
 
 void opcode0x41()
 { /* 41 INC eCX */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regcx);
   oper2 = 1;
   op_add16();
@@ -584,7 +584,7 @@ void opcode0x41()
 
 void opcode0x42()
 { /* 42 INC eDX */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regdx);
   oper2 = 1;
   op_add16();
@@ -594,7 +594,7 @@ void opcode0x42()
 
 void opcode0x43()
 { /* 43 INC eBX */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regbx);
   oper2 = 1;
   op_add16();
@@ -604,7 +604,7 @@ void opcode0x43()
 
 void opcode0x44()
 { /* 44 INC eSP */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regsp);
   oper2 = 1;
   op_add16();
@@ -614,7 +614,7 @@ void opcode0x44()
 
 void opcode0x45()
 { /* 45 INC eBP */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regbp);
   oper2 = 1;
   op_add16();
@@ -624,7 +624,7 @@ void opcode0x45()
 
 void opcode0x46()
 { /* 46 INC eSI */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regsi);
   oper2 = 1;
   op_add16();
@@ -634,7 +634,7 @@ void opcode0x46()
 
 void opcode0x47()
 { /* 47 INC eDI */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regdi);
   oper2 = 1;
   op_add16();
@@ -644,7 +644,7 @@ void opcode0x47()
 
 void opcode0x48()
 { /* 48 DEC eAX */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regax);
   oper2 = 1;
   op_sub16();
@@ -654,7 +654,7 @@ void opcode0x48()
 
 void opcode0x49()
 { /* 49 DEC eCX */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regcx);
   oper2 = 1;
   op_sub16();
@@ -664,7 +664,7 @@ void opcode0x49()
 
 void opcode0x4A()
 { /* 4A DEC eDX */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regdx);
   oper2 = 1;
   op_sub16();
@@ -674,7 +674,7 @@ void opcode0x4A()
 
 void opcode0x4B()
 { /* 4B DEC eBX */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regbx);
   oper2 = 1;
   op_sub16();
@@ -684,7 +684,7 @@ void opcode0x4B()
 
 void opcode0x4C()
 { /* 4C DEC eSP */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regsp);
   oper2 = 1;
   op_sub16();
@@ -694,7 +694,7 @@ void opcode0x4C()
 
 void opcode0x4D()
 { /* 4D DEC eBP */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regbp);
   oper2 = 1;
   op_sub16();
@@ -704,7 +704,7 @@ void opcode0x4D()
 
 void opcode0x4E()
 { /* 4E DEC eSI */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regsi);
   oper2 = 1;
   op_sub16();
@@ -714,7 +714,7 @@ void opcode0x4E()
 
 void opcode0x4F()
 { /* 4F DEC eDI */
-  oldcf = cf;
+  uint8_t oldcf = cf;
   oper1 = getreg16(regdi);
   oper2 = 1;
   op_sub16();
@@ -2004,11 +2004,11 @@ uint8_t op_grp2_8(uint8_t cnt)
 {
   uint16_t s;
   uint16_t shift;
-  uint16_t oldcf;
+  uint16_t _oldcf_;
   uint16_t msb;
 
   s = oper1b;
-  oldcf = cf;
+  _oldcf_ = cf;
 #ifdef CPU_V20 // 80186/V20 class CPUs limit shift count to 31
   cnt &= 0x1F;
 #endif
@@ -2044,10 +2044,10 @@ uint8_t op_grp2_8(uint8_t cnt)
   case 2: // RCL r/m8
     for (shift = 1; shift <= cnt; shift++)
     {
-      oldcf = cf;
+      _oldcf_ = cf;
       cf = (s & 0x80) ? 1 : 0;
       s = s << 1;
-      s = s | oldcf;
+      s = s | _oldcf_;
     }
 
     if (cnt == 1)
@@ -2059,9 +2059,9 @@ uint8_t op_grp2_8(uint8_t cnt)
   case 3: // RCR r/m8
     for (shift = 1; shift <= cnt; shift++)
     {
-      oldcf = cf;
+      _oldcf_ = cf;
       cf = s & 1;
-      s = (s >> 1) | (oldcf << 7);
+      s = (s >> 1) | (_oldcf_ << 7);
     }
 
     if (cnt == 1)
@@ -2120,11 +2120,11 @@ static inline uint16_t op_grp2_16(uint8_t cnt)
 {
   uint32_t s;
   uint32_t shift;
-  uint32_t oldcf;
+  uint32_t _oldcf_;
   uint32_t msb;
 
   s = oper1;
-  oldcf = cf;
+  _oldcf_ = cf;
 #ifdef CPU_V20 // 80186/V20 class CPUs limit shift count to 31
   cnt &= 0x1F;
 #endif
@@ -2159,10 +2159,10 @@ static inline uint16_t op_grp2_16(uint8_t cnt)
   case 2: // RCL r/m8
     for (shift = 1; shift <= cnt; shift++)
     {
-      oldcf = cf;
+      _oldcf_ = cf;
       cf = (s & 0x8000) ? 1 : 0;
       s = s << 1;
-      s = s | oldcf;
+      s = s | _oldcf_;
     }
 
     if (cnt == 1)
@@ -2174,9 +2174,9 @@ static inline uint16_t op_grp2_16(uint8_t cnt)
   case 3: // RCR r/m8
     for (shift = 1; shift <= cnt; shift++)
     {
-      oldcf = cf;
+      _oldcf_ = cf;
       cf = s & 1;
-      s = (s >> 1) | (oldcf << 15);
+      s = (s >> 1) | (_oldcf_ << 15);
     }
 
     if (cnt == 1)
@@ -2342,8 +2342,8 @@ void opcode0xCF()
   ip = pop();
   segregs[regcs] = pop();
   decodeflagsword(pop());
-  uint8_t opcode = getmem8(segregs[regcs], ip);
-  if(opcode == 0xF4)  // HLT
+  uint8_t _opcode = getmem8(segregs[regcs], ip);
+  if(_opcode == 0xF4)  // HLT
     ip++;
 }
 

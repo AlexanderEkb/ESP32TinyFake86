@@ -24,6 +24,7 @@ void codeBrowser_t::init(DBG_MEM_ADDR * position)
   this->position = position;
 }
 
+
 void codeBrowser_t::onKey(uint8_t scancode)
 {
   switch (scancode)

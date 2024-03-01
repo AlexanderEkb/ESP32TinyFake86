@@ -190,7 +190,7 @@ void CreateRAM()
 {
   const uint32_t coreID = xPortGetCoreID();
   const uint32_t ramAddr = SOC_EXTRAM_DATA_LOW + (coreID == 1 ? 2 * 1024 * 1024 : 0);
-  ram = (uint8_t *)(ramAddr);
+  ram = reinterpret_cast<uint8_t *>(ramAddr);
   LOG("RAM initialized: core #%i, addr:0x%08X\n", coreID, ramAddr);
 }
 
@@ -245,7 +245,7 @@ void setup()
 //******************************
 void videoTask(void *unused)
 {
-  uint16_t *param;
+  (void)unused;
   while (1)
   {
     draw();

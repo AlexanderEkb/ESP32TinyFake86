@@ -7,8 +7,9 @@ debugger_t debugger_t::instance;
 
 debugger_t::debugger_t()
 {
-  memPosition = DBG_MEM_ADDR(0, 0);
-  codePosition = DBG_MEM_ADDR(0, 0);
+  memPosition   = DBG_MEM_ADDR(0, 0);
+  codePosition  = DBG_MEM_ADDR(0, 0);
+  activeBrowser = 0;
 }
 
 void debugger_t::cycleActive()

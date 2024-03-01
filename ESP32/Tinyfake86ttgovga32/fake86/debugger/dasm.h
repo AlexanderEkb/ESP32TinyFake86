@@ -18,7 +18,12 @@ class line_t
 class disassembler_t
 {
   public:
-    disassembler_t() {preserveLine = true;};
+    disassembler_t() {
+      preserveLine = true;
+      length       = 0;
+      opcode       = 0;
+      line         = nullptr;
+    };
     DBG_MEM_ADDR decode(DBG_MEM_ADDR origin, line_t * output);
   private:
     typedef enum segment_registers : int8_t {NO = -1, ES=0, CS, SS, DS} ; 
@@ -28,7 +33,6 @@ class disassembler_t
     uint8_t opcode;
     uint32_t instructionLength = 0;
     DBG_MEM_ADDR pointer;
-    uint32_t bufferPtr;
     bool preserveLine;
     line_t * line;
 

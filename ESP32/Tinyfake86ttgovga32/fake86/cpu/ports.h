@@ -10,13 +10,16 @@ typedef void (* portWriter_t)(uint32_t address, uint8_t value);
 class IOPort
 {
   public:
-    IOPort()
-    {
-      left        = nullptr;
-      right       = nullptr;
-      leftHeight  = 0;
-      rightHeight = 0;
-    }
+    IOPort() : 
+      left(nullptr), 
+      right(nullptr), 
+      leftHeight(0), 
+      rightHeight(0), 
+      address(0x00), 
+      reader(nullptr),
+      writer(nullptr),
+      value(0xFF)
+    {};
     IOPort(uint32_t address, uint8_t defaultValue, portReader_t reader, portWriter_t writer);
     IOPort *left;
     IOPort *right;

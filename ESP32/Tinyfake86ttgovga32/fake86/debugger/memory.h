@@ -7,7 +7,7 @@
 class memBrowser_t : public browser_t
 {
   public:
-    memBrowser_t();
+    memBrowser_t() : position(nullptr) {};
     void init(DBG_MEM_ADDR * position);
     virtual void onKey(uint8_t scancode) override;
     virtual void refresh() override;

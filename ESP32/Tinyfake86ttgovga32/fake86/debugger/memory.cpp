@@ -3,10 +3,6 @@
 #include <service/service.h>
 #include <stdio.h>
 
-memBrowser_t::memBrowser_t()
-{
-}
-
 void memBrowser_t::init(DBG_MEM_ADDR * position)
 {
   area.left = 0;

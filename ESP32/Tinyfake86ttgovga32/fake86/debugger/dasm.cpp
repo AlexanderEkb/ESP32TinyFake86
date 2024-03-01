@@ -584,7 +584,7 @@ char * disassembler_t::moffs16(uint32_t *err)
 			case CS: snprintf(segment, 10, "cs:") ; break ;
 			case SS: snprintf(segment, 10, "ss:") ; break ;
 			case DS: snprintf(segment, 10, "ds:") ; break ;
-      default: snprintf(segment, 10, "%02X:", segment_override) ; break ;
+      default: snprintf(segment, 10, "%02X:", static_cast<int32_t>(segment_override)); break ;
 		}
 		segment_override = NO ;
 	}
@@ -779,10 +779,10 @@ char * disassembler_t::rm(uint8_t type)
 	{
 		switch (segment_override)
 		{
-			case ES: snprintf(segment, 20, "es:") ; break ;
-			case CS: snprintf(segment, 20, "cs:") ; break ;
-			case SS: snprintf(segment, 20, "ss:") ; break ;
-			case DS: snprintf(segment, 20, "ds:") ; break ;
+			case ES: snprintf(segment, 10, "es:") ; break ;
+			case CS: snprintf(segment, 10, "cs:") ; break ;
+			case SS: snprintf(segment, 10, "ss:") ; break ;
+			case DS: snprintf(segment, 10, "ds:") ; break ;
 		}
 	}
 	char displacement[255] = {'\0'};

@@ -81,7 +81,7 @@ static const uint8_t parity[0x100] = {
 
 static unsigned char opcode, segoverride, reptype;
 static unsigned short int savecs, saveip, ip, useseg, oldsp;
-static unsigned char tempcf, oldcf, pf, af, zf, sf, tf, ifl, df, of, mode, reg, rm;
+static unsigned char tempcf, pf, af, zf, sf, tf, ifl, df, of, mode, reg, rm;
 static unsigned short int oper1, oper2, res16, disp16, temp16, dummy, stacksize, frametemp;
 static unsigned char oper1b, oper2b, res8, disp8, temp8, nestlev, addrbyte;
 static unsigned int temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32, ea;
@@ -155,10 +155,6 @@ void updateBIOSDataArea()
 //********************************************************
 void write86 (unsigned int addr32, unsigned char value)
 {
- unsigned char idRAM;
- unsigned short int auxOffs;
-
- //Primero video
  //Primero CGA
  //if ((addr32 >= 0xB8000) && (addr32 < (0xB8000+16384)))
  if ((addr32 >= 0xB8000) && (addr32 < 0xBC000))
@@ -169,7 +165,7 @@ void write86 (unsigned int addr32, unsigned char value)
  }
 
  //Segundo memoria
- if ((addr32>=0) && (addr32<RAM_SIZE))
+ if (addr32<RAM_SIZE)
  {
   ram[addr32]= value;
   return;
@@ -192,11 +188,7 @@ void write86 (unsigned int addr32, unsigned char value)
 
 unsigned char read86 (unsigned int addr32) 
 {
- //BIOS ADDR
- unsigned short int auxOffs;
- unsigned char idRAM;
-
- //Primero video
+  //Primero video
  //Primero CGA
  //if ((addr32 >= 0xB8000) && (addr32 < (0xB8000+16384)))
  if ((addr32 >= 0xB8000) && (addr32 < 0xBC000))
@@ -205,7 +197,7 @@ unsigned char read86 (unsigned int addr32)
  } 
 
  //Segundo memoria RAM
- if ((addr32>=0) && (addr32<RAM_SIZE))
+ if (addr32<RAM_SIZE)
  {
   return (ram[addr32]);
  }
