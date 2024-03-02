@@ -122,23 +122,23 @@ typedef struct render_t
 {
   bool pendingChanges;
   dumper_t dumper;
-  uint32_t colCount;
-  uint32_t frameCount;
   uint32_t paletteIndex;
   uint32_t specialColor;
   uint32_t hasColor;
 
-  uint32_t charHeight;
-  uint32_t lineCount;
+  uint32_t textCharHeight;
+  uint32_t textRowCount;
+  uint32_t textColCount;
 
   uint32_t startAddr;
   uint32_t hOffset;
   uint32_t blitter;
   vmode_t vmode;
 
-  uint32_t colorburstOverride;
+  uint32_t frameCount;
 } render_t;
 
+static uint32_t colorburstOverride;
 static render_t render;
 static render_t pendingRender;
 
@@ -196,25 +196,26 @@ uint32_t __always_inline cursor_t::getEnd()
 
 void cursor_t::updatePosition()
 {
-  row = value / render.colCount;
-  col = value % render.colCount;
+  row = value / render.textColCount;
+  col = value % render.textColCount;
 };
 
 void renderInit()
 {
   render.pendingChanges = false;
   render.dumper = dump80x25;
-  render.colCount = 80;
+  render.textColCount = 80;
   render.frameCount = 0;
   render.paletteIndex = 0;
   render.specialColor = 0;
-  render.hasColor = COLORBURST_NO_CHANGE;
-  render.charHeight = 8;
-  render.lineCount = 25;
+  render.hasColor = COLORBURST_ENABLE;
+  render.textCharHeight = 8;
+  render.textRowCount = 25;
   render.startAddr = 0;
   render.hOffset = 22;
   render.vmode = TEXT;
-  render.colorburstOverride = COLORBURST_NO_CHANGE;
+
+  colorburstOverride = COLORBURST_NO_CHANGE;
 
   memcpy(&pendingRender, &render, sizeof(render_t));
 
@@ -228,15 +229,6 @@ void renderInit()
   void IRAM_ATTR blitter_0(uint8_t * src, uint16_t * dst);
   void IRAM_ATTR blitter_1(uint8_t * src, uint16_t * dst);
   composite.init(&bufferNTSC);
-}
-
-void renderExec()
-{
-  if (render.hasColor != COLORBURST_NO_CHANGE)
-  {
-    composite.setColorburstEnabled(render.hasColor == COLORBURST_ENABLE);
-    render.hasColor = COLORBURST_NO_CHANGE;
-  }
 }
 
 void draw();
@@ -255,6 +247,24 @@ static __always_inline void OnDumpDone()
   {
     pendingRender.pendingChanges = false;
     memcpy(&render, &pendingRender, sizeof(render_t));
+
+    bool colorEnabled = (colorburstOverride == COLORBURST_NO_CHANGE) ? (render.hasColor != COLORBURST_DISABLE) : (colorburstOverride != COLORBURST_DISABLE);
+    composite.setColorburstEnabled(colorEnabled);
+    switch (render.vmode)
+    {
+    case TEXT:
+      memcpy(palette, colorEnabled ? paletteBasic : paletteBasicBW, 16);
+      break;
+    case GRAPH_LO:
+      memcpy(palette, colorEnabled ? graphPalettes[render.paletteIndex] : graphPalettesBW[render.paletteIndex], GRAPH_PALETTE_SIZE);
+      palette[0] = paletteBasic[render.specialColor];
+      break;
+    case GRAPH_HI:
+      palette[0] = 0;
+      palette[1] = colorEnabled ? paletteBasic[render.specialColor] : paletteBasicBW[render.specialColor];
+      break;
+    }
+
     renderUpdateBorder();
   }
 }
@@ -263,7 +273,7 @@ static void dump80x25()
 {
   uint8_t aColor, aBgColor, aChar;
   uint32_t src = render.startAddr;
-  for (uint32_t y = 0; y < render.lineCount; y++)
+  for (uint32_t y = 0; y < render.textRowCount; y++)
   {
     for (uint32_t x = 0; x < 80; x++)
     {
@@ -271,7 +281,7 @@ static void dump80x25()
       src++;
       aColor = gb_video_cga[src] & 0x0F;
       aBgColor = ((gb_video_cga[src] >> 4) & 0x07);
-      printChar(aChar, (x << 3), (y * render.charHeight), aColor, aBgColor); // Sin capturadora
+      printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
       src++;
     }
   }
@@ -281,7 +291,7 @@ static void dump80x25()
 static void dump40x25()
 {
   uint32_t src = render.startAddr;
-  for (uint32_t y = 0; y < render.lineCount; y++)
+  for (uint32_t y = 0; y < render.textRowCount; y++)
   {
     for (uint32_t x = 0; x < 40; x++)
     {
@@ -289,7 +299,7 @@ static void dump40x25()
       src++;
       uint8_t aColor = gb_video_cga[src] & 0x0F;
       uint8_t aBgColor = ((gb_video_cga[src] >> 4) & 0x07);
-      printChar(aChar, (x << 3), (y * render.charHeight), aColor, aBgColor); // Sin capturadora
+      printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
       src++;
     }
   }
@@ -451,11 +461,11 @@ static void printChar_c(char code, uint32_t x, uint32_t y, uint8_t color, uint8_
 {
   int nBaseOffset = code << 3;
   const bool cbTime = render.frameCount & 0x04;
-  for (unsigned int row = 0; row < render.charHeight; row++)
+  for (unsigned int row = 0; row < render.textCharHeight; row++)
   {
     const bool cbFill = (row >= cursor.getStart()) && (row <= cursor.getEnd()) && cbTime;
     unsigned char bLine = ((row >= 6) && (cbTime)) ? 0xFF : font[nBaseOffset + row];
-    for (int col = 0; col < render.charHeight; col++)
+    for (int col = 0; col < render.textCharHeight; col++)
     {
       unsigned char Pixel = ((bLine >> col) & 0x01);
       const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
@@ -474,7 +484,7 @@ static void printChar(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t 
   else
   {
     int nBaseOffset = code << 3; //*8
-    for (unsigned int row = 0; row < render.charHeight; row++)
+    for (unsigned int row = 0; row < render.textCharHeight; row++)
     {
       unsigned char bLine = font[nBaseOffset + row];
       for (int col = 0; col < 8; col++)
@@ -496,15 +506,18 @@ void draw()
 
 void renderSetCharHeight(uint8_t height)
 {
-  pendingRender.charHeight = height + 1;
-  pendingRender.lineCount = EFFECTIVE_HEIGHT / pendingRender.charHeight;
-  LOG("CharHeight=%i LineCount=%i\n", pendingRender.charHeight, pendingRender.lineCount);
+  pendingRender.textCharHeight = height + 1;
+  pendingRender.textRowCount = EFFECTIVE_HEIGHT / pendingRender.textCharHeight;
+  LOG("CharHeight=%i LineCount=%i\n", pendingRender.textCharHeight, pendingRender.textRowCount);
 }
 
 void renderSetColorburstOverride(uint32_t value)
 {
-  render.colorburstOverride = value;
+  colorburstOverride = value;
+  memcpy(&render, &pendingRender, sizeof(render_t));
+  pendingRender.pendingChanges = true;
 }
+
 void renderSetStartAddr(uint32_t addr)
 {
   render.startAddr = addr * 2;
@@ -512,42 +525,26 @@ void renderSetStartAddr(uint32_t addr)
 
 void renderUpdateSettings(uint8_t settings, uint8_t colors)
 {
-  uint8_t _mode = (settings & 0x3) | ((settings >> 2) & 0x04);
-  const bool colorEnabled = !(settings & 0x04); // || (settings & 10);
-  const uint32_t requestedColor = colorEnabled ? COLORBURST_ENABLE : COLORBURST_DISABLE;
-  pendingRender.hasColor = render.colorburstOverride == COLORBURST_NO_CHANGE ? requestedColor : render.colorburstOverride;
-  pendingRender.dumper = modes[_mode].dumper;
-  pendingRender.colCount = modes[_mode].textWidth;
-  pendingRender.hOffset = modes[_mode].hOffset;
-  pendingRender.blitter = modes[_mode].blitter;
+  LOG("renderUpdateSettings(%02X, %02X)\n", settings, colors);
+  uint8_t _mode                 = (settings & 0x03) | ((settings >> 2) & 0x04);
+  const bool colorSuppressed    = (settings & 0x04);
+  pendingRender.hasColor        = colorSuppressed ? COLORBURST_DISABLE : COLORBURST_ENABLE;
+  pendingRender.dumper          = modes[_mode].dumper;
+  pendingRender.textColCount    = modes[_mode].textWidth;
+  pendingRender.hOffset         = modes[_mode].hOffset;
+  pendingRender.blitter         = modes[_mode].blitter;
 
   composite.setBlitter(modes[_mode].blitter);
 
   // Colors
   static const uint8_t COLOR_MASK = 0x0F;
+  pendingRender.specialColor = colors & COLOR_MASK;
+
   static const uint8_t PALETTE_POS = 4;
   static const uint8_t PALETTE_MASK = 0x03;
-  uint32_t specialColor = colors & COLOR_MASK;
-  uint32_t paletteIndex = (colors >> PALETTE_POS) & PALETTE_MASK;
-  pendingRender.paletteIndex = paletteIndex;
-  pendingRender.specialColor = specialColor;
 
-  vmode_t vmode = !(settings & 0x02) ? TEXT : ((settings & 0x10) ? GRAPH_HI : GRAPH_LO);
-  switch (vmode)
-  {
-  case TEXT:
-    memcpy(palette, colorEnabled ? paletteBasic : paletteBasicBW, 16);
-    break;
-  case GRAPH_LO:
-    memcpy(palette, colorEnabled ? graphPalettes[paletteIndex] : graphPalettesBW[paletteIndex], GRAPH_PALETTE_SIZE);
-    palette[0] = paletteBasic[specialColor];
-    break;
-  case GRAPH_HI:
-    palette[0] = 0;
-    for (uint32_t item = 1; item < 16; item++)
-      palette[item] = colorEnabled ? paletteBasic[specialColor] : paletteBasicBW[specialColor];
-    break;
-  }
+  pendingRender.paletteIndex = (colors >> PALETTE_POS) & PALETTE_MASK;
+  pendingRender.vmode        = !(settings & 0x02) ? TEXT : ((settings & 0x10) ? GRAPH_HI : GRAPH_LO);
 
   pendingRender.pendingChanges = true;
 }
@@ -560,16 +557,10 @@ void renderUpdateBorder()
   uint32_t barHeight = 20;
   uint32_t barColor = 0;
 
-  switch (render.vmode)
-  {
-  case TEXT:
-  case GRAPH_LO:
-    barColor = render.hasColor ? paletteBasic[render.specialColor] : paletteBasicBW[render.specialColor];
-    break;
-  case GRAPH_HI:
+  if (render.vmode == GRAPH_HI)
     barColor = 0;
-    break;
-  }
+  else
+    barColor = render.hasColor ? paletteBasic[render.specialColor] : paletteBasicBW[render.specialColor];
 
   for (int y = 0; y < barHeight; y++)
   {

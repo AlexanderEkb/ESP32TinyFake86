@@ -37,7 +37,6 @@ class cursor_t {
 };
 
  void renderInit(void);
- void renderExec(void);
  void svcClearScreen(uint8_t color);
  void renderUpdateSettings(uint8_t settings, uint8_t color);
  void renderUpdateColor(uint8_t colors);

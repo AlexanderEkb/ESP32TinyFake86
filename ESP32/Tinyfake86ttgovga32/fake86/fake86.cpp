@@ -343,8 +343,6 @@ void execMisc()
   }
   else if (result == OSD_RESULT_RETURN)
   {
-    renderExec();
-    renderUpdateBorder();
     vTaskResume(videoTaskHandle);
   }
 }

@@ -471,6 +471,7 @@ static void osdLeave()
 {
   osd.active = false;
   composite.restoreSettings();
+  renderUpdateBorder();
   extern KeyboardDriver *keyboard;
   keyboard->Reset();
 }
