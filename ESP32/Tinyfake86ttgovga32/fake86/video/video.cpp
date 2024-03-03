@@ -197,9 +197,17 @@ uint8_t read3D5h (uint32_t portnum)
 
 static uint8_t read3DAh(uint32_t portnum)
 {
-  static uint8_t retrace = 0;
   (void)portnum;
-  retrace = ~retrace;
+
+  static uint32_t retraceCounter = 0;
+  uint8_t retrace;
+  if(++retraceCounter == 360)
+  {
+    retraceCounter = 0;
+    retrace |= 0x08;
+  }
+
+  retrace |= retraceCounter & 0x01;
   return (port3DAh & 0xFE | retrace);
 }
 
@@ -231,22 +239,22 @@ static uint8_t readDummy(uint32_t portnum)
 
 /// @brief Handles CGA retrace bits in 3DAh port. Gets called each 32th CPU instruction executed.
 /// @param  none
-void videoExecCpu(void)
-{
-  static const  uint8_t   CGA_HORIZONTAL_RETRACE = 0x01;
-  static const  uint8_t   CGA_VERTICAL_RETRACE   = 0x08;
-  static        uint32_t  _counter = 0;
+// void videoExecCpu(void)
+// {
+//   static const  uint8_t   CGA_HORIZONTAL_RETRACE = 0x01;
+//   static const  uint8_t   CGA_VERTICAL_RETRACE   = 0x08;
+//   static        uint32_t  _counter = 0;
 
-  // Funcion Alleycat y Digger
-  {
-    _counter++;
-    if (_counter > 479)
-      port3DAh = CGA_VERTICAL_RETRACE;
-    else
-      port3DAh = 0;
-    if (_counter & 1)
-      port3DAh |= CGA_HORIZONTAL_RETRACE;
-    if (_counter > 525)
-      _counter = 0;
-  }
-}
+//   // Funcion Alleycat y Digger
+//   {
+//     _counter++;
+//     if (_counter > 479)
+//       port3DAh = CGA_VERTICAL_RETRACE;
+//     else
+//       port3DAh = 0;
+//     if (_counter & 1)
+//       port3DAh |= CGA_HORIZONTAL_RETRACE;
+//     if (_counter > 525)
+//       _counter = 0;
+//   }
+// }

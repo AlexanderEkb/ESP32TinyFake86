@@ -691,26 +691,16 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 
 	for (loopcount = 0; loopcount < execloops; loopcount++)
 	{
-    // Get rid of totalexec
+    // TODO:  Get rid of totalexec
     if ( (totalexec & 31) == 0)
-    {
-      videoExecCpu();
-      updateBIOSDataArea(); // Cada 54 milis
-    }
+      updateBIOSDataArea(); 
     if ((totalexec & 3) == 0)
-    {
       i8253Exec();
-    }
-
     if (trap_toggle)
-    {
       intcall86 (1);
-    }
     trap_toggle=  (tf)?1:0;
     if (!trap_toggle && (ifl && (i8259.irr & (~i8259.imr) ) ) )
-    {
       intcall86 (nextintr() );	/* get next interrupt from the i8259, if any */
-    }
 
     reptype = 0;
     segoverride = 0;
