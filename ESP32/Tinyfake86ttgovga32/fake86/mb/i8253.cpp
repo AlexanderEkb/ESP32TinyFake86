@@ -37,14 +37,17 @@
 
 typedef struct i8253_s
 {
-  uint16_t update[3];
-  uint8_t accessmode[3];
-  bool MSB[3];
-  bool active[3];
-  uint16_t counter[3];
+  uint16_t update;
+  uint8_t accessmode;
+  bool MSB;
+  bool active;
+  uint16_t counter;
+  uint16_t latch;
+  bool isLatched;
 } i8253_s;
 
-struct i8253_s i8253;
+static const uint32_t CHANNEL_COUNT = 3;
+struct i8253_s i8253[CHANNEL_COUNT];
 
 extern uint64_t hostfreq, curtick;
 
@@ -56,10 +59,6 @@ static void writeControl(uint32_t address, uint8_t value);
 static uint8_t readCounter(uint32_t address);
 static uint8_t readControl(uint32_t address);
 
-// IOPort port_040h = IOPort(0x040, 0xFF, in8253, out8253);
-// IOPort port_041h = IOPort(0x041, 0xFF, in8253, out8253);
-// IOPort port_042h = IOPort(0x042, 0xFF, in8253, out8253);
-// IOPort port_043h = IOPort(0x043, 0xFF, in8253, out8253);
 IOPort port_040h = IOPort(0x040, 0xFF, readCounter, writeCounter);
 IOPort port_041h = IOPort(0x041, 0xFF, readCounter, writeCounter);
 IOPort port_042h = IOPort(0x042, 0xFF, readCounter, writeCounter);
@@ -69,27 +68,27 @@ static void writeCounter(uint32_t address, uint8_t value)
 {
   const uint32_t channel = address & 0x03;
   // LOG("Write ch%i: %02x\n", channel, value);
-  const bool lobyte = 
-    (i8253.accessmode[channel] == PIT_MODE_LOBYTE) || 
-    ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && !i8253.MSB[channel]);
+  const bool lobyte =
+      (i8253[channel].accessmode == PIT_MODE_LOBYTE) ||
+      ((i8253[channel].accessmode == PIT_MODE_TOGGLE) && !i8253[channel].MSB);
   const bool hibyte = 
-    (i8253.accessmode[channel] == PIT_MODE_HIBYTE) || 
-    ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && i8253.MSB[channel]);
+    (i8253[channel].accessmode == PIT_MODE_HIBYTE) || 
+    ((i8253[channel].accessmode == PIT_MODE_TOGGLE) && i8253[channel].MSB);
 
-  uint16_t & update = i8253.update[channel];
+  uint16_t & update = i8253[channel].update;
   if (lobyte)
     update = (update & 0xFF00) | value; // Lower byte
   else if (hibyte)
     update = (update & 0x00FF) | ((uint16_t)value << 8); // Upper byte
 
-  i8253.active[channel] = true;
+  i8253[channel].active = true;
 
-  if (i8253.accessmode[channel] == PIT_MODE_TOGGLE)
-    i8253.MSB[channel] = !i8253.MSB[channel];
+  if (i8253[channel].accessmode == PIT_MODE_TOGGLE)
+    i8253[channel].MSB = !i8253[channel].MSB;
 
   if (channel == 0x02)
   {
-    updateFrequency(i8253.update[2]);
+    updateFrequency(i8253[2].update);
   }
 }
 
@@ -98,31 +97,40 @@ static void writeControl(uint32_t address, uint8_t value)
   const uint32_t channel = value >> 6;
   const uint8_t accessmode = (value >> 4) & 3;
   const uint8_t mode = (value >> 1) & 7;
-  LOG("Write CR %02x: ch%02xh a%02x m%02x\n", value,  channel, accessmode, mode);
+  // if(channel == 0)
+  //   LOG("Write CR %02x: ch%02xh a%02x m%02x\n", value,  channel, accessmode, mode);
 
-  i8253.accessmode[channel] = accessmode;
-  if (i8253.accessmode[channel] == PIT_MODE_TOGGLE)
-    i8253.MSB[channel] = false;
+  i8253[channel].accessmode = accessmode;
+  if(accessmode == PIT_MODE_LATCHCOUNT)
+  {
+    i8253[channel].latch = i8253[channel].counter;
+  }
+  i8253[channel].isLatched = (accessmode == PIT_MODE_LATCHCOUNT);
+
+  if ((accessmode == PIT_MODE_TOGGLE) || (accessmode == PIT_MODE_LATCHCOUNT))
+    i8253[channel].MSB = false;
 }
 
 static uint8_t readCounter(uint32_t address)
 {
   const uint32_t channel = address & 0x03;
-  uint8_t curbyte = 0;
+  uint8_t & accessMode = i8253[channel].accessmode;
 
-  if ((i8253.accessmode[channel] == 0) || (i8253.accessmode[channel] == PIT_MODE_LOBYTE) || ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && (i8253.MSB[channel] == 0)))
-    curbyte = 0;
-  else if ((i8253.accessmode[channel] == PIT_MODE_HIBYTE) || ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && (i8253.MSB[channel] == 1)))
-    curbyte = 1;
-  if ((i8253.accessmode[channel] == 0) || (i8253.accessmode[channel] == PIT_MODE_LOBYTE) || ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && (i8253.MSB[channel] == 0)))
-    curbyte = 0;
-  else if ((i8253.accessmode[channel] == PIT_MODE_HIBYTE) || ((i8253.accessmode[channel] == PIT_MODE_TOGGLE) && (i8253.MSB[channel] == 1)))
-    curbyte = 1;
-  if ((i8253.accessmode[channel] == 0) || (i8253.accessmode[channel] == PIT_MODE_TOGGLE))
-    i8253.MSB[channel] = !i8253.MSB[channel];
+  const bool interleavedRead = (accessMode == PIT_MODE_LATCHCOUNT) || (accessMode == PIT_MODE_TOGGLE);
+  const bool readMSB = (accessMode == PIT_MODE_HIBYTE) || (interleavedRead && i8253[channel].MSB);
+  // uint8_t curbyte = 0;
+  // if ((accessMode == PIT_MODE_LATCHCOUNT) || (accessMode == PIT_MODE_LOBYTE) || ((accessMode == PIT_MODE_TOGGLE) && (i8253[channel].MSB == 0)))
+  //   curbyte = 0;
+  // else if ((accessMode == PIT_MODE_HIBYTE) || ((accessMode == PIT_MODE_TOGGLE) && (i8253[channel].MSB == 1)))
+  //   curbyte = 1;
 
-  const uint8_t result = (curbyte == 0) ? ((uint8_t)i8253.counter[channel]) : ((uint8_t)(i8253.counter[channel] >> 8));
-  LOG("Read ch%i: %02x\n", address, result);
+  uint16_t & value = (i8253[channel].isLatched) ? i8253[channel].latch : i8253[channel].counter;
+  if ((accessMode == 0) || (accessMode == PIT_MODE_TOGGLE))
+    i8253[channel].MSB = !i8253[channel].MSB;
+
+  // const uint8_t result = (curbyte == 0) ? ((uint8_t)value) : ((uint8_t)(value >> 8));
+  const uint8_t result = readMSB ? ((uint8_t)value) : ((uint8_t)(value >> 8));
+  // LOG("Read ch%i: %02x\n", channel, result);
   return result;
 }
 
@@ -136,11 +144,11 @@ void init8253()
 {
   for(uint32_t channel=0; channel<3; channel++)
   {
-    i8253.update[channel] = 0x0001;
-    i8253.accessmode[channel] = 0x00;
-    i8253.MSB[channel] = false;
-    i8253.active[channel] = false;
-    i8253.counter[channel] = 0x0001;
+    i8253[channel].update = 0x0001;
+    i8253[channel].accessmode = 0x00;
+    i8253[channel].MSB = false;
+    i8253[channel].active = false;
+    i8253[channel].counter = 0x0001;
   }
 }
 
@@ -148,16 +156,17 @@ void init8253()
 /// @param  none
 void __attribute__((optimize("-Ofast"))) IRAM_ATTR i8253Exec()
 {
+  static const uint16_t DECREMENT = 0x10;
   for (uint32_t channel = 0; channel < 3; channel++)
   {
-    if (i8253.active[channel])
+    if (i8253[channel].active)
     {
-      uint16_t & CNTR = i8253.counter[channel];
-      CNTR -= 0x10;
- 
-      if(CNTR < 0x10)
+      uint16_t & counter = i8253[channel].counter;
+      counter -= DECREMENT;
+
+      if (counter < DECREMENT)
       {
-        CNTR = i8253.update[channel];
+        counter = i8253[channel].update;
         if (channel == 0) doirq(0);
       }
     }
