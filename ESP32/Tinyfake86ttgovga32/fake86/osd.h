@@ -31,7 +31,6 @@ class osd_t
     void ShowTinyVGApollMenu();
     void ShowTinyKeyboardPollMenu();
     void ShowTinySpeedMenu();
-    void ShowTinyResetMenu();
     void ShowTinyVideoMenu();
 
 };

@@ -103,12 +103,6 @@ const char * gb_timers_poll_menu[max_gb_timers_poll_menu]={
  "1  (fast)"
 };
 
-#define max_gb_reset_menu 2
-const char * gb_reset_menu[max_gb_reset_menu]={
- "Soft",
- "Hard"
-};
-
 static uint8_t const * const font = getFont();
 
 #define gb_pos_x_menu 10
@@ -277,21 +271,6 @@ void ShowTinySpeedMenu()
  } 
 }
 
-//Menu resetear
-void ShowTinyResetMenu()
-{
- unsigned char aSelNum;
- aSelNum= ShowTinyMenu("Reset",gb_reset_menu,max_gb_reset_menu, 10, 90);
- if (aSelNum == 1)
- {
-  ESP.restart();
- }
- else
- {
-   gb_reset= 1;
- } 
-}
-
 void ShowTinyVideoMenu()
 {
  unsigned char aSelNum = ShowTinyMenu("Video",gb_video_menu,max_gb_video_menu, 10, 90);
@@ -410,61 +389,61 @@ void ShowTinyVideoMenu()
 
 //*******************************************
 //Very small tiny osd
-OSD_RESULT_t do_tinyOSD(  )
+OSD_RESULT_t do_tinyOSD()
 {
- unsigned char aSelNum;
- extern KeyboardDriver *keyboard;
- uint8_t scancode = keyboard->getLastKey();
- if (scancode == KEY_F12)
- {
-  osd.active = true;
-  return OSD_RESULT_PREPARE;
- }
-
- if (osd.active)
- {
-  composite.saveSettings();
-  composite.setBlitter(1);
-  composite.setColorburstEnabled(true);
-  svcClearScreen(SCREEN_BACKGROUND);
-  svcBar(8, OSD_VERTICAL_OFFSET, 21, 320, HEADER_BACKGROUND);
-  svcPrintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
-  svcPrintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
-
-  speakerMute = true;
-
-  aSelNum = ShowTinyMenu("MAIN MENU",gb_main_menu,max_gb_main_menu, 10, 10);
-  switch (aSelNum)
+  unsigned char aSelNum;
+  extern KeyboardDriver *keyboard;
+  uint8_t scancode = keyboard->getLastKey();
+  if (scancode == KEY_F12)
   {
-   case 0:
-    ShowTinyDSKMenu(0);
-    break;
-   case 1:
-    ShowTinyDSKMenu(1);
-    break;
-   case 2:
-    ShowTinyResetMenu();
-    break;
-   case 3:
-    ShowTinySpeedMenu();
-    break;
-   case 4: 
-    ShowTinyVideoMenu();
-    break;
-   case 5:
-    debugger_t::getInstance().execute();
-    break;
-   default:
-    break;
+    osd.active = true;
+    return OSD_RESULT_PREPARE;
   }
 
-  speakerMute= false;
-  keyboard->Reset();
-  osdLeave();
-  return OSD_RESULT_RETURN;
- }
+  if (osd.active)
+  {
+    composite.saveSettings();
+    composite.setBlitter(1);
+    composite.setColorburstEnabled(true);
+    svcClearScreen(SCREEN_BACKGROUND);
+    svcBar(8, OSD_VERTICAL_OFFSET, 21, 320, HEADER_BACKGROUND);
+    svcPrintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
+    svcPrintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
 
- return OSD_RESULT_NONE;
+    speakerMute = true;
+
+    aSelNum = ShowTinyMenu("MAIN MENU", gb_main_menu, max_gb_main_menu, 10, 10);
+    switch (aSelNum)
+    {
+    case 0:
+      ShowTinyDSKMenu(0);
+      break;
+    case 1:
+      ShowTinyDSKMenu(1);
+      break;
+    case 2:
+      ESP.restart();
+      break;
+    case 3:
+      ShowTinySpeedMenu();
+      break;
+    case 4:
+      ShowTinyVideoMenu();
+      break;
+    case 5:
+      debugger_t::getInstance().execute();
+      break;
+    default:
+      break;
+    }
+
+    speakerMute = false;
+    keyboard->Reset();
+    osdLeave();
+    return OSD_RESULT_RETURN;
+  }
+
+  return OSD_RESULT_NONE;
 }
 
 static void osdLeave()
