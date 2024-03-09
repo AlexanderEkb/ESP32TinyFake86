@@ -2,6 +2,7 @@
 #include "config/hardware.h"
 #include "cpu/ports.h"
 #include "esp32-hal-gpio.h"
+#include "covox.h"
 
 static uint32_t period = 0;
 static uint8_t gb_frec_speaker_low = 0;
@@ -11,6 +12,7 @@ static bool speakerDrivenByTimer = true;
 volatile bool speakerMute = false;
 
 static void onPort0x61Write(uint32_t address, uint8_t val);
+static void __always_inline driveSpeaker(bool state);
 
 IOPort port_061h = IOPort(0x061, 0xFF, nullptr, onPort0x61Write);
 
@@ -34,7 +36,7 @@ void onPort0x61Write(uint32_t address, uint8_t val)
   if (!speakerDrivenByTimer)
   {
     uint8_t level = (val & ENABLE_SPEAKER) ? HIGH : LOW;
-    digitalWrite(SPEAKER_PIN, level);
+    driveSpeaker(level);
   }
 }
 
@@ -52,7 +54,7 @@ void my_callback_speaker_func()
       speaker ^= true;
       if (!speakerMute)
       {
-        digitalWrite(SPEAKER_PIN, speaker); // ? HIGH : LOW);
+        driveSpeaker(speaker);
       }
     }
   }
@@ -64,4 +66,10 @@ void updateFrequency(uint16_t data)
   gb_frec_speaker_high = static_cast<uint8_t>(data >> 8);
   uint32_t aData = (data != 0) ? (1193180 / data) : 0;
   calculatePeriod(aData);
+}
+
+static void __always_inline driveSpeaker(bool state)
+{
+  // digitalWrite(SPEAKER_PIN, state);
+  Covox_t::getInstance().driveSpeaker(state);
 }

@@ -37,4 +37,6 @@
 #define HSYNC         23
 #define VSYNC         15
 
+/// [COVOX]
+#define COVOX_OUTPUT_IO (4)
 #endif

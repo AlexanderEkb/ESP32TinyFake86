@@ -18,6 +18,7 @@
 #include "config/hardware.h"
 #include "cpu/ports.h"
 #include "io/keyboard.h"
+#include "io/covox.h"
 #include "io/sdcard.h"
 #include "io/speaker.h"
 #include "mb/i8237.h"
@@ -101,7 +102,6 @@ IOPort port_2C1h = IOPort(0x2C1, 0x00, defaultReader_FF, defaultWriter);
 IOPort port_341h = IOPort(0x341, 0x00, defaultReader_FF, defaultWriter);
 
 IOPort port_278h = IOPort(0x278, 0x00, defaultReader_FF, defaultWriter);
-IOPort port_378h = IOPort(0x378, 0x00, defaultReader_FF, defaultWriter);
 
 IOPort port_2E8h = IOPort(0x2E8, 0x00, defaultReader_FF, defaultWriter);
 IOPort port_2EBh = IOPort(0x2EB, 0x00, defaultReader_FF, defaultWriter);
@@ -200,9 +200,6 @@ void setup()
   delay(100);
   disableCore1WDT();
 
-  // WiFi.mode(WIFI_OFF);
-  // btStop();
-
   if (esp_spiram_init() != ESP_OK)
     LOG("This app requires a board with PSRAM!\n");
 
@@ -224,7 +221,7 @@ void setup()
 
   reset86();
   LOG("OK!\n");
-
+  Covox_t::getInstance().init();
   inithardware();
 
 #ifndef use_lib_singlecore

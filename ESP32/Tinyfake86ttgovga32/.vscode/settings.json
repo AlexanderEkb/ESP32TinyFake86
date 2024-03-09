@@ -53,7 +53,8 @@
       "typeinfo": "cpp",
       "string_view": "cpp",
       "optional": "cpp",
-      "*.inc": "cpp"
+      "*.inc": "cpp",
+      "esp_bit_defs.h": "c"
     },
     "merge-conflict.codeLens.enabled": false,
     "editor.codeLens": false,

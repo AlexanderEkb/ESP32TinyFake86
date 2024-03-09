@@ -13,6 +13,9 @@
 
 #define RG_STORAGE_SPEED SDMMC_FREQ_52M     // Used by driver 1 and 2
 #define RG_STORAGE_ROOT "/sd"               // Storage mount point
+#define RG_STORAGE_FLOPPIES "/sd/PC/Floppies"
+#define RG_STORAGE_HDDS "/sd/PC/HDDs"
+
 #define RG_PATH_MAX 255
 
 #ifdef use_lib_log_serial
@@ -157,7 +160,8 @@ class SdCard {
           fclose(drives[drive].pImage);
       static const uint32_t LENGTH = 256;
       char fullpath[LENGTH];
-      snprintf(fullpath, LENGTH, "%s/%s", RG_STORAGE_ROOT, imgList[index].name);
+      char const * path = (drive < 2)?RG_STORAGE_FLOPPIES:RG_STORAGE_HDDS;
+      snprintf(fullpath, LENGTH, "%s/%s", path, imgList[index].name);
       Serial.printf("Opening image '%s', drive #%i...", fullpath, drive);
       drives[drive].pImage = fopen(fullpath, "r+");
       const bool result = (drives[drive].pImage != nullptr);
@@ -176,7 +180,8 @@ class SdCard {
         fclose(drives[drive].pImage);
       static const uint32_t LENGTH = 256;
       char fullpath[LENGTH];
-      snprintf(fullpath, LENGTH, "%s/%s", RG_STORAGE_ROOT, imgName);
+      char const *path = (drive < 0x02U) ? RG_STORAGE_FLOPPIES : RG_STORAGE_HDDS;
+      snprintf(fullpath, LENGTH, "%s/%s", path, imgName);
       Serial.printf("Opening image '%s', drive #%i...", fullpath, drive);
       drives[drive].pImage = fopen(fullpath, "r+");
       const bool result = (drives[drive].pImage != nullptr);
@@ -272,7 +277,7 @@ class SdCard {
     scandir_t *scandir()
     {
         RG_LOGI("Scanning...\r\n");
-        DIR *dir = opendir(RG_STORAGE_ROOT);
+        DIR *dir = opendir(RG_STORAGE_FLOPPIES);
         if (!dir)
             return NULL;
         if (imgList != nullptr)
