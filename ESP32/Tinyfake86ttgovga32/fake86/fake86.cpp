@@ -19,7 +19,6 @@
 #include "cpu/ports.h"
 #include "io/keyboard.h"
 #include "io/covox.h"
-#include "io/sdcard.h"
 #include "io/speaker.h"
 #include "mb/i8237.h"
 #include "mb/i8253.h"
@@ -50,7 +49,6 @@ unsigned char gb_timers_poll_milis = use_lib_timers_poll_milis;
 unsigned char gb_reset = 0;
 
 KeyboardDriver *keyboard = new KeyboardDriverAT(); // stm32keyboard();
-SdCard sdcard;
 Stats stats;
 
 uint8_t     * ram;
@@ -212,7 +210,6 @@ void setup()
   Serial.begin(115200);
   Serial.printf("\nHEAP BEGIN %d\n", ESP.getFreeHeap());
 #endif
-  sdcard.Init();
   CreateRAM();
   
   renderInit();

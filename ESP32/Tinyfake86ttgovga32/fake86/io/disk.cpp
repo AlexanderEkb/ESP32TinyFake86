@@ -21,17 +21,10 @@
 #include "gbGlobals.h"
 #include "io/disk.h"
 #include "io/sdcard.h"
-#include <Arduino.h>
 #include <esp_heap_caps.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-
-#define RESULT_OK               (0x00)
-#define RESULT_WRONG_PARAM      (0x01)
-#define RESULT_WRITE_PROT       (0x03)
-#define RESULT_SECT_NOT_FOUND   (0x04)
-#define RESULT_GENERAL_FAILURE  (0x20)
 
 #define USE_OPTIMIZATION (1)
 
@@ -50,16 +43,14 @@ extern void write86 (uint32_t addr32, uint8_t value);
 
 static void getDriveParameters(uint8_t drive);
 
-unsigned char sectorbuffer[SECTOR_SIZE];
 static uint8_t lastResult = 0;
 
-DRIVE_DESC drives[SdCard::DRIVE_COUNT] = {
-    {80, 2, 18, 1474560},      // A:
-    {80, 2, 18, 1474560},      // B:
-    {80, 2, 18, 1474560},      // ?:
-    {80, 2, 18, 1474560},      // ?:
-    {512, 64, 63, 1056964608}, // C:
-};
+FloppyDrive_t driveA;
+FloppyDrive_t driveB;
+HDD_t driveC;
+
+static const uint32_t DRIVE_COUNT = 3;
+Drive_t * drives[DRIVE_COUNT] = {&driveA, &driveB, &driveC};
 
 void setResult(uint8_t _result)
 {
@@ -71,33 +62,32 @@ void setResult(uint8_t _result)
 void diskInit()
 {
   pinMode(DISK_LED, OUTPUT_OPEN_DRAIN);
+  digitalWrite(DISK_LED, false);
+  const bool sdCardOk = Drive_t::sdCard.Init();
+  if(sdCardOk)
+  {
+    driveC.openImage(DEFAULT_HDD_IMAGE);
+  }
   digitalWrite(DISK_LED, true);
   lastResult = RESULT_OK;
 }
 
 void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_ADDR &dst)
 {
-  const bool isValid = src.isValid();
-  if(!isValid)
-  {
-    setResult(RESULT_WRONG_PARAM);
-    return;
-  }
   digitalWrite(DISK_LED, false);
-  uint32_t filePos = src.lba() * SECTOR_SIZE;
-  uint32_t memdest = dst.linear();
-  uint8_t *rambuf = getramloc(memdest);
-  bool result = sdcard.Read(src.drive, rambuf, filePos, src.sectorCount * SECTOR_SIZE);
-  if(result)
+  const uint32_t index = (src.drive < 0x80) ? src.drive : (src.drive - 0x7C);
+  Drive_t *drive = drives[index];
+  uint8_t result = drive->read(src, getramloc(dst.linear()));
+
+  if (result == RESULT_OK)
   {
     regs.byteregs[regal] = src.sectorCount;
-    setResult(0);
   }
   else
   {
-    LOG("Error reading drive %i off %i\n", src.drive, filePos);
-    setResult(RESULT_GENERAL_FAILURE);
+    LOG("Error reading drive %i C%iH%iS%i\n", src.drive, src.cylinder, src.head, src.sector);
   }
+  setResult(result);
   digitalWrite(DISK_LED, true);
 }
 
@@ -105,37 +95,19 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
 {
   digitalWrite(DISK_LED, false);
   // LOG("Write D%02X C%04X H%04X S%04X\n", dst.drive, dst.cylinder, dst.sector, dst.head);
-  const bool isValid = dst.isValid();
-  if(isValid)
+  const uint32_t index = (dst.drive < 0x80) ? dst.drive : (dst.drive - 0x7C);
+  Drive_t *drive = drives[index];
+  uint8_t result = drive->write(getramloc(src.linear()), dst);
+
+  if(result == RESULT_OK)
   {
-    uint32_t filePos = dst.lba() * SECTOR_SIZE;
-    uint32_t srcAddr = src.linear();
-    uint32_t sector;
-#if USE_OPTIMIZATION    
-    uint8_t *rambuf = getramloc(srcAddr);
-#endif    
-    for (sector=0; sector<dst.sectorCount; sector++)
-    {
-#if !USE_OPTIMIZATION      
-      for (uint32_t i=0; i<SECTOR_SIZE; i++)
-        sectorbuffer[i] = read86(srcAddr++);
-      sdcard.Write(dst.drive, sectorbuffer, filePos, SECTOR_SIZE);
-#else
-      sdcard.Write(dst.drive, rambuf, filePos, SECTOR_SIZE);
-      rambuf += SECTOR_SIZE;
-#endif      
-      filePos += SECTOR_SIZE;
-      if (filePos >= (drives[dst.drive].capacity-1))
-        break;
-    }
-    regs.byteregs[regal] = sector;
-    setResult(RESULT_OK);
+    regs.byteregs[regal] = dst.sectorCount;
   }
   else
   {
     RG_LOGE("Error writing drive %i sector %i\n", dst.drive, dst.sector);
-    setResult(RESULT_WRONG_PARAM);
   }
+  setResult(result);
   digitalWrite(DISK_LED, true);
 }
 
@@ -194,11 +166,15 @@ void diskhandler()
 
 static void getDriveParameters(uint8_t drive)
 {
-  const uint32_t maxCylIndex = drives[drive].cylinders - 1;
+  Geometry_t geometry;
+  const uint32_t index = (drive < 0x80) ? drive : (drive - 0x7C);
+  drives[index]->getGeometry(&geometry);
+
+  const uint32_t maxCylIndex = geometry.cylinders - 1;
   regs.byteregs[regch] = static_cast<uint8_t>(maxCylIndex & 0xFF);
-  regs.byteregs[regcl] = static_cast<uint8_t>(drives[drive].sectors) & 0x3F;
+  regs.byteregs[regcl] = static_cast<uint8_t>(geometry.sectors) & 0x3F;
   regs.byteregs[regcl] = regs.byteregs[regcl] | static_cast<uint8_t>((maxCylIndex >> 2) & 0xC0);
-  regs.byteregs[regdh] = static_cast<uint8_t>(drives[drive].heads - 1) & 0x3F;
+  regs.byteregs[regdh] = static_cast<uint8_t>(geometry.heads - 1) & 0x3F;
 
   if (drive < 4)
   {
@@ -214,12 +190,12 @@ static void getDriveParameters(uint8_t drive)
 
 uint8_t getBootDrive()
 {
-  if(sdcard.getImageIndex(0) != -1)
+  if(driveA.isReady())
   {
     LOG("Booting from drive A:\n");
     return 0x00;
   }
-  else if(sdcard.getImageIndex(4) != -1)
+  else if(driveC.isReady())
   {
     LOG("Booting from drive C:\n");
     return 0x04;

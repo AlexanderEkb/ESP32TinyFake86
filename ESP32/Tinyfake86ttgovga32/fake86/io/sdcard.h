@@ -152,80 +152,11 @@ class SdCard {
         return disk_mounted;
     }
 
-    bool OpenImage(uint32_t drive, int32_t index)
-    {
-      if(index < 0)
-        return false;
-      if (drives[drive].pImage != nullptr)
-          fclose(drives[drive].pImage);
-      static const uint32_t LENGTH = 256;
-      char fullpath[LENGTH];
-      char const * path = (drive < 2)?RG_STORAGE_FLOPPIES:RG_STORAGE_HDDS;
-      snprintf(fullpath, LENGTH, "%s/%s", path, imgList[index].name);
-      Serial.printf("Opening image '%s', drive #%i...", fullpath, drive);
-      drives[drive].pImage = fopen(fullpath, "r+");
-      const bool result = (drives[drive].pImage != nullptr);
-      Serial.printf(result?"OK\n":"FAILED!\n");
-      drives[drive].imgIndex = result?index:-1;
-      return result;
-    }
-
-    bool OpenImage(uint32_t drive, char * imgName)
-    {
-      if (index < 0)
-        return false;
-      if(drive >= 0x80)
-        drive -= 0x7C;
-      if (drives[drive].pImage != nullptr)
-        fclose(drives[drive].pImage);
-      static const uint32_t LENGTH = 256;
-      char fullpath[LENGTH];
-      char const *path = (drive < 0x02U) ? RG_STORAGE_FLOPPIES : RG_STORAGE_HDDS;
-      snprintf(fullpath, LENGTH, "%s/%s", path, imgName);
-      Serial.printf("Opening image '%s', drive #%i...", fullpath, drive);
-      drives[drive].pImage = fopen(fullpath, "r+");
-      const bool result = (drives[drive].pImage != nullptr);
-      Serial.printf(result ? "OK\n" : "FAILED!\n");
-      drives[drive].imgIndex = 0;
-      return result;
-    }
-
     scandir_t *getList()
     {
       return imgList;
     }
 
-    int32_t getImageIndex(uint32_t drive)
-    {
-      return drives[drive].imgIndex;
-    }
-
-    bool Read(uint32_t drive, void * pDest, uint32_t offset, uint32_t size)
-    {
-      if(drives[drive].pImage == nullptr)
-        return false;
-      if(fseek(drives[drive].pImage, offset, SEEK_SET) != 0)
-        return false;
-      if(fread(pDest, size, 1, drives[drive].pImage) != 1)
-        return false;
-      return true;
-    }
-    
-    bool Write(uint32_t drive, void * pSrc, uint32_t offset, uint32_t size)
-    {
-        if(drives[drive].pImage != nullptr)
-        {
-            fseek(drives[drive].pImage, offset, SEEK_SET);
-            const uint32_t result = fwrite(pSrc, size, 1, drives[drive].pImage);
-            fflush(drives[drive].pImage);
-            return (result == 1);
-        }
-        else
-        {
-            RG_LOGE("Error writing drive %i off %i length %i\n", drive, offset, size);
-            return false;
-        }
-    }
   private:
     typedef struct DRIVE_DESC
     {
@@ -256,12 +187,8 @@ class SdCard {
 
         disk_mounted = false;
     }
+
     static esp_err_t DoTransaction(int slot, sdmmc_command_t *cmdinfo) {
-        // bool use_led = (disk_led && !rg_system_get_led());
-
-        // if (use_led)
-        //     rg_system_set_led(1);
-
 #if RG_STORAGE_DRIVER == 1
         // spi_device_acquire_bus(spi_handle, portMAX_DELAY);
         esp_err_t ret = sdspi_host_do_transaction(slot, cmdinfo);
@@ -269,11 +196,9 @@ class SdCard {
 #else
         esp_err_t ret = sdmmc_host_do_transaction(slot, cmdinfo);
 #endif
-        // if (use_led)
-        //     rg_system_set_led(0);
-
         return ret;
     }
+
     scandir_t *scandir()
     {
         RG_LOGI("Scanning...\r\n");
@@ -333,16 +258,6 @@ class SdCard {
     {
       RG_LOGI("Storage mounted at %s. driver=%d\n", RG_STORAGE_ROOT, RG_STORAGE_DRIVER);
       scandir();
-      uint32_t count = 0;
-      // while (imgList[count].name[0] != 0)
-      // {
-      //   if (!strcmp(imgList[count].name, "boot622.img"))
-      //   {
-      //     OpenImage(0, count);
-      //   }
-      //   count++;
-      // }
-      OpenImage(4, "hdd0.img");
     }
 };
 

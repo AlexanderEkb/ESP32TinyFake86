@@ -6,7 +6,7 @@
 #include "gbGlobals.h"
 #include "io/keyboard.h"
 #include "io/keys.h"
-#include "io/sdcard.h"
+#include "io/disk.h"
 #include "video/CompositeColorOutput.h"
 #include "video/render.h"
 #include "video/gb_sdl_font8x8.h"
@@ -198,11 +198,11 @@ static void showColorMenu()
 //Menu DSK
 void ShowTinyDSKMenu(uint32_t drive)
 {
+  static int32_t imgIndex[2] = {-1, -1};
   extern SdCard sdcard;
-  scandir_t * list = sdcard.getList();
+  scandir_t * list = Drive_t::sdCard.getList();
   if(list != nullptr)
   {
-    const int32_t imgIndex = sdcard.getImageIndex(drive);
     static const uint32_t LENGTH = 256;
     static char * arItems[LENGTH];
     static uint32_t count = 0;
@@ -212,11 +212,16 @@ void ShowTinyDSKMenu(uint32_t drive)
       count++;
     }
 
-    uint32_t selection = ShowTinyMenu("> Select image:", (const char **)arItems, count, 27, 90, imgIndex);
+    uint32_t selection = ShowTinyMenu("> Select image:", (const char **)arItems, count, 27, 90, imgIndex[drive]);
 
     if (selection != 0xFF)
-      sdcard.OpenImage(drive, selection);
-
+    {
+      char fullpath[LENGTH];
+      char const *path = RG_STORAGE_FLOPPIES;
+      snprintf(fullpath, LENGTH, "%s/%s", path, list[selection].name);
+      drives[drive]->openImage(fullpath);
+      imgIndex[drive] = selection;
+    }
   }
 }
 

@@ -82,4 +82,6 @@
   #define use_lib_timers_poll_milis 54
   //Logs
   #define use_lib_log_serial
+
+  #define DEFAULT_HDD_IMAGE "/sd/PC/HDDs/hdd0.img"
 #endif

@@ -20,47 +20,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "sdcard.h"
+#include "drive.h"
 
-#define SECTOR_SIZE (512)
-
-
-typedef struct DRIVE_DESC
-{
-    uint32_t cylinders;
-    uint32_t heads;
-		uint32_t sectors;
-		uint32_t capacity;
-} DRIVE_DESC;
-
-extern DRIVE_DESC drives[SdCard::DRIVE_COUNT];
-
-typedef struct MEM_ADDR
-{
-  uint16_t segment;
-  uint16_t offset;
-  MEM_ADDR(uint16_t seg, uint16_t off) :
-    segment(seg),
-    offset(off) {}
-  uint32_t linear() {return ((uint32_t)segment << 4) + offset;}
-} MEM_ADDR;
-
-typedef struct DISK_ADDR
-{
-  uint32_t drive;
-  uint32_t cylinder;
-  uint32_t sector;
-  uint32_t head;
-  uint32_t sectorCount;
-  DISK_ADDR(uint32_t drv, uint32_t cyl, uint32_t hd, uint32_t sect, uint32_t cnt) :
-    drive(drv),
-    cylinder(cyl),
-    sector(sect),
-    head(hd),
-    sectorCount(cnt)
-    {}
-  uint32_t lba() {return (cylinder * drives[drive].heads + head) * drives[drive].sectors + sector - 1;}
-  bool isValid() {return (sector != 0) && ((lba() * SECTOR_SIZE < (drives[drive].capacity - 1)));};
-} DISK_ADDR;
+extern Drive_t * drives[];
 
 void diskInit(void);
 void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_ADDR &dst);
