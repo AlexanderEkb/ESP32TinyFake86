@@ -74,9 +74,9 @@ void diskInit()
 
 void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_ADDR &dst)
 {
+  LOG("Reading drive %i C%iH%iS%i\n", src.drive, src.cylinder, src.head, src.sector);
   digitalWrite(DISK_LED, false);
-  const uint32_t index = (src.drive < 0x80) ? src.drive : (src.drive - 0x7C);
-  Drive_t *drive = drives[index];
+  Drive_t *drive = drives[src.drive];
   uint8_t result = drive->read(src, getramloc(dst.linear()));
 
   if (result == RESULT_OK)
@@ -95,8 +95,7 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
 {
   digitalWrite(DISK_LED, false);
   // LOG("Write D%02X C%04X H%04X S%04X\n", dst.drive, dst.cylinder, dst.sector, dst.head);
-  const uint32_t index = (dst.drive < 0x80) ? dst.drive : (dst.drive - 0x7C);
-  Drive_t *drive = drives[index];
+  Drive_t *drive = drives[dst.drive];
   uint8_t result = drive->write(getramloc(src.linear()), dst);
 
   if(result == RESULT_OK)
@@ -120,7 +119,7 @@ void diskhandler()
   const uint16_t sector = regs.byteregs[regcl] & 0x3F;
   const uint16_t head = regs.byteregs[regdh];
   const uint16_t sectorCount = regs.byteregs[regal];
-  const uint32_t translatedDrive = (drive >= 0x80) ? (drive - 0x7C) : drive;
+  const uint32_t translatedDrive = (drive >= 0x80) ? (drive - 0x7E) : drive;
   DISK_ADDR diskAddr = DISK_ADDR(translatedDrive, cylinder, head, sector, sectorCount);
   MEM_ADDR buffer = {segregs[reges], regs.wordregs[regbx]};
   const uint8_t serviceNum = regs.byteregs[regah];
@@ -198,7 +197,7 @@ uint8_t getBootDrive()
   else if(driveC.isReady())
   {
     LOG("Booting from drive C:\n");
-    return 0x04;
+    return 0x02;
   }
   else
     LOG("Booting to BASIC\n");
