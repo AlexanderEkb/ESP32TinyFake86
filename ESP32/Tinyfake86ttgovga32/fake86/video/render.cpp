@@ -508,7 +508,7 @@ void renderSetCharHeight(uint8_t height)
 {
   pendingRender.textCharHeight = height + 1;
   pendingRender.textRowCount = EFFECTIVE_HEIGHT / pendingRender.textCharHeight;
-  LOG("CharHeight=%i LineCount=%i\n", pendingRender.textCharHeight, pendingRender.textRowCount);
+  // LOG("CharHeight=%i LineCount=%i\n", pendingRender.textCharHeight, pendingRender.textRowCount);
 }
 
 void renderSetColorburstOverride(uint32_t value)
@@ -525,7 +525,7 @@ void renderSetStartAddr(uint32_t addr)
 
 void renderUpdateSettings(uint8_t settings, uint8_t colors)
 {
-  LOG("renderUpdateSettings(%02X, %02X)\n", settings, colors);
+  // LOG("renderUpdateSettings(%02X, %02X)\n", settings, colors);
   uint8_t _mode                 = (settings & 0x03) | ((settings >> 2) & 0x04);
   const bool colorSuppressed    = (settings & 0x04);
   pendingRender.hasColor        = colorSuppressed ? COLORBURST_DISABLE : COLORBURST_ENABLE;

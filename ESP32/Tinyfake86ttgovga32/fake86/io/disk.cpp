@@ -26,8 +26,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define USE_OPTIMIZATION (1)
-
 #ifdef use_lib_log_serial
 #define LOG(...) Serial.printf(__VA_ARGS__)
 #else
@@ -74,37 +72,44 @@ void diskInit()
 
 void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_ADDR &dst)
 {
-  LOG("Reading drive %i C%iH%iS%i\n", src.drive, src.cylinder, src.head, src.sector);
+  // LOG("Reading D%i C%i H%i S%i L%i %04X:%04X ", src.drive, src.cylinder, src.head, src.sector, src.sectorCount, dst.segment, dst.offset);
+  if(src.drive >= DRIVE_COUNT)
+  {
+    setResult(RESULT_WRONG_PARAM);
+    return;
+  }
   digitalWrite(DISK_LED, false);
   Drive_t *drive = drives[src.drive];
   uint8_t result = drive->read(src, getramloc(dst.linear()));
 
+  setResult(result);
+  digitalWrite(DISK_LED, true);
   if (result == RESULT_OK)
   {
     regs.byteregs[regal] = src.sectorCount;
+    // LOG("OK\n");
   }
   else
   {
-    LOG("Error reading drive %i C%iH%iS%i\n", src.drive, src.cylinder, src.head, src.sector);
+    LOG("Reading error: D%i C%i H%i S%i L%i %04X:%04X ", src.drive, src.cylinder, src.head, src.sector, src.sectorCount, dst.segment, dst.offset);
   }
-  setResult(result);
-  digitalWrite(DISK_LED, true);
 }
 
 void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
 {
+  // LOG("Writing D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
   digitalWrite(DISK_LED, false);
-  // LOG("Write D%02X C%04X H%04X S%04X\n", dst.drive, dst.cylinder, dst.sector, dst.head);
   Drive_t *drive = drives[dst.drive];
   uint8_t result = drive->write(getramloc(src.linear()), dst);
 
   if(result == RESULT_OK)
   {
     regs.byteregs[regal] = dst.sectorCount;
+    // LOG("OK\n");
   }
   else
   {
-    RG_LOGE("Error writing drive %i sector %i\n", dst.drive, dst.sector);
+    LOG("Writing error: D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
   }
   setResult(result);
   digitalWrite(DISK_LED, true);
@@ -165,25 +170,32 @@ void diskhandler()
 
 static void getDriveParameters(uint8_t drive)
 {
-  Geometry_t geometry;
-  const uint32_t index = (drive < 0x80) ? drive : (drive - 0x7C);
-  drives[index]->getGeometry(&geometry);
-
-  const uint32_t maxCylIndex = geometry.cylinders - 1;
-  regs.byteregs[regch] = static_cast<uint8_t>(maxCylIndex & 0xFF);
-  regs.byteregs[regcl] = static_cast<uint8_t>(geometry.sectors) & 0x3F;
-  regs.byteregs[regcl] = regs.byteregs[regcl] | static_cast<uint8_t>((maxCylIndex >> 2) & 0xC0);
-  regs.byteregs[regdh] = static_cast<uint8_t>(geometry.heads - 1) & 0x3F;
-
-  if (drive < 4)
+  if(drive >= DRIVE_COUNT)
   {
-    regs.byteregs[regbl] = 4; // Floppy type. 04h means 3.5" 1.44M
-    regs.byteregs[regdl] = 2; // Drive count
+    setResult(RESULT_WRONG_PARAM);
   }
   else
   {
-    regs.byteregs[regbl] = 0; // Floppy type. Don't know what has to be returned for a HDD.
-    regs.byteregs[regdl] = 1; // Drive count
+    Geometry_t geometry;
+    drives[drive]->getGeometry(&geometry);
+
+    const uint32_t maxCylIndex = geometry.cylinders - 1;
+    regs.byteregs[regch] = static_cast<uint8_t>(maxCylIndex & 0xFF);
+    regs.byteregs[regcl] = static_cast<uint8_t>(geometry.sectors) & 0x3F;
+    regs.byteregs[regcl] = regs.byteregs[regcl] | static_cast<uint8_t>((maxCylIndex >> 2) & 0xC0);
+    regs.byteregs[regdh] = static_cast<uint8_t>(geometry.heads - 1) & 0x3F;
+
+    if (drive < 4)
+    {
+      regs.byteregs[regbl] = 4; // Floppy type. 04h means 3.5" 1.44M
+      regs.byteregs[regdl] = 2; // Drive count
+    }
+    else
+    {
+      regs.byteregs[regbl] = 0; // Floppy type. Don't know what has to be returned for a HDD.
+      regs.byteregs[regdl] = 1; // Drive count
+    }
+    setResult(RESULT_OK);
   }
 }
 

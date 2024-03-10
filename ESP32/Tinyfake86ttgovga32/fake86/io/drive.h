@@ -13,11 +13,6 @@
 #define RESULT_TRACK_NOT_FOUND (0x40)
 #define RESULT_NOT_READY (0xAA)
 
-typedef enum
-{
-  DRIVE_RESULT_OK = 0,
-} DriveResult_t;
-
 typedef struct Geometry_t
 {
   uint32_t heads;
