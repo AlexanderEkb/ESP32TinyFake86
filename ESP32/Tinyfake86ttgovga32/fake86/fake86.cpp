@@ -48,7 +48,7 @@ unsigned char gb_timers_poll_milis = use_lib_timers_poll_milis;
 
 unsigned char gb_reset = 0;
 
-KeyboardDriver *keyboard = new KeyboardDriverAT(); // stm32keyboard();
+KeyboardDriver *keyboard = new KeyboardDriverSTM(); // stm32keyboard();
 Stats stats;
 
 uint8_t     * ram;
@@ -88,7 +88,7 @@ void defaultWriter(uint32_t address, uint8_t value)
   // LOG("Writing stub port %03xh\n", address & 0x3FF);
 }
 
-IOPort port_062h = IOPort(0x62, 0x00, defaultReader_00, defaultWriter);
+// IOPort port_062h = IOPort(0x62, 0x00, defaultReader_00, defaultWriter);
 
 IOPort port_200h = IOPort(0x200, 0x00, defaultReader_Stub, defaultWriter);
 IOPort port_201h = IOPort(0x201, 0x00, defaultReader_FF, defaultWriter);
@@ -305,8 +305,6 @@ void execKeyboard()
   if (scancode != 0)
   {
     IOPortSpace::getInstance().get(0x060)->value = scancode;
-    uint8_t val = IOPortSpace::getInstance().get(0x064)->value;
-    IOPortSpace::getInstance().get(0x064)->value = val |= 2;
     doirq(1);
   }
 }

@@ -1,13 +1,8 @@
 #include "io/keyboard.h"
-#include "cpu/ports.h"
 #include "esp32-hal-gpio.h"
 
-IOPort port_060h = IOPort(0x060, 0x00, nullptr, nullptr);
-IOPort port_063h = IOPort(0x063, 0x00, nullptr, nullptr);
-IOPort port_064h = IOPort(0x064, 0x00, nullptr, nullptr);
-
-uint8_t KeyboardDriverAT::lastKey = 0;
-QueueHandle_t KeyboardDriverAT::q;
+uint8_t KeyboardDriverSTM::lastKey = 0;
+QueueHandle_t KeyboardDriverSTM::q;
 
 void IRAM_ATTR kb_interruptHandler(void) {
     static uint8_t shifter = 0;
@@ -33,7 +28,7 @@ void IRAM_ATTR kb_interruptHandler(void) {
     bitcount++;
     if (bitcount == 8) {
         bitcount = 0;
-        KeyboardDriverAT::OnKey(shifter);
+        KeyboardDriverSTM::OnKey(shifter);
         digitalWrite(KEYBOARD_RDY, false);
     }
 }

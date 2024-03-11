@@ -24,11 +24,11 @@ class KeyboardDriver {
     virtual void resetRdy();
 };
 
-class KeyboardDriverAT : public KeyboardDriver
+class KeyboardDriverSTM : public KeyboardDriver
 {
   public:
     static const uint32_t KEY_COUNT = 53;
-    KeyboardDriverAT() {
+    KeyboardDriverSTM() {
       lastKey  = 0;
       q = xQueueCreate(16, 1);
     }

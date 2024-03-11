@@ -1,0 +1,54 @@
+#include "i8255.h"
+#include "cpu/ports.h"
+#include "io/covox.h"
+
+// static const uint8_t SW1 = 0b10010010;
+static const uint8_t SW1 = 0b01101101;
+static const uint32_t PB7_PRESENT_SW1 = 0x80;
+
+extern bool speakerDrivenByTimer;
+
+static uint8_t onPort0x60Read(uint32_t addrress);
+static uint8_t onPort0x62Read(uint32_t addrress);
+static void onPort0x61Write(uint32_t address, uint8_t val);
+
+IOPort port_060h = IOPort(0x60, 0x00, onPort0x60Read, nullptr);
+// IOPort port_060h = IOPort(0x60, 0x00, nullptr, nullptr);
+IOPort port_061h = IOPort(0x61, 0xFF, nullptr, onPort0x61Write);
+IOPort port_062h = IOPort(0x62, 0x00, onPort0x62Read, nullptr);
+IOPort port_063h = IOPort(0x63, 0x00, nullptr, nullptr);
+
+static uint8_t &PA = port_060h.value;
+static uint8_t &PB = port_061h.value;
+static uint8_t &PC = port_062h.value;
+
+static uint8_t onPort0x60Read(uint32_t addrress)
+{
+  (void)addrress;
+  const bool showSwitches = ((PB & PB7_PRESENT_SW1) == PB7_PRESENT_SW1);
+  const uint8_t result = showSwitches ? SW1 : PA;
+  // LOG("Reading 60h: %s = %02X\n", showSwitches?"SW1":"scancode", result);
+  return result;
+}
+
+void onPort0x61Write(uint32_t address, uint8_t val)
+{
+  (void)address;
+
+  static const uint8_t GATE_TIM_CH2_TO_SPEAKER = 0x01;
+  static const uint8_t ENABLE_SPEAKER = 0x02;
+
+  static const uint8_t TIMER_DRIVEN = (GATE_TIM_CH2_TO_SPEAKER | ENABLE_SPEAKER);
+  speakerDrivenByTimer = ((val & TIMER_DRIVEN) == TIMER_DRIVEN);
+  if (!speakerDrivenByTimer)
+  {
+    uint8_t level = (val & ENABLE_SPEAKER) ? HIGH : LOW;
+    Covox_t::getInstance().driveSpeaker(level);
+  }
+}
+
+static uint8_t onPort0x62Read(uint32_t addrress)
+{
+  (void)addrress;
+  return 0xFF;
+}
