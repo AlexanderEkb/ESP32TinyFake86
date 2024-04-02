@@ -107,7 +107,7 @@ class IOPort
       if(port == nullptr) {
         // LOG("Error reading port %xh\n", addr);
         // LOG("(00) Err\n");
-        return 0x00;
+        return 0xFF;
       } else if(port->reader == nullptr) {
         // LOG("(%02xh)\n", port->value);
         return port->value;
