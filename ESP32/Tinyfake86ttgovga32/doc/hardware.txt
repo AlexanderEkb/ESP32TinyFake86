@@ -1,26 +1,27 @@
 
-           ┌─────────────────────┐                                │
-         ×─┤3.3V              GND├╢                               │ 
-          ─┤EN                 23├─                               │
-          ─┤36(VP)             22├─
-          ─┤39(VN)          (TX)1├─
-          ─┤34              (RX)3├─
-          ─┤35                 21├─
-KEYB_DATA ─┤32                GND├╢
- KEYB_CLK ─┤33                 19├─
-    VIDEO ─┤25                 18├─
- DISK_LED ─┤26                 ⁵5├─
-  SPEAKER ─┤27                GND├╢
- SDIO_CLK ─┤14                GND├╢
- KEYB_RDY ─┤12¹                 4├─
-         ╟─┤GND                ³0├─
-          ─┤13                 ⁴2├─ SDIO_D0
-         ×─┤SD2               ²15├─ SDIO_CMD
-         ×─┤SD3               SD1├─×
-         ×─┤CMD               SD0├─×
-         ──┤VCC               CLK├─×
-         ──┤VCC               GND├╢
-           └─────────────────────┘
+                  ESP32                                             STM32
+           ┌─────────────────────┐            │             ┌─────────────────────┐         │ ESP32: 15
+         ×─┤3.3V              GND├╢           │           ×─┤Vbat              3V3├─×       │ STM32: 9
+          ─┤EN                 23├─           │       ROW0 ─┤C13               GND├╢        │ Power: >2
+          ─┤36(VP)             22├─           │       ROW1 ─┤C14               5V0├─×       │
+          ─┤39(VN)          (TX)1├─           │       ROW2 ─┤C15                B9├─        │
+          ─┤34              (RX)3├─           │       ROW3 ─┤A0                 B8├─        │
+          ─┤35                 21├─           │       ROW4 ─┤A1                 B7├─        │
+KEYB_DATA ─┤32                GND├╢           │       ROW5 ─┤A2                 B6├─        │
+ KEYB_CLK ─┤33                 19├─           │       ROW6 ─┤A3                 B5├─        │
+    VIDEO ─┤25                 18├─           │       ROW7 ─┤A4                 B4├─        │
+ DISK_LED ─┤26                 ⁵5├─           │       COL0 ─┤A5                 B3├─        │
+          ─┤27                GND├╢           │       COL1 ─┤A6                A15├─        │
+ SDIO_CLK ─┤14                GND├╢           │       COL2 ─┤A7                A12├─        │
+ KEYB_RDY ─┤12¹                 4├─ AUDIO     │       COL3 ─┤B0                A11├─ LED2   │
+         ╟─┤GND                ³0├─           │       COL4 ─┤B1                A10├─ LED1   │
+          ─┤13                 ⁴2├─ SDIO_D0   │       COL5 ─┤B10                A9├─ RDY    │
+         ×─┤SD2               ²15├─ SDIO_CMD  │       COL6 ─┤B11                A8├─ DO     │
+         ×─┤SD3               SD1├─×          │           ×─┤RST               B15├─ CLK    │
+         ×─┤CMD               SD0├─×          │           ×─┤3V3               B14├─ COL9   │
+         ──┤VCC               CLK├─×          │           ╟─┤GND               B13├─ COL8   │
+         ──┤VCC               GND├╢           │           ╟─┤GND               B12├─ COL7   │
+           └─────────────────────┘            │             └─────────────────────┘         │
 
   Function            0           1         Default
   =================================================
@@ -32,7 +33,7 @@ KEYB_DATA ─┤32                GND├╢
 
 
 Keyboard conn:
-==============
+============== 
 1 B0(RDY)
 2 A8(CLK)
 3 A9(DO)

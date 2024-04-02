@@ -35,7 +35,6 @@
 #include "config/hardware.h"
 #include "dataFlash/bios/biospcxt.h"
 #include "dataFlash/rom/rombasic.h"
-#include "dataFlash/rom/videorom.h"
 #include "io/disk.h"
 #include "gbGlobals.h"
 #include "mb/i8253.h"
@@ -88,8 +87,6 @@ static unsigned int temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32, ea;
 uint64_t totalexec;
 
 union _bytewordregs_ regs;
-unsigned char didbootstrap = 0;
-
 static IOPortSpace & ports = IOPortSpace::getInstance();
 
 extern uint8_t readVGA (uint32_t addr32);
@@ -137,21 +134,6 @@ unsigned char gb_check_memory_before;
   of = (temp16 >> 11) & 1;
  }
 
-//Lo saco fuera de Read86. Se ejecuta al inicio y en timer 54 ms.
-void updateBIOSDataArea()
-{ 
-	if (!didbootstrap)
-	{
-		ram[0x410]= 0x61;	// Equipment word: no FPU, no mouse, two floppies, EGA or better
-		ram[0x475]= 1;			// Number of HDDs intalled
-
-		unsigned char ram_size_low  = (static_cast<uint8_t>((RAM_SIZE / 1024) >> 0));
-		unsigned char ram_size_high = (static_cast<uint8_t>((RAM_SIZE / 1024) >> 8));
-		ram[0x413] = ram_size_low;	// Amount of RAM, in Kbytes
-		ram[0x414] = ram_size_high;    
- }
-}
-
 //********************************************************
 void write86 (unsigned int addr32, unsigned char value)
 {
@@ -188,9 +170,6 @@ void write86 (unsigned int addr32, unsigned char value)
 
 unsigned char read86 (unsigned int addr32) 
 {
-  //Primero video
- //Primero CGA
- //if ((addr32 >= 0xB8000) && (addr32 < (0xB8000+16384)))
  if ((addr32 >= 0xB8000) && (addr32 < 0xBC000))
  {   
   return (gb_video_cga[(addr32-0xB8000)]);
@@ -201,21 +180,17 @@ unsigned char read86 (unsigned int addr32)
  {
   return (ram[addr32]);
  }
- //if ((addr32 >= 0xFE000) && (addr32 < (0xFE000 + gb_size_rom_bios_pcxt)))
+ 
  if ((addr32 >= 0xFE000) && (addr32 < 0x100000))
  {
   return gb_bios_pcxt[(addr32-0xFE000)];
  }
- //if ((addr32 >= 0xF6000) && (addr32 < (0xF6000 + gb_size_rom_basic)))
+ 
  if ((addr32 >= 0xF6000) && (addr32 < 0xFE000))
  {
   return gb_rom_basic[(addr32-0xF6000)];
  }
- //if ((addr32 >= 0xC0000) && (addr32 < (0xC0000 + gb_size_rom_videorom)))
- if ((addr32 >= 0xC0000) && (addr32 < 0xC8000))
- {
-  return gb_rom_videorom[(addr32-0xC0000)];
- }
+
  if (addr32 > 1048575)
  {
   addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
@@ -574,7 +549,6 @@ void getea (uint8_t rmval)
 void reset86() {
 	segregs[regcs] = 0xFFFF;
 	ip = 0x0000;
-  updateBIOSDataArea();
 }
 
  static inline unsigned short int readrm16 (unsigned char rmval)
@@ -640,7 +614,6 @@ void intcall86(unsigned char intnum)
   /******** INT19H : Bootstrap ********/
   /************************************/
   case 0x19: // bootstrap
-    didbootstrap = 1;
     bootdrive = getBootDrive();
     if (bootdrive < 255)
     { // read first sector of boot drive into 07C0:0000 and execute it
@@ -692,8 +665,6 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 	for (loopcount = 0; loopcount < execloops; loopcount++)
 	{
     // TODO:  Get rid of totalexec
-    if ( (totalexec & 31) == 0)
-      updateBIOSDataArea(); 
     if ((totalexec & 3) == 0)
       i8253Exec();
     if (trap_toggle)
@@ -707,11 +678,6 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
     useseg = segregs[regds];
     docontinue = 0;
     firstip = ip;
-
-			if ( (segregs[regcs] == 0xF000) && (ip == 0xE066) ) {
-        didbootstrap = 0; //detect if we hit the BIOS entry point to clear didbootstrap because we've rebooted
-        updateBIOSDataArea();
-      }
 
 			while (!docontinue) {
 					segregs[regcs] = segregs[regcs] & 0xFFFF;

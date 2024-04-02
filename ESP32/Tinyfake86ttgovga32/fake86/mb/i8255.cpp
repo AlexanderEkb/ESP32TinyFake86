@@ -3,8 +3,19 @@
 #include "io/covox.h"
 
 // static const uint8_t SW1 = 0b10010010;
+//                           ┌──────── ⌠ Total diskette
+//                           │┌─────── ⌡ drives
+//                           ││
+//                           ││┌────── ⌠ Active
+//                           │││┌───── ⌡ video
+//                           ││││
+//                           ││││┌──── ⌠ Amount
+//                           │││││┌─── ⌡ of RAM
+//                           ││││││┌── numeric coprpcessor present
+//                           │││││││┌─ diskette drives are present
+//                           ││││││││
 static const uint8_t SW1 = 0b01101101;
-static const uint32_t PB7_PRESENT_SW1 = 0x80;
+static const uint32_t PB2_HIGH_SWITCHES = 0x08;
 
 extern bool speakerDrivenByTimer;
 
@@ -25,10 +36,8 @@ static uint8_t &PC = port_062h.value;
 static uint8_t onPort0x60Read(uint32_t addrress)
 {
   (void)addrress;
-  const bool showSwitches = ((PB & PB7_PRESENT_SW1) == PB7_PRESENT_SW1);
-  const uint8_t result = showSwitches ? SW1 : PA;
   // LOG("Reading 60h: %s = %02X\n", showSwitches?"SW1":"scancode", result);
-  return result;
+  return PA;
 }
 
 void onPort0x61Write(uint32_t address, uint8_t val)
@@ -50,5 +59,12 @@ void onPort0x61Write(uint32_t address, uint8_t val)
 static uint8_t onPort0x62Read(uint32_t addrress)
 {
   (void)addrress;
-  return 0xFF;
+  uint8_t result = 0;
+
+  const bool high = ((PB & PB2_HIGH_SWITCHES) == PB2_HIGH_SWITCHES);
+  uint8_t switches = (SW1 >> (high ? 4 : 0)) & 0x0F;
+
+  // TODO: add missing PC lines, at least PC4 (speaker feedback)
+  result = switches;
+  return result;
 }

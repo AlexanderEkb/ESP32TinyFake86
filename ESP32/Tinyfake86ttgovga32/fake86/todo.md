@@ -10,6 +10,7 @@ I. Video
 7. ~~Adjust colors (make, say, red more red than now). Especially light ones.~~
 8. ~~Align different video modes horizontally~~
 9. ~~Fix border width (top and bottom parts)~~
+10. Support at least 320x200x16 Tandy video mode
 
 II. Disks
 =========
@@ -33,6 +34,7 @@ IV. Others
 1. ~~Make keyboard possible to use~~
 2. RTC (?)
 3. Correct implementation of system timer (and other timings significant for playing games)
+4. Correct and full implementation of i8255 PIO and all the stuff connected to it.
 4. ~~Nice looking on-screen menus.~~
 5. ~~Make NumLock key switching layer~~
 6. Functional debugger

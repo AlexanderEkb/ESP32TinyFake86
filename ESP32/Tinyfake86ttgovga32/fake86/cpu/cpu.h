@@ -89,7 +89,6 @@ void reset86(void);
 void exec86 (uint32_t count);
 uint8_t *getramloc(uint32_t addr);
 
-    void updateBIOSDataArea(void);
 void ExternalSetCF(unsigned char valor);
 
 void my_callback_speaker_func(void);

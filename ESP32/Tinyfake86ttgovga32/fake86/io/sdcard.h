@@ -229,8 +229,10 @@ class SdCard {
 
             uint32_t length = strlen(basename);
             char *extension = &basename[length - 4];
-            if (strncmp(extension, ".img", 4))
-              // if (strncmp(extension, ".ima", 4))
+            if ((strncmp(extension, ".img", 4) != 0) &&
+                (strncmp(extension, ".IMG", 4) != 0) &&
+                (strncmp(extension, ".ima", 4) != 0) &&
+                (strncmp(extension, ".IMA", 4) != 0))
               continue;
 
             if (count + 1 >= capacity)

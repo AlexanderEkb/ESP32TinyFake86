@@ -15,8 +15,6 @@ extern unsigned char bootdrive;
 
 extern unsigned char cf;
 
-extern unsigned char didbootstrap;
-
 // extern unsigned char speakerenabled;
 
 extern unsigned short int segregs[4];

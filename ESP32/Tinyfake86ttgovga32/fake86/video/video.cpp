@@ -236,25 +236,3 @@ static uint8_t readDummy(uint32_t portnum)
 {
   return 0;
 }
-
-/// @brief Handles CGA retrace bits in 3DAh port. Gets called each 32th CPU instruction executed.
-/// @param  none
-// void videoExecCpu(void)
-// {
-//   static const  uint8_t   CGA_HORIZONTAL_RETRACE = 0x01;
-//   static const  uint8_t   CGA_VERTICAL_RETRACE   = 0x08;
-//   static        uint32_t  _counter = 0;
-
-//   // Funcion Alleycat y Digger
-//   {
-//     _counter++;
-//     if (_counter > 479)
-//       port3DAh = CGA_VERTICAL_RETRACE;
-//     else
-//       port3DAh = 0;
-//     if (_counter & 1)
-//       port3DAh |= CGA_HORIZONTAL_RETRACE;
-//     if (_counter > 525)
-//       _counter = 0;
-//   }
-// }

@@ -204,16 +204,20 @@ void renderInit()
 {
   render.pendingChanges = false;
   render.dumper = dump80x25;
-  render.textColCount = 80;
-  render.frameCount = 0;
   render.paletteIndex = 0;
   render.specialColor = 0;
   render.hasColor = COLORBURST_ENABLE;
+
   render.textCharHeight = 8;
   render.textRowCount = 25;
+  render.textColCount = 80;
+
   render.startAddr = 0;
   render.hOffset = 22;
+  render.blitter = BLITTER_HIRES;
   render.vmode = TEXT;
+
+  render.frameCount = 0;
 
   colorburstOverride = COLORBURST_NO_CHANGE;
 
