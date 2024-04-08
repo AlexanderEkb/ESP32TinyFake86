@@ -1,6 +1,7 @@
 #ifndef SIMPLE_DEBUGGER_H
 #define SIMPLE_DEBUGGER_H
 
+#include "service/list.h"
 #include "service/service.h"
 #include "service/widget.h"
 #include "registers.h"
