@@ -9,11 +9,10 @@ class codeBrowser_t : public browser_t
 {
   public:
       codeBrowser_t() {
-        isActive = false;
         position = nullptr;
       };
       void init(DBG_MEM_ADDR * position);
-      virtual void onKey(uint8_t scancode) override;
+      virtual bool onKey(uint8_t scancode) override;
       virtual void refresh() override;
       virtual void repaint() override;
       DBG_MEM_ADDR getNextInstruction();

@@ -13,17 +13,22 @@ void memBrowser_t::init(DBG_MEM_ADDR * position)
   this->position = position;
 }
 
-void memBrowser_t::onKey(uint8_t scancode)
+bool memBrowser_t::onKey(uint8_t scancode)
 {
   switch (scancode)
   {
   case KEY_CURSOR_UP:
-    break;
+    *position -= 8;
+    repaint();
+    return true;
   case KEY_CURSOR_DOWN:
-    break;
-
+    *position += 8;
+    repaint();
+    return true;
+  case KEY_PAGE_UP:
+  case KEY_PAGE_DOWN:
   default:
-    break;
+    return false;
   }
 }
 
@@ -34,7 +39,7 @@ void memBrowser_t::refresh()
 
 void memBrowser_t::repaint()
 {
-  uint8_t background = isActive ? BG_ACTIVE : BG_INACTIVE;
+  uint8_t background = focused ? BG_ACTIVE : BG_INACTIVE;
   svcBar(area.left, area.top, area.height, area.width, background);
 
   const uint32_t MEM_ROW_COUNT = area.height / FONT_HEIGHT;
@@ -43,22 +48,22 @@ void memBrowser_t::repaint()
   const uint32_t NUMBERS_OFF = ADDR_WIDTH + 1;
   const uint32_t NUMBER_WIDTH = 3;
   const uint32_t CHARS_OFF = MEM_COL_COUNT * NUMBER_WIDTH + NUMBERS_OFF;
-  const uint8_t  FG_ADDR = isActive ? 0x7A : 0x78;
+  const uint8_t FG_ADDR = focused ? 0x7A : 0x78;
 
-  DBG_MEM_ADDR * _pos = position;
+  DBG_MEM_ADDR _pos = *position;
   for (uint32_t row = 0; row < MEM_ROW_COUNT; row++)
   {
     static const uint32_t LENGTH = 16;
     char buffer[LENGTH];
-    snprintf(buffer, LENGTH, "%04X:%04X", _pos->segment, _pos->offset);
+    snprintf(buffer, LENGTH, "%04X:%04X", _pos.segment, _pos.offset);
     svcPrintText(buffer, area.left, area.top + row * ACTUAL_FONT_HEIGHT, FG_ADDR, background, 0);
     for(uint32_t col=0; col<MEM_COL_COUNT; col++)
     {
-      const char value = read86(_pos->linear());
+      const char value = read86(_pos.linear());
       svcPrintChar(value, area.left + (CHARS_OFF + col) * ACTUAL_FONT_WIDTH, area.top + row * ACTUAL_FONT_HEIGHT, FG_INACTIVE, background, 0);
       snprintf(buffer, LENGTH, "%02X", value);
       svcPrintText(buffer, (NUMBERS_OFF + col * 3) * ACTUAL_FONT_WIDTH, area.top + row * ACTUAL_FONT_HEIGHT, FG_MEM_CONTENT, background, 0);
-      _pos->inc();
+      _pos.inc();
     }
   }
 }

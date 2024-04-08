@@ -9,14 +9,14 @@ class regBrowser_t : public browser_t
   public:
     regBrowser_t();
     void init();
-    virtual void onKey(uint8_t scancode) override;
+    virtual bool onKey(uint8_t scancode) override;
     virtual void refresh() override;
     virtual void repaint() override;
-  private:
-      typedef struct registerDesc_t
-      {
-        uint16_t value;
-        bool hasChanged;
+private:
+    typedef struct registerDesc_t
+    {
+      uint16_t value;
+      bool hasChanged;
       } registerDesc_t;
       registerDesc_t registers[static_cast<uint32_t>(_dbgReg__COUNT)];
       static constexpr char *regNames[static_cast<uint32_t>(_dbgReg__COUNT)] = {

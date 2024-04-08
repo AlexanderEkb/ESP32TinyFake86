@@ -25,19 +25,19 @@ void codeBrowser_t::init(DBG_MEM_ADDR * position)
 }
 
 
-void codeBrowser_t::onKey(uint8_t scancode)
+bool codeBrowser_t::onKey(uint8_t scancode)
 {
   switch (scancode)
   {
   case KEY_CURSOR_UP:
     position->dec();
-    break;
+    return true;
   case KEY_CURSOR_DOWN:
     position->inc();
-    break;
+    return true;
 
   default:
-    break;
+    return false;
   }
 }
 
@@ -48,7 +48,7 @@ void codeBrowser_t::refresh()
 
 void codeBrowser_t::repaint()
 {
-  const uint8_t BG = isActive ? BG_ACTIVE : BG_INACTIVE;
+  const uint8_t BG = focused ? BG_ACTIVE : BG_INACTIVE;
   svcBar(area.left, area.top, area.height, area.width, BG);
 
   DBG_MEM_ADDR addr = *position;
@@ -63,13 +63,13 @@ void codeBrowser_t::repaint()
 
 void codeBrowser_t::printColored(line_t *line, uint32_t pos)
 {
-  const uint8_t FG_DEFAULT = isActive ? FG_ACTIVE : FG_INACTIVE;
-  const uint8_t FG_ADDR = isActive ? 0x0A : 0x08;
-  const uint8_t FG_MNEMONIC = isActive ? 0x7A : 0x78;
-  const uint8_t FG_ARGUMENT = isActive ? 0xAA : 0xA8;
-  const uint8_t FG_OTHER = isActive ? 0x7A : 0x78;
+  const uint8_t FG_DEFAULT = focused ? FG_ACTIVE : FG_INACTIVE;
+  const uint8_t FG_ADDR = focused ? 0x0A : 0x08;
+  const uint8_t FG_MNEMONIC = focused ? 0x7A : 0x78;
+  const uint8_t FG_ARGUMENT = focused ? 0xAA : 0xA8;
+  const uint8_t FG_OTHER = focused ? 0x7A : 0x78;
   const bool isCurrentPos = (line->addr == DBG_MEM_ADDR(_dbgGetRegister(_dbgReg_CS), _dbgGetRegister(_dbgReg_IP)));
-  const uint8_t BG = isCurrentPos?BG_CSIP:(isActive ? BG_ACTIVE : BG_INACTIVE);
+  const uint8_t BG = isCurrentPos ? BG_CSIP : (focused ? BG_ACTIVE : BG_INACTIVE);
   const uint32_t ROW = area.top + pos * ACTUAL_FONT_HEIGHT;
   const uint32_t SEG_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
   const uint32_t SEMICOLON_COL  = area.left + 4 * ACTUAL_FONT_WIDTH;

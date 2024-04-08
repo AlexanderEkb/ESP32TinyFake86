@@ -54,7 +54,8 @@
       "string_view": "cpp",
       "optional": "cpp",
       "*.inc": "cpp",
-      "esp_bit_defs.h": "c"
+      "esp_bit_defs.h": "c",
+      "list": "cpp"
     },
     "merge-conflict.codeLens.enabled": false,
     "editor.codeLens": false,

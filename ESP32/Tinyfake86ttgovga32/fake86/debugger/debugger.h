@@ -1,28 +1,19 @@
 #ifndef SIMPLE_DEBUGGER_H
 #define SIMPLE_DEBUGGER_H
 
-#include "service/list.h"
 #include "service/service.h"
 #include "service/widget.h"
 #include "registers.h"
 #include "memory.h"
 #include "code.h"
 
-class debugger_t : public SimpleList_t
+class debugger_t : public widget_t
 {
 public:
     static debugger_t &getInstance() { return instance; };
     void execute();
-    virtual void next()
-    {
-      Widget_t * widget = reinterpret_cast<Widget_t *>(getSelection());
-      ASSERT(widget);
-      widget->onDeselected();
-      SimpleList_t::next();
-      widget->onSelected();
-    }
-
-private:
+    virtual bool onKey(uint8_t scancode) override;
+  private : 
     static const uint32_t HEADER_HEIGHT = 2;
     static const uint32_t FOOTER_HEIGHT = 2;
     static const uint32_t REG_WINDOW_WIDTH = 10;
@@ -33,16 +24,15 @@ private:
     memBrowser_t memBrowser;
     codeBrowser_t codeBrowser;
 
-    SimpleList_t _browsers;
-    uint32_t activeBrowser;
-    browser_t * const browsers[BROWSER_COUNT] = {&regBrowser, &memBrowser, &codeBrowser};
+    browser_t * browser;
 
     DBG_MEM_ADDR memPosition;
     DBG_MEM_ADDR codePosition;
+    bool isRunning;
 
     debugger_t();
     static debugger_t instance;
-    void cycleActive();
+    void nextBrowser();
     void doSingleStep();
     void onEnter();
 };

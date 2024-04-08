@@ -2,12 +2,9 @@
 #define _SERVICE_H_
 
 #include <stdint.h>
+#include "Arduino.h"
 
-#ifdef use_lib_log_serial
 #define LOG(...) Serial.printf(__VA_ARGS__)
-#else
-#define LOG(...) (void)(__VA_ARGS__)
-#endif
 
 #define ASSERT(X) if(X == 0) {LOG("Assertion failed at %s line %i", __FILE__, __LINE__); while(1);}
 
@@ -58,7 +55,23 @@ typedef struct DBG_MEM_ADDR
     }
     return prev;
   }
-  bool operator== (DBG_MEM_ADDR rvalue)
+  DBG_MEM_ADDR &operator+=(uint16_t rvalue)
+  {
+    uint32_t off = this->offset + rvalue;
+    offset = static_cast<uint16_t>(off);
+    if (off & 0xFFFF0000)
+      segment++;
+    return *this;
+  }
+  DBG_MEM_ADDR &operator-=(uint16_t rvalue)
+  {
+    uint32_t off = this->offset - rvalue;
+    offset = static_cast<uint16_t>(off);
+    if (off & 0xFFFF0000)
+      segment--;
+    return *this;
+  }
+  bool operator==(DBG_MEM_ADDR rvalue)
   {
     return (this->segment == rvalue.segment) && (this->offset == rvalue.offset);
   }

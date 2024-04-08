@@ -7,20 +7,22 @@ debugger_t debugger_t::instance;
 
 debugger_t::debugger_t()
 {
-  _browsers.add(&codeBrowser);
-  _browsers.add(&regBrowser);
-  _browsers.add(&memBrowser);
+  add(&codeBrowser);
+  add(&regBrowser);
+  add(&memBrowser);
   memPosition = DBG_MEM_ADDR(0, 0);
   codePosition = DBG_MEM_ADDR(0, 0);
 }
 
-void debugger_t::cycleActive()
+void debugger_t::nextBrowser()
 {
-  browsers[activeBrowser]->isActive = false;
-  browsers[activeBrowser]->repaint();
-  if(++activeBrowser >= BROWSER_COUNT) activeBrowser = 0;
-  browsers[activeBrowser]->isActive = true;
-  browsers[activeBrowser]->repaint();
+  auto i = std::find(children.begin(), children.end(), browser);
+  browser_t ** b = reinterpret_cast<browser_t **>(&i);
+  i++;
+  if(i == children.end())
+    i = children.begin()++;
+  browser = reinterpret_cast<browser_t *>(*i);
+  browser->setFocus();
 }
 
 void debugger_t::doSingleStep()
@@ -35,7 +37,8 @@ void debugger_t::doSingleStep()
 void debugger_t::execute()
 {
   onEnter();
-  while (true)
+  isRunning = true;
+  while (isRunning)
   {
     memBrowser.refresh();
     codeBrowser.refresh();
@@ -44,27 +47,7 @@ void debugger_t::execute()
     extern KeyboardDriver *keyboard;
     uint8_t scancode = 0;
     while (!(scancode = keyboard->getLastKey()));
-    switch (scancode)
-    {
-      case KEY_I:
-        {
-          uint16_t _if = _dbgGetRegister(_dbgReg_F);
-          _if ^= (1 << 9);
-          _dbgSetRegister(_dbgReg_F, _if);
-          regBrowser.refresh();
-        }
-        break;
-      case KEY_5:
-        doSingleStep();
-        break;
-      case KEY_TAB:
-        cycleActive();
-        break;
-      case (KEY_ESC):
-        return;
-      default:
-        browsers[activeBrowser]->onKey(scancode);
-    }
+    onKey(scancode);
   }
 }
 
@@ -78,6 +61,35 @@ void debugger_t::onEnter()
   memBrowser.init(&memPosition);
   codeBrowser.init(&codePosition);
 
-  activeBrowser = 2;
-  codeBrowser.isActive = true;
+  browser = &codeBrowser;
+  codeBrowser.setFocus();
+}
+
+bool debugger_t::onKey(uint8_t scancode)
+{
+  const bool handled = widget_t::onKey(scancode);
+  if(!handled)
+  {
+    switch (scancode)
+    {
+    case KEY_I:
+    {
+      uint16_t _if = _dbgGetRegister(_dbgReg_F);
+      _if ^= (1 << 9);
+      _dbgSetRegister(_dbgReg_F, _if);
+      regBrowser.refresh();
+    }
+    break;
+    case KEY_5:
+      doSingleStep();
+      return true;
+    case KEY_TAB:
+      nextBrowser();
+      return true;
+    case (KEY_ESC):
+      isRunning = false;
+      return true;
+    }
+  }
+  return false;
 }

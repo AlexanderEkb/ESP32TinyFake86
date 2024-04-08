@@ -29,18 +29,18 @@ void regBrowser_t::init()
   area.height = _dbgReg__COUNT * ACTUAL_FONT_HEIGHT;
 }
 
-void regBrowser_t::onKey(uint8_t scancode)
+bool regBrowser_t::onKey(uint8_t scancode)
 {
   switch (scancode)
   {
   case KEY_CURSOR_UP:     // Scroll up
-    break;
+    return true;
   case KEY_CURSOR_DOWN:   // Scroll down
-    break;
+    return true;
   case KEY_ENTER:         // Change value
-    break;
+    return true;
   default:
-    break;
+    return false;
   }
 }
 
@@ -64,7 +64,7 @@ void regBrowser_t::repaint()
   static const uint32_t BG_ACTIVE = 0x70;
   static const uint32_t BG_INACTIVE = 0x00;
 
-  uint8_t background = isActive ? BG_ACTIVE : BG_INACTIVE;
+  uint8_t background = focused ? BG_ACTIVE : BG_INACTIVE;
   svcBar(area.left, area.top, area.height, area.width, background);
   const uint32_t col = 0;
   for(uint32_t i=0; i<_dbgReg__COUNT; i++)
@@ -73,7 +73,7 @@ void regBrowser_t::repaint()
     char buffer[LENGTH];
     snprintf(buffer, LENGTH, "%s: %04X", regNames[i], registers[i].value);
 
-    const uint32_t foreground         = registers[i].hasChanged?FG_CHANGED:(isActive?FG_ACTIVE:FG_INACTIVE);
+    const uint32_t foreground = registers[i].hasChanged ? FG_CHANGED : (focused ? FG_ACTIVE : FG_INACTIVE);
     svcPrintText(buffer, area.left, (i+1)*(ACTUAL_FONT_HEIGHT)+area.top, foreground, background, 0);
     registers[i].hasChanged           = false;
   }

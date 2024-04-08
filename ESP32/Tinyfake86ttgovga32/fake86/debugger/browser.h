@@ -19,12 +19,19 @@
 static const uint32_t ACTUAL_FONT_WIDTH = 8; //SERVICE_FONT_WIDTH + 1;
 static const uint32_t ACTUAL_FONT_HEIGHT = 8; //SERVICE_FONT_HEIGHT + 1;
 
-class browser_t : public Widget_t
+class browser_t : public widget_t
 {
   public:
-    bool isActive;
-    browser_t() {isActive = false;};
-    virtual void refresh() = 0;
+    virtual void refresh()
+    {
+      for(widget_t * w : children)
+        w->repaint();
+    }
+    virtual bool onKey(uint8_t scancode)
+    {
+      (void)scancode;
+      return false;
+    }
 };
 
 #endif /* _DEBUGGER_BROWSER_H_ */

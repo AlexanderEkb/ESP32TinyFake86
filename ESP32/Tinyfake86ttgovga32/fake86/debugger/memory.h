@@ -9,11 +9,10 @@ class memBrowser_t : public browser_t
   public:
     memBrowser_t() : position(nullptr) {};
     void init(DBG_MEM_ADDR * position);
-    virtual void onKey(uint8_t scancode) override;
+    virtual bool onKey(uint8_t scancode) override;
     virtual void refresh() override;
     virtual void repaint() override;
-
-  private:
+private:
     static const uint32_t FG_ACTIVE = 0x0F;
     static const uint32_t FG_CHANGED = 0x48;
     static const uint32_t FG_INACTIVE = 0x08;

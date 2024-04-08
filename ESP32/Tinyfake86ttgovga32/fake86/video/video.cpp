@@ -207,7 +207,7 @@ static uint8_t read3DAh(uint32_t portnum)
     retrace |= 0x08;
   }
 
-  retrace |= retraceCounter & 0x01;
+  retrace |= (retraceCounter & 0x04) ? 0x01 : 0x00;
   return (port3DAh & 0xFE | retrace);
 }
 
