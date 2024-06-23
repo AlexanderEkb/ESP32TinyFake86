@@ -34,6 +34,8 @@
 #define BLITTER_HIRES (0)
 #define BLITTER_LORES (1)
 
+static const uint32_t VERTICAL_OFFSET = 20;
+
 typedef void (*dumper_t)(void);
 
 static void dump80x25(void);
@@ -74,13 +76,32 @@ const videoMode_t modes[MODE_COUNT] = {
     {80, dump640x200, BLITTER_HIRES, 4},
     {80, dump640x200, BLITTER_HIRES, 4}};
 
+class cursor_t {
+  public:
+    static void updateMSB(uint8_t MSB);
+    static void updateLSB(uint8_t LSB);
+    static void updateStart(uint32_t startLine);
+    static void updateEnd(uint32_t endLine);
+    static uint32_t getCol();
+    static uint32_t getRow();
+    static uint32_t getStart();
+    static uint32_t getEnd();
+  private:
+    static uint32_t row;
+    static uint32_t col;
+    static uint32_t value;
+    static uint32_t start;
+    static uint32_t end;
+    static void updatePosition();
+};
+
 cursor_t cursor;
 static uint32_t scanlineBuffer[CompositeColorOutput::XRES * 2];
 
 static const uint8_t paletteBasic[16] = {
-    // BLACK    BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
-    0x00, 0x73, 0xD5, 0xB6, 0x44, 0x65, 0xE7, 0x0A,
-    0x05, 0x78, 0xDA, 0xBB, 0x49, 0x6A, 0xEC, 0x0F};
+ // BLACK   BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
+    0x00,   0x83,   0xC5,   0xA6,   0x34,   0x55,   0xE7,   0x0A,
+    0x05,   0x88,   0xCA,   0xAB,   0x39,   0x5A,   0xEC,   0x0F};
 static const uint8_t paletteBasicBW[16] = {
     // BLACK    BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
     0x00, 0x01, 0x04, 0x05, 0x02, 0x03, 0x06, 0x08,
@@ -89,18 +110,22 @@ static const uint8_t paletteBasicBW[16] = {
 static const uint32_t GRAPH_PALETTE_COUNT = 4;
 static const uint32_t GRAPH_PALETTE_SIZE = 4;
 //                                                             Black  Green   Red     Yellow
-uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]            = {0x00, 0x95, 0x15, 0xB5};
-const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x06, 0x02, 0x07};
-uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]         = {0x00, 0x98, 0x18, 0xB8};
-const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0B, 0x03, 0x0F};
+// const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00, 0x95, 0x15, 0xB5};
+// const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x06, 0x02, 0x07};
+// const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00, 0x98, 0x18, 0xB8};
+// const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0B, 0x03, 0x0F};
+const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00, 0xC5, 0x35, 0xE5};
+const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x08, 0x04, 0x09};
+const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00, 0xC8, 0x38, 0xE8};
+const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0C, 0x05, 0x0F};
 
 //                                                             Black   Cyan   Magenta White
-uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]            = {0x00, 0x86, 0x26, 0x0A};
-const uint8_t paletteGraphicCMWdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x06, 0x02, 0x08};
-uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE]         = {0x00, 0x8B, 0x2B, 0x0F};
-const uint8_t paletteGraphicCMWbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0D, 0x05, 0x0F};
+const uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]      = {0x00, 0xA8, 0x56, 0x0A};
+const uint8_t paletteGraphicCMWdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x08, 0x04, 0x0A};
+const uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE]   = {0x00, 0xAB, 0x5B, 0x0F};
+const uint8_t paletteGraphicCMWbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0D, 0x07, 0x0F};
 
-uint8_t *graphPalettes[GRAPH_PALETTE_COUNT] =
+uint8_t const* graphPalettes[GRAPH_PALETTE_COUNT] =
     {
         paletteGraphicGRYdim,
         paletteGraphicGRYbright,
@@ -525,6 +550,26 @@ void renderSetColorburstOverride(uint32_t value)
 void renderSetStartAddr(uint32_t addr)
 {
   render.startAddr = addr * 2;
+}
+
+void renderSetCursorStart(uint8_t line)
+{
+  cursor.updateStart(line);
+}
+
+void renderSetCursorEnd(uint8_t line)
+{
+  cursor.updateEnd(line);
+}
+
+void renderSetCursorAddrMSB(uint8_t addr)
+{
+  cursor.updateMSB(addr);
+}
+
+void renderSetCursorAddrLSB(uint8_t addr)
+{
+  cursor.updateLSB(addr);
 }
 
 void renderUpdateSettings(uint8_t settings, uint8_t colors)

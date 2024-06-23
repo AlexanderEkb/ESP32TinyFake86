@@ -27,7 +27,6 @@
 #include "soc/timer_group_struct.h"
 #include "stats.h"
 #include "video/render.h"
-#include "video/video.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////// Local macros
 
@@ -117,9 +116,6 @@ void setup()
     LOG("This app requires a board with PSRAM!\n");
 
   esp_spiram_init_cache();
-
-  pinMode(SPEAKER_PIN, OUTPUT);
-  digitalWrite(SPEAKER_PIN, LOW);
 
 #ifdef use_lib_log_serial
   Serial.begin(115200);

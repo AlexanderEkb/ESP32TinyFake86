@@ -36,8 +36,8 @@ class KeyboardDriverSTM : public KeyboardDriver
       pinMode(KEYBOARD_DATA, INPUT_PULLUP);
       pinMode(KEYBOARD_CLK, INPUT_PULLUP);
       pinMode(KEYBOARD_RDY, OUTPUT_OPEN_DRAIN);
-      digitalWrite(KEYBOARD_DATA, true);
-      digitalWrite(KEYBOARD_CLK, true);
+      // digitalWrite(KEYBOARD_DATA, true);
+      // digitalWrite(KEYBOARD_CLK, true);
       digitalWrite(KEYBOARD_RDY, true);
       attachInterrupt(digitalPinToInterrupt(KEYBOARD_CLK), kb_interruptHandler, FALLING);
     }

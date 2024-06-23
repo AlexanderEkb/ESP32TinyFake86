@@ -19,7 +19,6 @@ typedef struct Geometry_t
   uint32_t cylinders;
   uint32_t sectors;
   uint32_t capacity;
-  Geometry_t(Geometry_t &rvalue) : heads(heads), cylinders(cylinders), sectors(sectors), capacity(capacity){};
   Geometry_t() : heads(0), cylinders(0), sectors(0), capacity(0){};
   Geometry_t & operator= (Geometry_t & rvalue)
   {

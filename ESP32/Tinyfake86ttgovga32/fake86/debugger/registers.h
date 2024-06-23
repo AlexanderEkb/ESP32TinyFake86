@@ -22,6 +22,7 @@ private:
       static constexpr char *regNames[static_cast<uint32_t>(_dbgReg__COUNT)] = {
         "IP", "AX", "BX", "CX", "DX", "SP", "BP", "SI", "DI", " F", "CS", "DS", "SS", "ES"
   };
+  uint32_t selection;
 };
 
 #endif /* _DEBUGGER_REGISTERS_H_ */

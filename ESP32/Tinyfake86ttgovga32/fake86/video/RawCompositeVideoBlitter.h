@@ -370,6 +370,19 @@ static esp_err_t start_dma(int line_width,int samples_per_cc, int ch = 1)
     return esp_intr_enable(_isr_handle);        // start interruprs!
 }
 
+static void stop_dma()
+{
+    dac_i2s_disable();
+    dac_output_disable(DAC_CHANNEL_1);
+    rtc_clk_apll_enable(0,0x00,0x00,0x00,0);
+    // Dispose TX DMA buffers
+    for (int i = 0; i < 2; i++) {
+        free((void *)(_dma_desc[i].buf));
+    }
+    esp_intr_free(_isr_handle);
+    periph_module_disable(PERIPH_I2S0_MODULE);
+}
+
 void video_init_hw(int line_width, int samples_per_cc)
 {
     // setup apll 4x NTSC or PAL colorburst rate
@@ -735,6 +748,10 @@ void video_init(VideoStandard standard)
         _hsync = usec(4.7);
     }
 
+    /// @brief So-called "hi-res" blitter, handling modes with 640 pixels per line
+    /// @param src pointer to a line in the framebuffer
+    /// @param dst DMA buffer
+    /// @return 
     void IRAM_ATTR blitter_0(uint8_t *src, uint16_t *dst)
     {
       const uint32_t *destPaletteEven = RawCompositeVideoBlitter::ntsc_palette_even();
@@ -755,23 +772,31 @@ void video_init(VideoStandard standard)
       }
     }
 
+    /// @brief So-called "lo-res" blitter, handling modes with 320 pixels per line
+    /// @param src pointer to a line in the framebuffer
+    /// @param dst DMA buffer
+    /// @return 
     void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
     {
       const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
       static const uint32_t STEP = 4;
 
-      uint32_t *d = (uint32_t *)dst + 16;
+      uint32_t *d = (uint32_t *)(dst + 17);
       for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP) // 84 steps, 4 pixels per step
       {
-        d[0] = destPalette[src[0]];
+        d[0] = destPalette[src[0]] << 0;
         d[1] = destPalette[src[1]] << 8;
-        d[2] = destPalette[src[2]];
+        d[2] = destPalette[src[2]] << 0;
         d[3] = destPalette[src[3]] << 8;
         d += STEP;
         src += STEP;
       }
     }
 
+    /// @brief Experimental blitter, actually not in use.
+    /// @param src pointer to a line in the framebuffer
+    /// @param dst DMA buffer
+    /// @return 
     void IRAM_ATTR blitter_2(uint8_t *src, uint16_t *dst)
     {
       // static uint32_t line[RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH];

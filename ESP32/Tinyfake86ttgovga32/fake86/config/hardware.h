@@ -6,11 +6,10 @@
 #define RG_STORAGE_DRIVER 2
 
 #define VIDEO_PIN     25
-#define SPEAKER_PIN   27
 
-#define KEYBOARD_DATA 32
-#define KEYBOARD_CLK  33
-#define KEYBOARD_RDY  12
+#define KEYBOARD_DATA 35
+#define KEYBOARD_CLK  34
+#define KEYBOARD_RDY  32
 #if RG_STORAGE_DRIVER == 1
 #define RG_STORAGE_HOST             HSPI_HOST           // Used by SDSPI and SDMMC
 #define SDSPI_MISO    GPIO_NUM_2
@@ -38,5 +37,5 @@
 #define VSYNC         15
 
 /// [COVOX]
-#define COVOX_OUTPUT_IO (4)
+#define COVOX_OUTPUT_IO (33)
 #endif

@@ -1,27 +1,27 @@
 
-                  ESP32                                             STM32
-           ┌─────────────────────┐            │             ┌─────────────────────┐         │ ESP32: 15
-         ×─┤3.3V              GND├╢           │           ×─┤Vbat              3V3├─×       │ STM32: 9
-          ─┤EN                 23├─           │       ROW0 ─┤C13               GND├╢        │ Power: >2
-          ─┤36(VP)             22├─           │       ROW1 ─┤C14               5V0├─×       │
-          ─┤39(VN)          (TX)1├─           │       ROW2 ─┤C15                B9├─        │
-          ─┤34              (RX)3├─           │       ROW3 ─┤A0                 B8├─        │
-          ─┤35                 21├─           │       ROW4 ─┤A1                 B7├─        │
-KEYB_DATA ─┤32                GND├╢           │       ROW5 ─┤A2                 B6├─        │
- KEYB_CLK ─┤33                 19├─           │       ROW6 ─┤A3                 B5├─        │
-    VIDEO ─┤25                 18├─           │       ROW7 ─┤A4                 B4├─        │
- DISK_LED ─┤26                 ⁵5├─           │       COL0 ─┤A5                 B3├─        │
-          ─┤27                GND├╢           │       COL1 ─┤A6                A15├─        │
- SDIO_CLK ─┤14                GND├╢           │       COL2 ─┤A7                A12├─        │
- KEYB_RDY ─┤12¹                 4├─ AUDIO     │       COL3 ─┤B0                A11├─ LED2   │
-         ╟─┤GND                ³0├─           │       COL4 ─┤B1                A10├─ LED1   │
-          ─┤13                 ⁴2├─ SDIO_D0   │       COL5 ─┤B10                A9├─ RDY    │
-         ×─┤SD2               ²15├─ SDIO_CMD  │       COL6 ─┤B11                A8├─ DO     │
-         ×─┤SD3               SD1├─×          │           ×─┤RST               B15├─ CLK    │
-         ×─┤CMD               SD0├─×          │           ×─┤3V3               B14├─ COL9   │
-         ──┤VCC               CLK├─×          │           ╟─┤GND               B13├─ COL8   │
-         ──┤VCC               GND├╢           │           ╟─┤GND               B12├─ COL7   │
-           └─────────────────────┘            │             └─────────────────────┘         │
+                   ESP32                                              STM32
+           ┌─────────────────────┐             │             ┌─────────────────────┐         │ ESP32: 15
+         ×─┤3.3V              GND├╢            │           ×─┤Vbat              3V3├─×       │ STM32: 9
+          ─┤EN                 23├─            │            ─┤C13               GND├╢        │ Power: >2
+          ─┤36 (i)(VP)         22├─            │            ─┤C14               5V0├─×       │
+          ─┤39 (i)(VN)      (TX)1├─            │            ─┤C15                B9├─ COL9c    │
+ KEYB_CLK ─┤34 (i)          (RX)3├─            │       ROW0 ─┤A0                 B8├─ COL8   │
+KEYB_DATA ─┤35 (i)             21├─            │       ROW1 ─┤A1                 B7├─ COL7   │
+ KEYB_RDY ─┤32                GND├╢            │       ROW2 ─┤A2                 B6├─ COL6   │
+    AUDIO ─┤33                 19├─            │       ROW3 ─┤A3                 B5├─ COL5   │
+    VIDEO ─┤25                 18├─            │       ROW4 ─┤A4                 B4├─ COL4   │
+          ─┤26                 ⁵5├─            │       ROW5 ─┤A5                 B3├─        │
+          ─┤27             17 GND├╢            │       ROW6 ─┤A6                A15├─        │
+ SDIO_CLK ─┤14             16 GND├╢            │       ROW7 ─┤A7                A12├─ LED2   │
+          ─┤12¹                 4├─            │            ─┤B0                A11├─ LED1   │
+  AV_GND ╟─┤GND                ³0├─            │            ─┤B1                A10├─ RDY    │
+ DISK_LED ─┤13                 ⁴2├─ SDIO_D0    │            ─┤B10                A9├─ DO     │
+         ×─┤9  (SD2)          ²15├─ SDIO_CMD   │            ─┤B11                A8├─ CLK    │
+         ×─┤10 (SD3)      (SD1) 8├─×           │           ×─┤RST               B15├─ COL3   │
+         ×─┤11 (CMD)      (SD0) 7├─×           │           ×─┤3V3               B14├─ COL2   │
+         ──┤VCC           (CLK) 6├─×           │           ╟─┤GND               B13├─ COL1   │
+           └─────────────────────┘             │           ╟─┤GND               B12├─ COL0   │
+                                               │             └─────────────────────┘         │
 
   Function            0           1         Default
   =================================================
@@ -31,7 +31,10 @@ KEYB_DATA ─┤32                GND├╢           │       ROW5 ─┤A2   
 ⁴ ???                 ???         ???         0
 ⁵ SDIO_SLAVE timing   ???         ???         1
 
+Note that the I/O GPIO pads are 0-­19, 21-­23, 25-­27, 32-­39, while the output GPIOs are 0­-19, 21-­23, 25-­27, 32-­33. GPIO pads 34-­39 are input-­only.
+ESP32-WROVER lacks GPIO37 and GPIO38. Also GPIO16 and GPIO17 in some modules are used internally to coltrol the external memory and are not routed outside.
 
+GND MISO(D0) CLK MOSI(CMD) LED 3V3
 Keyboard conn:
 ============== 
 1 B0(RDY)
@@ -50,3 +53,16 @@ Keyboard conn:
  │○ MISO  (D0)
  │○ GND
  └
+
+ I B12 A7
+ J B13 A6
+ K B14 A5
+ L B15 A4
+ M B4  A3
+ N B5  A2 
+ O B6  A1 
+ P B7  A0
+ Q B8  -
+ R B9  -
+ S -
+

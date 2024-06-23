@@ -53,7 +53,6 @@
  * bit 0: display enable. VRAM may be accesed with no afraid of "snow" effect.
  * 
 */
-#include "video/video.h"
 #include "config/gbConfig.h"
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
@@ -91,13 +90,13 @@
 #define MC6845_REG_LPEN_MSB         (16)
 #define MC6845_REG_LPEN_LSB         (17)
 
+static uint8_t  readDummy(uint32_t portnum);
+static void     write3D4h(uint32_t portnum, uint8_t value);
 static uint8_t  read3D5h(uint32_t portnum);
+static void     write3D5h(uint32_t portnum, uint8_t value);
 static void     write3D8h(uint32_t portnum, uint8_t value);
 static void     write3D9h(uint32_t portnum, uint8_t value);
 static uint8_t  read3DAh(uint32_t portnum);
-static uint8_t  readDummy(uint32_t portnum);
-static void write3D4h(uint32_t portnum, uint8_t value);
-static void write3D5h(uint32_t portnum, uint8_t value);
 
 IOPort port_3D4h = IOPort(0x3D4, 0xFF, nullptr, write3D4h);
 IOPort port_3D5h = IOPort(0x3D5, 0xFF, read3D5h,  write3D5h);
@@ -109,10 +108,10 @@ IOPort port_3DCh = IOPort(0x3DC, 0xFF, readDummy, nullptr);
 
 static const uint32_t MC6845_REG_TOTAL    = 18;
 static const uint32_t MC6845_REG_READABLE = 0x0D;
-static uint8_t        port3D8h = 0; // Some sort of local cache
-static uint8_t        port3D9h = 0;    // Some sort of local cache
-static uint8_t        port3DAh = 0;    // Some sort of local cache
-static uint8_t        mc6845RegSelector; // 3D4h port writes modifies this var
+static uint8_t        port3D8h = 0;       // Some sort of local cache
+static uint8_t        port3D9h = 0;       // Some sort of local cache
+static uint8_t        port3DAh = 0;       // Some sort of local cache
+static uint8_t        mc6845RegSelector;  // 3D4h port writes modify this var
 static uint8_t        mc6845Registers[MC6845_REG_TOTAL];
 
 static void write3D4h (uint32_t portnum, uint8_t value)
@@ -155,11 +154,13 @@ static void write3D5h (uint32_t portnum, uint8_t value)
     break;
   case MC6845_REG_CURSOS_START:
     LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
-    cursor.updateStart(value);
+    renderSetCursorStart(value);
+    // cursor.updateStart(value);
     break;
   case MC6845_REG_CURSOR_END:
     LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
-    cursor.updateEnd(value);
+    renderSetCursorEnd(value);
+    // cursor.updateEnd(value);
     break;
   case MC6845_REG_START_ADDR_MSB:
     LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
@@ -170,10 +171,12 @@ static void write3D5h (uint32_t portnum, uint8_t value)
     renderSetStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
     break;
   case MC6845_REG_CURSOR_ADDR_MSB:
-    cursor.updateMSB(value);
+    renderSetCursorAddrMSB(value);
+    // cursor.updateMSB(value);
     break;
   case MC6845_REG_CURSOR_ADDR_LSB:
-    cursor.updateLSB(value);
+    renderSetCursorAddrLSB(value);
+    // cursor.updateLSB(value);
     break;
   case MC6845_REG_LPEN_MSB:
     LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
@@ -228,7 +231,6 @@ static void write3D9h(uint32_t portnum, uint8_t value)
   (void)portnum;
   LOG_WRITE_PORT("write3D9h(%02x)\n", value);
   port3D9h = value;
-  // renderUpdateColor(port3D9h);
   renderUpdateSettings(port3D8h, port3D9h);
 }
 
