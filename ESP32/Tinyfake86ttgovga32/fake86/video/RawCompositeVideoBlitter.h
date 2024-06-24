@@ -68,6 +68,8 @@ enum VideoStandard {NTSC, PAL};
 int _pal_ = 0;
 typedef void (*blitter_t)(uint8_t *src, uint16_t *dst);
 blitter_t _blitter;
+
+///  Always 0, consider removing this
 uint32_t _phase = 0;
 
 //====================================================================================================
@@ -760,7 +762,7 @@ void video_init(VideoStandard standard)
       static const uint32_t MASK_EVEN = 0x0000FFFF;
       static const uint32_t MASK_ODD = 0xFFFF0000;
 
-      uint32_t *d = (uint32_t *)dst + 16;
+      uint32_t *d = (uint32_t *)(dst + 32);
       for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP) // 84 steps, 4 pixels per step
       {
         d[0] = (destPaletteEven[src[0]] | destPaletteOdd[src[1]]);
@@ -781,7 +783,7 @@ void video_init(VideoStandard standard)
       const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
       static const uint32_t STEP = 4;
 
-      uint32_t *d = (uint32_t *)(dst + 17);
+      uint32_t *d = (uint32_t *)(dst + 32);
       for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP) // 84 steps, 4 pixels per step
       {
         d[0] = destPalette[src[0]] << 0;
@@ -817,41 +819,6 @@ void video_init(VideoStandard standard)
       }
     }
 
-    // draw a line of game in NTSC
-    void IRAM_ATTR blit_ntsc(uint8_t* src, uint16_t* dst)
-    {
-        const uint32_t* p = _palette;
-
-        // 2 pixels per color clock, 4 samples per cc, used by atari
-        // AA AA
-        // 192 color clocks wide
-        // only show 336 pixels
-#if DOUBLE_PIXEL_RATE
-        uint16_t *d = dst + 32;
-        for (int i = 0; i < NTSC_DEFAULT_WIDTH << 2; i += 4)
-        {
-            uint16_t c = *((uint16_t *)src); // screen may be in 32 bit mem
-            d[0] = (uint16_t)(p[(uint8_t)c] >> 16);
-            d[1] = (uint16_t)(p[(uint8_t)(c >> 8)] << 0);
-            d += 2;
-            src += 2;
-        }
-#else
-        uint32_t *d = (uint32_t *)dst + 16;
-        for (int i = 0; i < NTSC_DEFAULT_WIDTH; i += 4)
-        {
-            uint32_t c = *((uint32_t*)src); // screen may be in 32 bit mem
-            d[0] = p[(uint8_t)c];
-            d[1] = p[(uint8_t)(c>>8)] << 8;
-            d[2] = p[(uint8_t)(c>>16)];
-            d[3] = p[(uint8_t)(c>>24)] << 8;
-            d += 4;
-            src += 4;
-        }
-#endif
-        END_TIMING();
-    }
-    
     void IRAM_ATTR burst_ntsc(uint16_t* line)
     {
         int i,phase;
@@ -861,21 +828,17 @@ void video_init(VideoStandard standard)
                 for (i = _hsync; i < _hsync + (4*10); i += 4) {
                     if (bColorburstEnabled)
                     {
-                        // line[i+1] = BLANKING_LEVEL;
-                        // line[i+0] = BLANKING_LEVEL + BLANKING_LEVEL/2;
-                        // line[i+3] = BLANKING_LEVEL;
-                        // line[i+2] = BLANKING_LEVEL - BLANKING_LEVEL/2;
-                        line[i + 1] = NTSC_BURST_4[_phase + 0];
                         line[i + 0] = NTSC_BURST_4[_phase + 1];
-                        line[i + 3] = NTSC_BURST_4[_phase + 2];
+                        line[i + 1] = NTSC_BURST_4[_phase + 2];
                         line[i + 2] = NTSC_BURST_4[_phase + 3];
+                        line[i + 3] = NTSC_BURST_4[_phase + 0];
                     }
                     else
                     {
-                        line[i+1] = BLANKING_LEVEL;
-                        line[i+0] = BLANKING_LEVEL;
-                        line[i+3] = BLANKING_LEVEL;
-                        line[i+2] = BLANKING_LEVEL;
+                        line[i + 0] = BLANKING_LEVEL;
+                        line[i + 1] = BLANKING_LEVEL;
+                        line[i + 2] = BLANKING_LEVEL;
+                        line[i + 3] = BLANKING_LEVEL;
                     }
                 }
                 break;

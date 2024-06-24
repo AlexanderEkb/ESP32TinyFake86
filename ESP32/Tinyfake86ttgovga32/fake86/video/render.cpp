@@ -100,8 +100,8 @@ static uint32_t scanlineBuffer[CompositeColorOutput::XRES * 2];
 
 static const uint8_t paletteBasic[16] = {
  // BLACK   BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
-    0x00,   0x83,   0xC5,   0xA6,   0x34,   0x55,   0xE7,   0x0A,
-    0x05,   0x88,   0xCA,   0xAB,   0x39,   0x5A,   0xEC,   0x0F};
+    0x00,   0x83,   0xE5,   0xC6,   0x44,   0x65,   0xF7,   0x0A,
+    0x05,   0x88,   0xEA,   0xCB,   0x49,   0x6A,   0xFC,   0x0F};
 static const uint8_t paletteBasicBW[16] = {
     // BLACK    BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
     0x00, 0x01, 0x04, 0x05, 0x02, 0x03, 0x06, 0x08,
@@ -109,20 +109,16 @@ static const uint8_t paletteBasicBW[16] = {
 
 static const uint32_t GRAPH_PALETTE_COUNT = 4;
 static const uint32_t GRAPH_PALETTE_SIZE = 4;
-//                                                             Black  Green   Red     Yellow
-// const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00, 0x95, 0x15, 0xB5};
-// const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x06, 0x02, 0x07};
-// const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00, 0x98, 0x18, 0xB8};
-// const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0B, 0x03, 0x0F};
-const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00, 0xC5, 0x35, 0xE5};
+
+const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00, 0xD5, 0x43, 0x25};
 const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x08, 0x04, 0x09};
-const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00, 0xC8, 0x38, 0xE8};
+const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00, 0xD8, 0x46, 0x28};
 const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0C, 0x05, 0x0F};
 
 //                                                             Black   Cyan   Magenta White
-const uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]      = {0x00, 0xA8, 0x56, 0x0A};
+const uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]      = {0x00, 0xB5, 0x65, 0x0A};
 const uint8_t paletteGraphicCMWdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x08, 0x04, 0x0A};
-const uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE]   = {0x00, 0xAB, 0x5B, 0x0F};
+const uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE]   = {0x00, 0xBB, 0x6B, 0x0F};
 const uint8_t paletteGraphicCMWbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0D, 0x07, 0x0F};
 
 uint8_t const* graphPalettes[GRAPH_PALETTE_COUNT] =

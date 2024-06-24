@@ -16,27 +16,6 @@
 #include "stats.h"
 #include "debugger/debugger.h"
 
-static unsigned char palette[16] = {
-    0x00, 0x73, 0xC3, 0xB6, 0x44, 0x65, 0x17, 0x0A,
-    0x05, 0x78, 0xC8, 0xBB, 0x49, 0x6A, 0x1C, 0x0F};
-
-#define BLACK         0x00
-#define BLUE          0x73
-#define RED           0x44
-#define MAGENTA       0x65
-#define GREEN         0xC3
-#define CYAN          0xB6
-#define YELLOW        0x17
-#define WHITE         0x0A
-#define GRAY          0x05
-#define LIGHTBLUE     0x78
-#define LIGHTRED      0x49
-#define LIGHTMAGENTA  0x6A
-#define LIGHTGREEN    0xC8
-#define LIGHTCYAN     0xBB
-#define LIGHTYELLOW   0x1C
-#define LIGHTWHITE    0x0F
-
 static struct osd {
   bool active       = false;
 } osd;
@@ -127,13 +106,13 @@ void OSDMenuRowsDisplayScroll(const char **ptrValue, unsigned char currentId, un
   const int rowCount = (aMax > gb_osd_max_rows) ? gb_osd_max_rows : aMax;
   for (int i = 0; i < rowCount; i++)
   {
-    svcPrintText(lineOfSpaces,pos,gb_pos_y_menu+8+(i<<3),0,DEFAULT_BORDER);
+    svcPrintText(lineOfSpaces,pos,gb_pos_y_menu+8+(i<<3),0,MENUITEM_DEFAULT_BACKGROUND);
     if (currentId < aMax)
     {
-      uint8_t foreground = (currentId == highlight) ? 0x35 : ((i == 0) ? DEFAULT_BORDER : SCREEN_BACKGROUND);
-      uint8_t background = ((i == 0) ? SCREEN_BACKGROUND : DEFAULT_BORDER);
+      uint8_t foreground = (currentId == highlight) ? MENUITEM_HIGHLIGHT_FOREGROUND : ((i == 0) ? MENUITEM_SELECTED_FOREGROUND : MENUITEM_DEFAULT_FOREGROUND);
+      uint8_t background = ((i == 0) ? MENUITEM_SELECTED_BACKGROUND : MENUITEM_DEFAULT_BACKGROUND);
 
-      svcPrintText(ptrValue[currentId], pos + 1, gb_pos_y_menu + 8 + (i << 3), foreground, background);
+      svcPrintText(ptrValue[currentId], pos + 2, gb_pos_y_menu + 8 + (i << 3), foreground, background);
       currentId++;
     }
   }
@@ -145,8 +124,8 @@ uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char 
   unsigned char aReturn=0;
   bool bExit = false;
   for (int i = 0; i < width; i++)
-  svcPrintChar(' ', pos + (i << 3), gb_pos_y_menu, 0, WHITE);
-  svcPrintText(cadTitle,pos,gb_pos_y_menu,0,WHITE);
+    svcPrintChar(' ', pos + (i << 3), gb_pos_y_menu, MENU_HEADER_FOREGROUND, MENU_HEADER_BACKGROUND);
+  svcPrintText(cadTitle,pos,gb_pos_y_menu,MENU_HEADER_FOREGROUND, MENU_HEADER_BACKGROUND);
 
   OSDMenuRowsDisplayScroll(ptrValue,0,aMax, width, pos, highlight);
 

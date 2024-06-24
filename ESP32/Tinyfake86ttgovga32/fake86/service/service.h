@@ -84,9 +84,19 @@ typedef struct DBG_MEM_ADDR
 static const uint32_t SERVICE_FONT_WIDTH = 5;
 static const uint32_t SERVICE_FONT_HEIGHT = 7;
 
-static const uint8_t HEADER_BACKGROUND = 0x31;
-static const uint8_t SCREEN_BACKGROUND = 0x60;
-static const uint32_t DEFAULT_BORDER = 0x77;
+static const uint8_t HEADER_BACKGROUND = 0x51;
+static const uint8_t SCREEN_BACKGROUND = 0x12;
+static const uint32_t DEFAULT_BORDER = 0x17;
+
+static const uint8_t MENU_HEADER_BACKGROUND = 0x0A;
+static const uint8_t MENU_HEADER_FOREGROUND = 0x00;
+
+static const uint8_t MENUITEM_DEFAULT_BACKGROUND = DEFAULT_BORDER;
+static const uint8_t MENUITEM_DEFAULT_FOREGROUND = 0x90;
+static const uint8_t MENUITEM_HIGHLIGHT_FOREGROUND = 0x43;
+static const uint8_t MENUITEM_SELECTED_BACKGROUND = HEADER_BACKGROUND;
+static const uint8_t MENUITEM_SELECTED_FOREGROUND = 0x0A;
+
 static const uint32_t OSD_VERTICAL_OFFSET = 20;
 static const uint32_t EFFECTIVE_HEIGHT = 200;
 
