@@ -26,7 +26,7 @@ void CompositeColorOutput::setBlitter(uint32_t blitter)
   {
   case 0:
     RawCompositeVideoBlitter::_blitter = RawCompositeVideoBlitter::blitter_0;
-    RawCompositeVideoBlitter::_phase = 0;
+    RawCompositeVideoBlitter::_phase = 1;
     break;
   case 1:
     RawCompositeVideoBlitter::_blitter = RawCompositeVideoBlitter::blitter_1;

@@ -828,10 +828,10 @@ void video_init(VideoStandard standard)
                 for (i = _hsync; i < _hsync + (4*10); i += 4) {
                     if (bColorburstEnabled)
                     {
-                        line[i + 0] = NTSC_BURST_4[_phase + 1];
-                        line[i + 1] = NTSC_BURST_4[_phase + 2];
-                        line[i + 2] = NTSC_BURST_4[_phase + 3];
-                        line[i + 3] = NTSC_BURST_4[_phase + 0];
+                        line[i + 0] = NTSC_BURST_4[_phase + 0];
+                        line[i + 1] = NTSC_BURST_4[_phase + 1];
+                        line[i + 2] = NTSC_BURST_4[_phase + 2];
+                        line[i + 3] = NTSC_BURST_4[_phase + 3];
                     }
                     else
                     {

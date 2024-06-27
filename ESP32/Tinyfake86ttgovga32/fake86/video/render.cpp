@@ -60,21 +60,25 @@ typedef enum vmode_t
 
 typedef struct
 {
+  /// @brief Characters per line. Only has effect in text modes
   uint32_t textWidth;
+  /// @brief Pointer to an appropriate dumper function
   dumper_t dumper;
+  /// @brief Index of an appropriate blitter function
   uint32_t blitter;
+  /// @brief Horizontal image offset. Very important for both horizontal position and accuracy of artifact colors.
   uint32_t hOffset;
 } videoMode_t;
 
 const videoMode_t modes[MODE_COUNT] = {
     {40, dump40x25, BLITTER_LORES, 16},
     {80, dump80x25, BLITTER_HIRES, 22},
-    {40, dump320x200, BLITTER_LORES, 2},
-    {40, dump320x200, BLITTER_LORES, 2},
+    {40, dump320x200, BLITTER_LORES, 8},
+    {40, dump320x200, BLITTER_LORES, 8},
     {40, dump40x25, BLITTER_LORES, 16},
     {80, dump80x25, BLITTER_HIRES, 22},
-    {80, dump640x200, BLITTER_HIRES, 4},
-    {80, dump640x200, BLITTER_HIRES, 4}};
+    {80, dump640x200, BLITTER_HIRES, 1},
+    {80, dump640x200, BLITTER_HIRES, 1}};
 
 class cursor_t {
   public:
@@ -100,8 +104,8 @@ static uint32_t scanlineBuffer[CompositeColorOutput::XRES * 2];
 
 static const uint8_t paletteBasic[16] = {
  // BLACK   BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
-    0x00,   0x83,   0xE5,   0xC6,   0x44,   0x65,   0xF7,   0x0A,
-    0x05,   0x88,   0xEA,   0xCB,   0x49,   0x6A,   0xFC,   0x0F};
+    0x00,   0x83,   0xC5,   0xB6,   0x34,   0x55,   0xE7,   0x0A,
+    0x05,   0x88,   0xCA,   0xBB,   0x39,   0x5A,   0xEB,   0x0F};
 static const uint8_t paletteBasicBW[16] = {
     // BLACK    BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
     0x00, 0x01, 0x04, 0x05, 0x02, 0x03, 0x06, 0x08,
@@ -110,15 +114,17 @@ static const uint8_t paletteBasicBW[16] = {
 static const uint32_t GRAPH_PALETTE_COUNT = 4;
 static const uint32_t GRAPH_PALETTE_SIZE = 4;
 
-const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00, 0xD5, 0x43, 0x25};
+// M +60 C + 10 G +20 Y +20 R
+
+const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00, 0x95, 0xD3, 0xB5};
 const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x08, 0x04, 0x09};
-const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00, 0xD8, 0x46, 0x28};
+const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00, 0x98, 0xD6, 0xA8};
 const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0C, 0x05, 0x0F};
 
 //                                                             Black   Cyan   Magenta White
-const uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]      = {0x00, 0xB5, 0x65, 0x0A};
+const uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]      = {0x00, 0x85, 0x25, 0x0A};
 const uint8_t paletteGraphicCMWdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x08, 0x04, 0x0A};
-const uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE]   = {0x00, 0xBB, 0x6B, 0x0F};
+const uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE]   = {0x00, 0x8B, 0x2B, 0x0F};
 const uint8_t paletteGraphicCMWbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0D, 0x07, 0x0F};
 
 uint8_t const* graphPalettes[GRAPH_PALETTE_COUNT] =
@@ -141,7 +147,13 @@ static unsigned char palette[16] = {
 
 typedef struct render_t
 {
+  /// @brief true if some changes are made by the 'video' part. In such a case
+  ///        OnDumpDone() function performs these changes and pendingRender contents
+  //         is copied to the render var.
   bool pendingChanges;
+
+  /// @brief pointer to a dumper function, which transforms CGA video memory contents
+  ///        to the format accepted by the rendering module.
   dumper_t dumper;
   uint32_t paletteIndex;
   uint32_t specialColor;
@@ -358,7 +370,7 @@ static void dump320x200()
       cont++;
     }
     uint32_t *dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    memcpy(dest + render.hOffset, line, 320);
+    memcpy((void *)dest + render.hOffset, line, 320);
   }
 
   cont = 0x2000;
@@ -384,7 +396,7 @@ static void dump320x200()
       cont++;
     }
     uint32_t *dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    memcpy(dest + render.hOffset, line, 320);
+    memcpy((void *)dest + render.hOffset, line, 320);
   }
   OnDumpDone();
 }
@@ -393,7 +405,7 @@ static void dump640x200()
 {
   static uint8_t line[700];
   static uint32_t *dest;
-  static const uint32_t INITIAL_OFFSET = 1;
+  static const uint32_t INITIAL_OFFSET = 0;
   unsigned short int srcAddr;
   unsigned int yDest;
   unsigned int x;
@@ -436,7 +448,7 @@ static void dump640x200()
       srcAddr++;
     }
     dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    memcpy(dest + render.hOffset, line, 640);
+    memcpy((void *)dest + render.hOffset, line, 640);
   }
 
   srcAddr = 0x2000;
@@ -476,7 +488,7 @@ static void dump640x200()
       srcAddr++;
     }
     dest = (unsigned int *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    memcpy(dest + render.hOffset, line, 640);
+    memcpy((void *)dest + render.hOffset, line, 640);
   }
   OnDumpDone();
 }

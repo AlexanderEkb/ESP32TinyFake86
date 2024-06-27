@@ -44,7 +44,7 @@ uint8_t Drive_t::write(uint8_t * src, DISK_ADDR &dst)
     {
       if(fseek(pImage, filePos, SEEK_SET) != 0)
         return RESULT_TRACK_NOT_FOUND;
-      if(fwrite(src, size, 1, pImage) != 1)
+      if(fwrite(src, SECTOR_SIZE, 1, pImage) != 1)
         return RESULT_GENERAL_FAILURE;
     }
 
