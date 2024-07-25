@@ -55,7 +55,8 @@
       "optional": "cpp",
       "*.inc": "cpp",
       "esp_bit_defs.h": "c",
-      "list": "cpp"
+      "list": "cpp",
+      "periph_defs.h": "c"
     },
     "merge-conflict.codeLens.enabled": false,
     "editor.codeLens": false,

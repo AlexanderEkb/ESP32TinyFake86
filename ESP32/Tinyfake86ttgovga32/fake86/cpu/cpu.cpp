@@ -138,18 +138,14 @@ void write86 (unsigned int addr32, unsigned char value)
 {
  //Primero CGA
  //if ((addr32 >= 0xB8000) && (addr32 < (0xB8000+16384)))
- if ((addr32 >= 0xB8000) && (addr32 < 0xBC000))
- {  
-  gb_video_cga[(addr32-0xB8000)]= value;
-  //updatedscreen = 1;
-  return;
- }
-
- //Segundo memoria
- if (addr32<RAM_SIZE)
+ switch(addr32)
  {
-  ram[addr32]= value;
-  return;
+   case 0x0000 ... RAM_SIZE:
+     ram[addr32]= value;
+     return;
+   case 0xB8000 ... 0xBC000:
+     gb_video_cga[(addr32-0xB8000)]= value;
+     return;
  }
 
  if (addr32 > 1048575)
@@ -169,26 +165,17 @@ void write86 (unsigned int addr32, unsigned char value)
 
 unsigned char read86 (unsigned int addr32) 
 {
- if ((addr32 >= 0xB8000) && (addr32 < 0xBC000))
- {   
-  return (gb_video_cga[(addr32-0xB8000)]);
- } 
-
- //Segundo memoria RAM
- if (addr32<RAM_SIZE)
- {
-  return (ram[addr32]);
- }
- 
- if ((addr32 >= 0xFE000) && (addr32 < 0x100000))
- {
-  return gb_bios_pcxt[(addr32-0xFE000)];
- }
- 
- if ((addr32 >= 0xF6000) && (addr32 < 0xFE000))
- {
-  return gb_rom_basic[(addr32-0xF6000)];
- }
+  switch (addr32)
+  {
+    case 0x00000 ... RAM_SIZE:
+      return (ram[addr32]);
+    case 0xB8000 ... 0xBBFFF:
+      return gb_video_cga[(addr32-0xB8000)];
+    case 0xF6000 ... 0xFDFFF:
+      return gb_rom_basic[(addr32-0xF6000)];
+    case 0xFE000 ... 0xFFFFF:
+      return gb_bios_pcxt[(addr32-0xFE000)];
+  }
 
  if (addr32 > 1048575)
  {
