@@ -55,31 +55,9 @@ void disassembler_t::parse(char *instrTemplate, char*(disassembler_t::*func)(uin
 	}
 	char segment[20] ;
 
-	if (t == 1)
-	{
-			// switch (segment_override)
-			// {
-			// 	case ES: snprintf(segment, 20, "es") ; break ;
-			// 	case CS: snprintf(segment, 20, "cs") ; break ;
-			// 	case SS: snprintf(segment, 20, "ss") ; break ;
-			// 	case DS: snprintf(segment, 20, "ds") ; break ;
-      //   default: 
-      //     segment[0] = "\0" ; 
-      //     break ;
-			// }
-      // char tmp_string[41] = {0};
-      // char tmp_string2[41] = {0};
-      // snprintf(tmp_string, 40, instrTemplate, result);
-      // snprintf(tmp_string2, 40, "%s %s", segment, tmp_string);
-      // line->print(tmp_string2);
-      line->print("?");
-  }
-  // else
-  // {
-    char _tmp[80];
-    snprintf(_tmp, 80, instrTemplate, result) ;
-    line->print(_tmp);
-  // }
+  char _tmp[80];
+  snprintf(_tmp, 80, instrTemplate, result) ;
+  line->print(_tmp);
 }
 
 void disassembler_t::parse_noop(char *instrTemplate)
@@ -675,7 +653,7 @@ char * disassembler_t::rm16_imm8(uint32_t *err)
 		sign = '-' ;
 		imm8 = -imm8 ;
 	}
-	snprintf(str, 20, "%s,byte %c%02Xh", s, sign, imm8) ;
+	snprintf(str, 255, "%s,byte %c%02Xh", s, sign, imm8) ;
 	return str ;
 }
 

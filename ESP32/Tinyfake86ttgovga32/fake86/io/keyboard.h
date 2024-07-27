@@ -35,10 +35,10 @@ class KeyboardDriverSTM : public KeyboardDriver
     virtual void Init() {
       pinMode(KEYBOARD_DATA, INPUT_PULLUP);
       pinMode(KEYBOARD_CLK, INPUT_PULLUP);
-      pinMode(KEYBOARD_RDY, OUTPUT_OPEN_DRAIN);
+      // pinMode(KEYBOARD_RDY, OUTPUT_OPEN_DRAIN);
       // digitalWrite(KEYBOARD_DATA, true);
       // digitalWrite(KEYBOARD_CLK, true);
-      digitalWrite(KEYBOARD_RDY, true);
+      // digitalWrite(KEYBOARD_RDY, true);
       attachInterrupt(digitalPinToInterrupt(KEYBOARD_CLK), kb_interruptHandler, FALLING);
     }
 
@@ -64,7 +64,7 @@ class KeyboardDriverSTM : public KeyboardDriver
 
     virtual void resetRdy()
     {
-      digitalWrite(KEYBOARD_RDY, true);
+      // digitalWrite(KEYBOARD_RDY, true);
     }
 
   private:

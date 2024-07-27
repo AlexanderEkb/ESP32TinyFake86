@@ -29,6 +29,6 @@ void IRAM_ATTR kb_interruptHandler(void) {
     if (bitcount == 8) {
         bitcount = 0;
         KeyboardDriverSTM::OnKey(shifter);
-        digitalWrite(KEYBOARD_RDY, false);
+        // digitalWrite(KEYBOARD_RDY, false);
     }
 }

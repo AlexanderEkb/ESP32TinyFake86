@@ -71,15 +71,17 @@ void codeBrowser_t::printColored(line_t *line, uint32_t pos)
   const bool isCurrentPos = (line->addr == DBG_MEM_ADDR(_dbgGetRegister(_dbgReg_CS), _dbgGetRegister(_dbgReg_IP)));
   const uint8_t BG = isCurrentPos ? BG_CSIP : (focused ? BG_ACTIVE : BG_INACTIVE);
   const uint32_t ROW = area.top + pos * ACTUAL_FONT_HEIGHT;
-  const uint32_t SEG_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
-  const uint32_t SEMICOLON_COL  = area.left + 4 * ACTUAL_FONT_WIDTH;
-  const uint32_t OFF_COL        = area.left + 5 * ACTUAL_FONT_WIDTH;
-  const uint32_t MNEMONIC_COL   = area.left + 10 * ACTUAL_FONT_WIDTH;
+  // const uint32_t SEG_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
+  // const uint32_t SEMICOLON_COL  = area.left + 4 * ACTUAL_FONT_WIDTH;
+  // const uint32_t OFF_COL        = area.left + 5 * ACTUAL_FONT_WIDTH;
+  // const uint32_t MNEMONIC_COL   = area.left + 10 * ACTUAL_FONT_WIDTH;
+   const uint32_t OFF_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
+   const uint32_t MNEMONIC_COL   = area.left + 5 * ACTUAL_FONT_WIDTH;
 
   char _buf[40];
   sprintf(_buf, "%04X", line->addr.segment);
-  svcPrintText(_buf, SEG_COL, ROW, FG_ADDR, BG, 0);
-  svcPrintText(":", SEMICOLON_COL, ROW, FG_OTHER, BG, 0);
+  // svcPrintText(_buf, SEG_COL, ROW, FG_ADDR, BG, 0);
+  // svcPrintText(":", SEMICOLON_COL, ROW, FG_OTHER, BG, 0);
   sprintf(_buf, "%04X", line->addr.offset);
   svcPrintText(_buf, OFF_COL, ROW, FG_ADDR, BG, 0);
 

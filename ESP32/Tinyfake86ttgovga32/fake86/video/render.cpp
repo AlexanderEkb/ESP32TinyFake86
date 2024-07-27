@@ -46,14 +46,71 @@ static void dump640x200(void);
 static void printChar_c(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t backcolor);
 static void printChar(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t backcolor);
 
-static const uint32_t DUMPER_COUNT = 7;
 static const uint32_t MODE_COUNT = 8;
 
 static uint8_t const *const font = getFont();
 
+static const uint8_t paletteHiRes[16] = {
+ // BLACK   BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
+    0x00,   0x86,   0xC8,   0xB9,   0x36,   0x57,   0xE7,   0x0A,
+    0x05,   0x88,   0xCA,   0xBB,   0x39,   0x5A,   0xEB,   0x0F};
+static const uint8_t paletteLoRes[16] = {
+// BLACK   BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
+    0x00,   0x46,   0x97,   0x79,   0xC4,   0x15,   0xA7,   0x0A,
+    0x05,   0x48,   0x99,   0x7B,   0xC9,   0x1A,   0xAC,   0x0F};
+static const uint8_t paletteBW[16] = {
+// BLACK   BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
+    0x00,   0x01,   0x05,   0x06,   0x02,   0x04,   0x07,   0x0C,
+    0x03,   0x08,   0x0B,   0x0D,   0x09,   0x0A,   0x0E,   0x0F};
+/*
+    00      17      44      5B      24      3A      65      A9
+    00      01      05      06      02      04      07      0C
+
+    39      78      A4      BD      84      9B      C7      FF
+    03      08      0B      0D      09      0A      0E      0F
+*/
+
+static const uint32_t GRAPH_PALETTE_COUNT = 4;
+static const uint32_t GRAPH_PALETTE_SIZE = 4;
+
+static const uint32_t GREEN   = 2;
+static const uint32_t RED     = 4;
+static const uint32_t YELLOW  = 6;
+static const uint32_t CYAN    = 3;
+static const uint32_t MAGENTA = 5;
+static const uint32_t WHITE   = 7;
+static const uint32_t BRIGHT  = 8;
+const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00, paletteLoRes[GREEN], paletteLoRes[RED], paletteLoRes[YELLOW]};
+const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00, paletteBW[GREEN], paletteBW[RED], paletteBW[YELLOW]};
+const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00, paletteLoRes[BRIGHT + GREEN], paletteLoRes[BRIGHT + RED], paletteLoRes[BRIGHT + YELLOW]};
+const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00, paletteBW[BRIGHT + GREEN], paletteBW[BRIGHT + RED], paletteBW[BRIGHT + YELLOW]};
+const uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]      = {0x00, paletteLoRes[CYAN], paletteLoRes[MAGENTA], paletteLoRes[WHITE]};
+const uint8_t paletteGraphicCMWdimBW[GRAPH_PALETTE_SIZE]    = {0x00, paletteBW[CYAN], paletteBW[MAGENTA], paletteBW[WHITE]};
+const uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE]   = {0x00, paletteLoRes[BRIGHT + CYAN], paletteLoRes[BRIGHT + MAGENTA], paletteLoRes[BRIGHT + WHITE]};
+const uint8_t paletteGraphicCMWbrightBW[GRAPH_PALETTE_SIZE] = {0x00, paletteBW[BRIGHT + CYAN], paletteBW[BRIGHT + MAGENTA], paletteBW[BRIGHT + WHITE]};
+
+uint8_t const* graphPalettes[GRAPH_PALETTE_COUNT] =
+    {
+        paletteGraphicGRYdim,
+        paletteGraphicGRYbright,
+        paletteGraphicCMWdim,
+        paletteGraphicCMWbright};
+
+uint8_t const *graphPalettesBW[GRAPH_PALETTE_COUNT] =
+    {
+        paletteGraphicGRYdimBW,
+        paletteGraphicGRYbrightBW,
+        paletteGraphicCMWdimBW,
+        paletteGraphicCMWbrightBW};
+
+static unsigned char palette[16] = {
+    0x00, 0x73, 0xC3, 0xB6, 0x44, 0x65, 0x17, 0x0A,
+    0x05, 0x78, 0xC8, 0xBB, 0x49, 0x6A, 0x1C, 0x0F};
+
 typedef enum vmode_t
 {
-  TEXT,
+  TEXT_LO,
+  TEXT_HI,
   GRAPH_LO,
   GRAPH_HI
 } vmode_t;
@@ -61,7 +118,7 @@ typedef enum vmode_t
 typedef struct
 {
   /// @brief Characters per line. Only has effect in text modes
-  uint32_t textWidth;
+  uint32_t textColCount;
   /// @brief Pointer to an appropriate dumper function
   dumper_t dumper;
   /// @brief Index of an appropriate blitter function
@@ -71,14 +128,14 @@ typedef struct
 } videoMode_t;
 
 const videoMode_t modes[MODE_COUNT] = {
-    {40, dump40x25, BLITTER_LORES, 16},
-    {80, dump80x25, BLITTER_HIRES, 22},
-    {40, dump320x200, BLITTER_LORES, 8},
-    {40, dump320x200, BLITTER_LORES, 8},
-    {40, dump40x25, BLITTER_LORES, 16},
-    {80, dump80x25, BLITTER_HIRES, 22},
-    {80, dump640x200, BLITTER_HIRES, 1},
-    {80, dump640x200, BLITTER_HIRES, 1}};
+    {40, dump40x25, BLITTER_LORES,    16},
+    {80, dump80x25, BLITTER_HIRES,    22},
+    {40, dump320x200, BLITTER_LORES,  8},
+    {40, dump320x200, BLITTER_LORES,  8},
+    {40, dump40x25, BLITTER_LORES,    16},
+    {80, dump80x25, BLITTER_HIRES,    22},
+    {80, dump640x200, BLITTER_HIRES,  1},
+    {80, dump640x200, BLITTER_HIRES,  1}};
 
 class cursor_t {
   public:
@@ -101,49 +158,6 @@ class cursor_t {
 
 cursor_t cursor;
 static uint32_t scanlineBuffer[CompositeColorOutput::XRES * 2];
-
-static const uint8_t paletteBasic[16] = {
- // BLACK   BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
-    0x00,   0x83,   0xC5,   0xB6,   0x34,   0x55,   0xE7,   0x0A,
-    0x05,   0x88,   0xCA,   0xBB,   0x39,   0x5A,   0xEB,   0x0F};
-static const uint8_t paletteBasicBW[16] = {
-    // BLACK    BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
-    0x00, 0x01, 0x04, 0x05, 0x02, 0x03, 0x06, 0x08,
-    0x07, 0x02, 0x08, 0x0A, 0x04, 0x06, 0x0E, 0x0F};
-
-static const uint32_t GRAPH_PALETTE_COUNT = 4;
-static const uint32_t GRAPH_PALETTE_SIZE = 4;
-
-// M +60 C + 10 G +20 Y +20 R
-
-const uint8_t paletteGraphicGRYdim[GRAPH_PALETTE_SIZE]      = {0x00, 0x95, 0xD3, 0xB5};
-const uint8_t paletteGraphicGRYdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x08, 0x04, 0x09};
-const uint8_t paletteGraphicGRYbright[GRAPH_PALETTE_SIZE]   = {0x00, 0x98, 0xD6, 0xA8};
-const uint8_t paletteGraphicGRYbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0C, 0x05, 0x0F};
-
-//                                                             Black   Cyan   Magenta White
-const uint8_t paletteGraphicCMWdim[GRAPH_PALETTE_SIZE]      = {0x00, 0x85, 0x25, 0x0A};
-const uint8_t paletteGraphicCMWdimBW[GRAPH_PALETTE_SIZE]    = {0x00, 0x08, 0x04, 0x0A};
-const uint8_t paletteGraphicCMWbright[GRAPH_PALETTE_SIZE]   = {0x00, 0x8B, 0x2B, 0x0F};
-const uint8_t paletteGraphicCMWbrightBW[GRAPH_PALETTE_SIZE] = {0x00, 0x0D, 0x07, 0x0F};
-
-uint8_t const* graphPalettes[GRAPH_PALETTE_COUNT] =
-    {
-        paletteGraphicGRYdim,
-        paletteGraphicGRYbright,
-        paletteGraphicCMWdim,
-        paletteGraphicCMWbright};
-
-uint8_t const *graphPalettesBW[GRAPH_PALETTE_COUNT] =
-    {
-        paletteGraphicGRYdimBW,
-        paletteGraphicGRYbrightBW,
-        paletteGraphicCMWdimBW,
-        paletteGraphicCMWbrightBW};
-
-static unsigned char palette[16] = {
-    0x00, 0x73, 0xC3, 0xB6, 0x44, 0x65, 0x17, 0x0A,
-    0x05, 0x78, 0xC8, 0xBB, 0x49, 0x6A, 0x1C, 0x0F};
 
 typedef struct render_t
 {
@@ -235,6 +249,8 @@ void cursor_t::updatePosition()
 
 void renderInit()
 {
+  memcpy(palette, paletteHiRes, sizeof(palette));
+
   render.pendingChanges = false;
   render.dumper = dump80x25;
   render.paletteIndex = 0;
@@ -248,7 +264,7 @@ void renderInit()
   render.startAddr = 0;
   render.hOffset = 22;
   render.blitter = BLITTER_HIRES;
-  render.vmode = TEXT;
+  render.vmode = TEXT_HI;
 
   render.frameCount = 0;
 
@@ -289,16 +305,19 @@ static __always_inline void OnDumpDone()
     composite.setColorburstEnabled(colorEnabled);
     switch (render.vmode)
     {
-    case TEXT:
-      memcpy(palette, colorEnabled ? paletteBasic : paletteBasicBW, 16);
+    case TEXT_LO:
+      memcpy(palette, colorEnabled ? paletteLoRes : paletteBW, 16);
+      break;
+    case TEXT_HI:
+      memcpy(palette, colorEnabled ? paletteHiRes : paletteBW, 16);
       break;
     case GRAPH_LO:
       memcpy(palette, colorEnabled ? graphPalettes[render.paletteIndex] : graphPalettesBW[render.paletteIndex], GRAPH_PALETTE_SIZE);
-      palette[0] = paletteBasic[render.specialColor];
+      palette[0] = paletteLoRes[render.specialColor];
       break;
     case GRAPH_HI:
       palette[0] = 0;
-      palette[1] = colorEnabled ? paletteBasic[render.specialColor] : paletteBasicBW[render.specialColor];
+      palette[1] = colorEnabled ? paletteHiRes[render.specialColor] : paletteBW[render.specialColor];
       break;
     }
 
@@ -587,7 +606,7 @@ void renderUpdateSettings(uint8_t settings, uint8_t colors)
   const bool colorSuppressed    = (settings & 0x04);
   pendingRender.hasColor        = colorSuppressed ? COLORBURST_DISABLE : COLORBURST_ENABLE;
   pendingRender.dumper          = modes[_mode].dumper;
-  pendingRender.textColCount    = modes[_mode].textWidth;
+  pendingRender.textColCount    = modes[_mode].textColCount;
   pendingRender.hOffset         = modes[_mode].hOffset;
   pendingRender.blitter         = modes[_mode].blitter;
 
@@ -601,7 +620,7 @@ void renderUpdateSettings(uint8_t settings, uint8_t colors)
   static const uint8_t PALETTE_MASK = 0x03;
 
   pendingRender.paletteIndex = (colors >> PALETTE_POS) & PALETTE_MASK;
-  pendingRender.vmode        = !(settings & 0x02) ? TEXT : ((settings & 0x10) ? GRAPH_HI : GRAPH_LO);
+  pendingRender.vmode        = !(settings & 0x02) ? ((settings & 0x01) ? TEXT_HI : TEXT_LO) : ((settings & 0x10) ? GRAPH_HI : GRAPH_LO);
 
   pendingRender.pendingChanges = true;
 }
@@ -614,10 +633,17 @@ void renderUpdateBorder()
   uint32_t barHeight = 20;
   uint32_t barColor = 0;
 
-  if (render.vmode == GRAPH_HI)
-    barColor = 0;
-  else
-    barColor = render.hasColor ? paletteBasic[render.specialColor] : paletteBasicBW[render.specialColor];
+  switch(render.vmode)
+  {
+    case TEXT_HI:
+      barColor = render.hasColor ? paletteHiRes[render.specialColor] : paletteBW[render.specialColor];
+      break;
+    case GRAPH_HI:
+      barColor = 0;
+      break;
+    default:
+      barColor = render.hasColor ? paletteLoRes[render.specialColor] : paletteBW[render.specialColor];
+  }
 
   for (int y = 0; y < barHeight; y++)
   {
