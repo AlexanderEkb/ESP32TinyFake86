@@ -30,6 +30,9 @@
 #include <string.h>
 #include "io/speaker.h"
 
+#include <driver/periph_ctrl.h>
+#include <driver/timer.h>
+
 #define PIT_MODE_LATCHCOUNT 0
 #define PIT_MODE_LOBYTE 1
 #define PIT_MODE_HIBYTE 2
@@ -50,6 +53,9 @@ static const uint32_t CHANNEL_COUNT = 3;
 struct i8253_s i8253[CHANNEL_COUNT];
 
 extern uint64_t hostfreq, curtick;
+
+static void initializeHWTimer();
+static bool IRAM_ATTR timerIsrHandler(void * p);
 
 static void out8253(uint32_t portnum, uint8_t value);
 static uint8_t in8253(uint32_t portnum);
@@ -97,8 +103,6 @@ static void writeControl(uint32_t address, uint8_t value)
   const uint32_t channel = value >> 6;
   const uint8_t accessmode = (value >> 4) & 3;
   const uint8_t mode = (value >> 1) & 7;
-  // if(channel == 0)
-  //   LOG("Write CR %02x: ch%02xh a%02x m%02x\n", value,  channel, accessmode, mode);
 
   i8253[channel].accessmode = accessmode;
   if(accessmode == PIT_MODE_LATCHCOUNT)
@@ -118,17 +122,11 @@ static uint8_t readCounter(uint32_t address)
 
   const bool interleavedRead = (accessMode == PIT_MODE_LATCHCOUNT) || (accessMode == PIT_MODE_TOGGLE);
   const bool readMSB = (accessMode == PIT_MODE_HIBYTE) || (interleavedRead && i8253[channel].MSB);
-  // uint8_t curbyte = 0;
-  // if ((accessMode == PIT_MODE_LATCHCOUNT) || (accessMode == PIT_MODE_LOBYTE) || ((accessMode == PIT_MODE_TOGGLE) && (i8253[channel].MSB == 0)))
-  //   curbyte = 0;
-  // else if ((accessMode == PIT_MODE_HIBYTE) || ((accessMode == PIT_MODE_TOGGLE) && (i8253[channel].MSB == 1)))
-  //   curbyte = 1;
 
   uint16_t & value = (i8253[channel].isLatched) ? i8253[channel].latch : i8253[channel].counter;
   if ((accessMode == 0) || (accessMode == PIT_MODE_TOGGLE))
     i8253[channel].MSB = !i8253[channel].MSB;
 
-  // const uint8_t result = (curbyte == 0) ? ((uint8_t)value) : ((uint8_t)(value >> 8));
   const uint8_t result = readMSB ? ((uint8_t)value) : ((uint8_t)(value >> 8));
   // LOG("Read ch%i: %02x\n", channel, result);
   return result;
@@ -142,6 +140,7 @@ static uint8_t readControl(uint32_t address)
 
 void init8253()
 {
+  initializeHWTimer();
   for(uint32_t channel=0; channel<3; channel++)
   {
     i8253[channel].update = 0x0001;
@@ -171,4 +170,46 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR i8253Exec()
       }
     }
   }
+}
+
+static void initializeHWTimer()
+{
+  static const uint32_t TIMER_DIVIDER = 65535;
+  Serial.printf("Enable periph clock\r\n");
+  periph_module_enable(PERIPH_TIMG0_MODULE);
+  timer_config_t config = {
+        // timer_alarm_t alarm_en;      /*!< Timer alarm enable */
+        // timer_start_t counter_en;    /*!< Counter enable */
+        // timer_intr_mode_t intr_type; /*!< Interrupt mode */
+        // timer_count_dir_t counter_dir; /*!< Counter direction  */
+        // timer_autoreload_t auto_reload;   /*!< Timer auto-reload */
+        // uint32_t divider;   /*!< Counter clock divider. The divider's range is from from 2 to 65536. */
+    TIMER_ALARM_EN,
+    TIMER_PAUSE,
+    TIMER_INTR_LEVEL,
+    TIMER_COUNT_UP,
+    TIMER_AUTORELOAD_EN,
+    TIMER_DIVIDER
+
+  }; // default clock source is APB
+  timer_init(TIMER_GROUP_0, TIMER_0, &config);
+  timer_pause(TIMER_GROUP_0, TIMER_0);
+  timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0);
+  uint64_t foo = TIMER_BASE_CLK / TIMER_DIVIDER;
+  timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, foo);
+  timer_enable_intr(TIMER_GROUP_0, TIMER_0);
+
+  Serial.printf("Timer base clock: %i Hz\r\n", TIMER_BASE_CLK);
+  timer_isr_callback_add(TIMER_GROUP_0, TIMER_0, timerIsrHandler, nullptr, ESP_INTR_FLAG_IRAM);
+  Serial.printf("Done\r\n");
+  timer_start(TIMER_GROUP_0, TIMER_0);
+}
+
+static bool IRAM_ATTR timerIsrHandler(void * p)
+{
+  static uint32_t counter;
+
+  Serial.printf("tick %i\r\n", ++counter);
+
+  return false;
 }
