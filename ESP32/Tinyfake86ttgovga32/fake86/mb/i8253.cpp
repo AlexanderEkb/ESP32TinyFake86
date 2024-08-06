@@ -139,7 +139,7 @@ static uint8_t readControl(uint32_t address)
 
 void init8253()
 {
-  initializeHWTimer();
+  // initializeHWTimer();
   for(uint32_t channel=0; channel<3; channel++)
   {
     i8253[channel].update = 0x0001;

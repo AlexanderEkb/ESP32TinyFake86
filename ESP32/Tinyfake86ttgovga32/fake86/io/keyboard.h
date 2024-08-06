@@ -11,7 +11,7 @@
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 
-void IRAM_ATTR kb_interruptHandler(void *p);
+extern void kb_interruptHandler(void * p);
 uint8_t getScancode(void);
 
 class KeyboardDriver {
@@ -81,7 +81,7 @@ class KeyboardDriverSTM : public KeyboardDriver
         lastKey = scancode;
       }
     }
-    friend void IRAM_ATTR kb_interruptHandler(void *p);
+    friend void IRAM_ATTR kb_interruptHandler(void * p);
     /*
     // https://homepages.cwi.nl/~aeb/linux/kbd/scancodes-1.html
     //  00    01    02    03    04    05    06    07    08    09    0a    0b    0c    0d    0e    0f
