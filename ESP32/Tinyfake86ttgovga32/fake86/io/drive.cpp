@@ -1,5 +1,6 @@
 #include "drive.h"
-#include <Arduino.h>
+
+#define TAG "drive"
 
 SdCard Drive_t::sdCard;
 
@@ -78,10 +79,13 @@ bool Drive_t::openImage(char const *imgName)
   if (pImage != nullptr)
     fclose(pImage);
   static const uint32_t LENGTH = 256;
-  Serial.printf("Opening image '%s'...", imgName);
+  ESP_LOGI(TAG, "Opening image '%s'...", imgName);
   pImage = fopen(imgName, "r+");
   const bool result = (pImage != nullptr);
-  Serial.printf(result ? "OK\n" : "FAILED!\n");
+  if(result)
+     ESP_LOGI(TAG, "OK");
+  else
+     ESP_LOGE(TAG, "FAILED!");
   imgIndex = 0;
   return result;
 }

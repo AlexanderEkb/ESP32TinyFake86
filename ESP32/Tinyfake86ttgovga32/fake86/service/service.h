@@ -2,11 +2,8 @@
 #define _SERVICE_H_
 
 #include <stdint.h>
-#include "Arduino.h"
 
-#define LOG(...) Serial.printf(__VA_ARGS__)
-
-#define ASSERT(X) if(X == 0) {LOG("Assertion failed at %s line %i", __FILE__, __LINE__); while(1);}
+#define ASSERT(X) if(X == 0) {ESP_LOGE("svc", "Assertion failed at %s line %i", __FILE__, __LINE__); while(1);}
 
 typedef struct DBG_MEM_ADDR
 {

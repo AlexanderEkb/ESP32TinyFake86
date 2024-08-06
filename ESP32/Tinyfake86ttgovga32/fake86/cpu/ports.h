@@ -2,6 +2,7 @@
 #define _PORTS_H
 
 #include <stdint.h>
+#include <esp_log.h>
 #include "gbGlobals.h"
 
 typedef uint8_t(* portReader_t)(uint32_t address);
@@ -94,9 +95,9 @@ class IOPort
 
     void scan()
     {
-      LOG("IO port handled in this implementation...\n");
+      ESP_LOGI("ports", "IO port handled in this implementation...\n");
       _scan(root);
-      LOG("Scan finished.\n");
+      ESP_LOGI("ports", "Scan finished.\n");
     }
 
     uint8_t read(uint32_t address)
@@ -173,7 +174,7 @@ class IOPort
     {
     if(startPoint != nullptr)
     {
-      LOG("Port %03xh\n", startPoint->address);
+      ESP_LOGI("ports", "Port %03xh\n", startPoint->address);
       _scan(startPoint->right);
       _scan(startPoint->left);
     }

@@ -4,10 +4,7 @@
 //  MODE320x200
 //  Single core and dual core
 
-#include <Arduino.h>
-#ifndef use_lib_speaker_cpu
-#include <Ticker.h>
-#endif
+
 #include "config/gbConfig.h"
 #include "cpu/cpu.h"
 #include "driver/timer.h"
@@ -28,17 +25,25 @@
 #include "stats.h"
 #include "video/render.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/portable.h"
+#include "esp_timer.h"
+
+// #include "spiram.h"
+
 ///////////////////////////////////////////////////////////////////////////////////////// Local macros
 
+#define TAG "MAIN"
 #ifndef use_lib_singlecore
 // Video Task Core BEGIN
 void videoTask(void *unused);
 TaskHandle_t videoTaskHandle;
 #endif
 
-#ifndef use_lib_speaker_cpu
-Ticker gb_ticker_callback;
-#endif
+// #ifndef use_lib_speaker_cpu
+// Ticker gb_ticker_callback;
+// #endif
 
 unsigned char gb_delay_tick_cpu_milis = use_lib_delay_tick_cpu_milis;
 unsigned char gb_vga_poll_milis = use_lib_vga_poll_milis;
@@ -74,16 +79,16 @@ uint32_t speed = 0;
 
 void inithardware()
 {
-  LOG("Initializing emulated hardware:\n");
-  LOG("  - Intel 8253 timer: ");
+  ESP_LOGI(TAG, "Initializing emulated hardware:");
+  ESP_LOGI(TAG, "  - Intel 8253 timer:");
   init8253();
-  LOG("OK\n");
-  LOG("  - Intel 8259 interrupt controller: ");
+  ESP_LOGI(TAG, "    OK");
+  ESP_LOGI(TAG, "  - Intel 8259 interrupt controller:");
   init8259();
-  LOG("OK\n");
-  LOG("  - Intel 8237 DMA controller: ");
+  ESP_LOGI(TAG, "    OK");
+  ESP_LOGI(TAG, "  - Intel 8237 DMA controller:");
   init8237();
-  LOG("OK\n");
+  ESP_LOGI(TAG, "OK");
 }
 
 void DoSoftReset()
@@ -103,47 +108,49 @@ void CreateRAM()
   const uint32_t coreID = xPortGetCoreID();
   const uint32_t ramAddr = SOC_EXTRAM_DATA_LOW + (coreID == 1 ? 2 * 1024 * 1024 : 0);
   ram = reinterpret_cast<uint8_t *>(ramAddr);
-  LOG("RAM initialized: core #%i, addr:0x%08X\n", coreID, ramAddr);
+  ESP_LOGI(TAG, "RAM initialized: core #%i, addr:0x%08X", coreID, ramAddr);
 }
 
 void setup()
 {
-  disableCore0WDT();
-  delay(100);
-  disableCore1WDT();
-
-  if (esp_spiram_init() != ESP_OK)
-    LOG("This app requires a board with PSRAM!\n");
-
-  esp_spiram_init_cache();
-
-#ifdef use_lib_log_serial
-  Serial.begin(115200);
-  Serial.printf("\nHEAP BEGIN %d\n", ESP.getFreeHeap());
-#endif
+  ESP_LOGI(TAG, "HELLO");
   CreateRAM();
   
   renderInit();
-  LOG("VGA %d\n", ESP.getFreeHeap());
+  ESP_LOGI(TAG, "VGA OK");
   keyboard->Init();
 
   reset86();
-  LOG("OK!\n");
   Covox_t::getInstance().init();
   inithardware();
 
 #ifndef use_lib_singlecore
-  xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
+  xTaskCreatePinnedToCore(&videoTask, "video", 1024 * 4, NULL, 5, &videoTaskHandle, 1);
 #endif
 
-#ifndef use_lib_speaker_cpu
-  float auxTimer = (float)1.0 / (float)SAMPLE_RATE;
-  gb_ticker_callback.attach(auxTimer, my_callback_speaker_func);
-#endif
+// #ifndef use_lib_speaker_cpu
+//   float auxTimer = (float)1.0 / (float)SAMPLE_RATE;
+//   gb_ticker_callback.attach(auxTimer, my_callback_speaker_func);
+// #endif
 
   diskInit();
 
-  LOG("END SETUP %d\n", ESP.getFreeHeap());
+  // Take a snapshot of the number of tasks in case it changes while this
+  // function is executing.
+  uint32_t count = uxTaskGetNumberOfTasks();
+  ESP_LOGI(TAG, "%i tasks are running:", count);
+
+  // Allocate a TaskStatus_t structure for each task.  An array could be
+  // allocated statically at compile time.
+  TaskStatus_t *pxTaskStatusArray = (TaskStatus_t *)pvPortMalloc( count * sizeof( TaskStatus_t ) );
+  uint32_t runtime;
+
+  uxTaskGetSystemState(pxTaskStatusArray, count, &runtime);
+  for(uint32_t i=0; i<count; i++)
+  {
+    ESP_LOGI(TAG, "  %s", pxTaskStatusArray[i].pcTaskName);
+  }
+  vPortFree(pxTaskStatusArray);
 }
 
 #ifndef use_lib_singlecore
@@ -173,7 +180,7 @@ void loop()
   stats.countCPUTime();
 
   static uint32_t before;
-  const uint32_t now = millis();
+  const uint32_t now = esp_timer_get_time() / 1000U;
   if ((now - before) > gb_keyboard_poll_milis)
   {
     before = now;
@@ -184,7 +191,7 @@ void loop()
   execVideo();
 #endif
   stats.exec();
-  }
+}
 
 void execCPU(uint32_t const count)
 {
@@ -247,5 +254,15 @@ void execMisc()
   else if (result == OSD_RESULT_RETURN)
   {
     vTaskResume(videoTaskHandle);
+  }
+}
+
+extern "C"
+{
+  void app_main()
+  {
+    setup();
+    while(true)
+      loop();
   }
 }

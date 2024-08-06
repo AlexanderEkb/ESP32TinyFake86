@@ -1,7 +1,7 @@
 #ifndef SDCARD_H
 #define SDCARD_H
 
-#include "Arduino.h"
+#include <string.h>
 #include "config/hardware.h"
 #include <dirent.h>
 #include <driver/sdmmc_host.h>
@@ -18,15 +18,7 @@
 
 #define RG_PATH_MAX 255
 
-#ifdef use_lib_log_serial
-#define RG_LOGI(...) Serial.printf(__VA_ARGS__)
-#define RG_LOGW(...) Serial.printf(__VA_ARGS__)
-#define RG_LOGE(...) Serial.printf(__VA_ARGS__)
-#else
-#define RG_LOGI(...) (void)
-#define RG_LOGW(...) (void)
-#define RG_LOGE(...) (void)
-#endif
+#define TAG "SDCARD"
 
 enum {
     RG_SCANDIR_STAT = 1, // This will populate file size
@@ -77,7 +69,7 @@ class SdCard {
         };
         err = spi_bus_initialize(RG_STORAGE_HOST, &bus_cfg, SPI_DMA_CH_AUTO);
         if (err != ESP_OK) // check but do not abort, let esp_vfs_fat_sdspi_mount decide
-            RG_LOGE("SPI bus init failed (0x%x)\n", err);
+            ESP_LOGE(TAG, "SPI bus init failed (0x%x)", err);
 
         // sdspi_slot_config_t slot_config = SDSPI_SLOT_CONFIG_DEFAULT();
         // slot_config.gpio_miso = SDSPI_MISO;
@@ -92,7 +84,7 @@ class SdCard {
 
         err = esp_vfs_fat_sdspi_mount(RG_STORAGE_ROOT, &host_config, &slot_config, &mount_config, NULL);
         if (err == ESP_ERR_TIMEOUT || err == ESP_ERR_INVALID_RESPONSE || err == ESP_ERR_INVALID_CRC) {
-            RG_LOGW("SD Card mounting failed (0x%x), retrying at lower speed...\n", err);
+            ESP_LOGW(TAG, "SD Card mounting failed (0x%x), retrying at lower speed...", err);
             host_config.max_freq_khz = SDMMC_FREQ_PROBING;
             err = esp_vfs_fat_sdspi_mount(RG_STORAGE_ROOT, &host_config, &slot_config, &mount_config, NULL);
         }
@@ -120,7 +112,7 @@ class SdCard {
 
         esp_err_t err = esp_vfs_fat_sdmmc_mount(RG_STORAGE_ROOT, &host_config, &slot_config, &mount_config, NULL);
         if (err == ESP_ERR_TIMEOUT || err == ESP_ERR_INVALID_RESPONSE || err == ESP_ERR_INVALID_CRC) {
-            RG_LOGW("SD Card mounting failed (0x%x), retrying at lower speed...\n", err);
+            ESP_LOGW(TAG, "SD Card mounting failed (0x%x), retrying at lower speed...", err);
             host_config.max_freq_khz = SDMMC_FREQ_PROBING;
             err = esp_vfs_fat_sdmmc_mount(RG_STORAGE_ROOT, &host_config, &slot_config, &mount_config, NULL);
         }
@@ -146,7 +138,7 @@ class SdCard {
         if (!error_code) {
           OnMountSuccess();
         } else
-            RG_LOGE("Storage mounting failed. driver=%d, err=0x%x\n", RG_STORAGE_DRIVER, error_code);
+            ESP_LOGE(TAG, "Storage mounting failed. driver=%d, err=0x%x", RG_STORAGE_DRIVER, error_code);
 
         disk_mounted = !error_code;
         return disk_mounted;
@@ -181,9 +173,9 @@ class SdCard {
 #endif
 
         if (!error_code)
-            RG_LOGI("Storage unmounted.\n");
+            ESP_LOGI(TAG, "Storage unmounted.");
         else
-            RG_LOGE("Storage unmounting failed. err=0x%x\n", error_code);
+            ESP_LOGE(TAG, "Storage unmounting failed. err=0x%x", error_code);
 
         disk_mounted = false;
     }
@@ -201,7 +193,7 @@ class SdCard {
 
     scandir_t *scandir()
     {
-        RG_LOGI("Scanning...\r\n");
+        ESP_LOGI(TAG, "Scanning...");
         DIR *dir = opendir(RG_STORAGE_FLOPPIES);
         if (!dir)
             return NULL;
@@ -241,7 +233,7 @@ class SdCard {
               void *temp = realloc(imgList, (capacity + 1) * sizeof(scandir_t));
               if (!temp)
               {
-                RG_LOGW("Not enough memory to finish scan!\n");
+                ESP_LOGW(TAG, "Not enough memory to finish scan!");
                 break;
               }
               imgList = (scandir_t *)temp;
@@ -251,14 +243,14 @@ class SdCard {
             strncpy(result->name, basename, sizeof(result->name) - 1);
         }
         memset(&imgList[count], 0, sizeof(scandir_t));
-        RG_LOGI("%i entries found.\r\n", count);
+        ESP_LOGI(TAG, "%i entries found.", count);
         closedir(dir);
         return imgList;
     }
 
     void OnMountSuccess()
     {
-      RG_LOGI("Storage mounted at %s. driver=%d\n", RG_STORAGE_ROOT, RG_STORAGE_DRIVER);
+      ESP_LOGI(TAG, "Storage mounted at %s. driver=%d", RG_STORAGE_ROOT, RG_STORAGE_DRIVER);
       scandir();
     }
 };

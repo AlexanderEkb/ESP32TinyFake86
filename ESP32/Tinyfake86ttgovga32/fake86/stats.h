@@ -1,15 +1,9 @@
 #ifndef STATS_H
 #define STATS_H
 
-#include "esp32-hal.h"
 #include <stdint.h>
-#include "config.h"
-
-#ifdef use_lib_log_serial
-#define LOG(...) Serial.printf(__VA_ARGS__)
-#else
-#define LOG(...) (void)
-#endif
+#include "config/config.h"
+#include "esp_timer.h"
 
 #ifdef STATS_ON
 #define PRINT_STATS(...) Serial.printf(__VA_ARGS__)
@@ -30,7 +24,7 @@ class Stats
 
   void exec()
   {
-    const uint32_t now = millis();
+    const uint32_t now = esp_timer_get_time() / 1000U;
     if ((now - timestampExec_ms) > PERIOD_ms)
     {
       timestampExec_ms = now;
@@ -38,11 +32,11 @@ class Stats
     }
   };
 
-  void startIteration() { timestamp = micros(); };
+  void startIteration() { timestamp = esp_timer_get_time(); };
 
   void countCPUTime()
   {
-    uint32_t now = micros();
+    uint32_t now = esp_timer_get_time();
     CPU_TIME.instant = (now - timestamp);
     if (CPU_TIME.instant > CPU_TIME.max)
       CPU_TIME.max = CPU_TIME.instant;

@@ -16,7 +16,7 @@ debugger_t::debugger_t()
 
 void debugger_t::nextBrowser()
 {
-  auto i = std::find(children.begin(), children.end(), browser);
+  auto i = std::ranges::find(children.begin(), children.end(), browser);
   browser_t ** b = reinterpret_cast<browser_t **>(&i);
   i++;
   if(i == children.end())

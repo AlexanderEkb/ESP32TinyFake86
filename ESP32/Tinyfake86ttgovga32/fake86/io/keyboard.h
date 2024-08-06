@@ -2,17 +2,16 @@
 #define KEYBOARD_H
 
 #include "fake86.h"
-#include "config/gbConfig.h"
 #include "gbGlobals.h"
 #include "config/hardware.h"
+#include "config/gbConfig.h"
 #include "mb/i8259.h"
 #include "io/keys.h"
-#include <Arduino.h>
-#include <esp32-hal-gpio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "driver/gpio.h"
 
-void IRAM_ATTR kb_interruptHandler(void);
+void IRAM_ATTR kb_interruptHandler(void *p);
 uint8_t getScancode(void);
 
 class KeyboardDriver {
@@ -21,7 +20,6 @@ class KeyboardDriver {
     virtual void Reset() = 0;
     virtual uint8_t Poll() = 0;
     virtual uint8_t getLastKey() = 0;
-    virtual void resetRdy();
 };
 
 class KeyboardDriverSTM : public KeyboardDriver
@@ -33,25 +31,35 @@ class KeyboardDriverSTM : public KeyboardDriver
       q = xQueueCreate(16, 1);
     }
     virtual void Init() {
-      pinMode(KEYBOARD_DATA, INPUT_PULLUP);
-      pinMode(KEYBOARD_CLK, INPUT_PULLUP);
-      // pinMode(KEYBOARD_RDY, OUTPUT_OPEN_DRAIN);
-      // digitalWrite(KEYBOARD_DATA, true);
-      // digitalWrite(KEYBOARD_CLK, true);
-      // digitalWrite(KEYBOARD_RDY, true);
-      attachInterrupt(digitalPinToInterrupt(KEYBOARD_CLK), kb_interruptHandler, FALLING);
+      gpio_config_t cfg_clk = {
+        .pin_bit_mask = (1ULL << KEYBOARD_CLK),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_NEGEDGE
+      };
+      ESP_ERROR_CHECK(gpio_config(&cfg_clk));
+      gpio_config_t cfg_dat = {
+        .pin_bit_mask = (1ULL << KEYBOARD_DATA),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_NEGEDGE
+      };
+      ESP_ERROR_CHECK(gpio_config(&cfg_dat));
+      intr_handle_t handle;
+      ESP_ERROR_CHECK(esp_intr_alloc(ETS_GPIO_INTR_SOURCE, ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM, kb_interruptHandler, nullptr, &handle));
+      ESP_ERROR_CHECK(esp_intr_enable(handle));
     }
 
     virtual void Reset() {
       lastKey = 0;
-      resetRdy();
       xQueueReset(q);
     }
 
     virtual uint8_t getLastKey() {
       uint8_t result = lastKey;
       lastKey = 0;
-      resetRdy();
       return result;
     }
 
@@ -60,11 +68,6 @@ class KeyboardDriverSTM : public KeyboardDriver
       if(xQueueReceive(q, &result, 0) != pdTRUE)
         result = 0;
       return result;
-    }
-
-    virtual void resetRdy()
-    {
-      // digitalWrite(KEYBOARD_RDY, true);
     }
 
   private:
@@ -78,7 +81,7 @@ class KeyboardDriverSTM : public KeyboardDriver
         lastKey = scancode;
       }
     }
-    friend void IRAM_ATTR kb_interruptHandler(void);
+    friend void IRAM_ATTR kb_interruptHandler(void *p);
     /*
     // https://homepages.cwi.nl/~aeb/linux/kbd/scancodes-1.html
     //  00    01    02    03    04    05    06    07    08    09    0a    0b    0c    0d    0e    0f

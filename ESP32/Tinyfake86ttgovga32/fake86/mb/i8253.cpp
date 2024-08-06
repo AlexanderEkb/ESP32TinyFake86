@@ -26,12 +26,12 @@
 #include "mb/i8253.h"
 #include "gbGlobals.h"
 #include "cpu/ports.h"
-#include <Arduino.h>
 #include <string.h>
 #include "io/speaker.h"
 
 #include <driver/periph_ctrl.h>
 #include <driver/timer.h>
+
 
 #define PIT_MODE_LATCHCOUNT 0
 #define PIT_MODE_LOBYTE 1
@@ -55,7 +55,6 @@ struct i8253_s i8253[CHANNEL_COUNT];
 extern uint64_t hostfreq, curtick;
 
 static void initializeHWTimer();
-static bool IRAM_ATTR timerIsrHandler(void * p);
 
 static void out8253(uint32_t portnum, uint8_t value);
 static uint8_t in8253(uint32_t portnum);
@@ -140,7 +139,7 @@ static uint8_t readControl(uint32_t address)
 
 void init8253()
 {
-  // initializeHWTimer();
+  initializeHWTimer();
   for(uint32_t channel=0; channel<3; channel++)
   {
     i8253[channel].update = 0x0001;
@@ -172,44 +171,52 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR i8253Exec()
   }
 }
 
+static bool IRAM_ATTR timerIsrHandler1(void * p);
+static void IRAM_ATTR timerIsrHandler2(void * p);
+
 static void initializeHWTimer()
 {
-  static const uint32_t TIMER_DIVIDER = 65535;
-  Serial.printf("Enable periph clock\r\n");
+  static const uint32_t TIMER_DIVIDER = 16;
   periph_module_enable(PERIPH_TIMG0_MODULE);
   timer_config_t config = {
-        // timer_alarm_t alarm_en;      /*!< Timer alarm enable */
-        // timer_start_t counter_en;    /*!< Counter enable */
-        // timer_intr_mode_t intr_type; /*!< Interrupt mode */
-        // timer_count_dir_t counter_dir; /*!< Counter direction  */
-        // timer_autoreload_t auto_reload;   /*!< Timer auto-reload */
-        // uint32_t divider;   /*!< Counter clock divider. The divider's range is from from 2 to 65536. */
     TIMER_ALARM_EN,
     TIMER_PAUSE,
     TIMER_INTR_LEVEL,
     TIMER_COUNT_UP,
     TIMER_AUTORELOAD_EN,
+    TIMER_SRC_CLK_APB,
     TIMER_DIVIDER
 
   }; // default clock source is APB
-  timer_init(TIMER_GROUP_0, TIMER_0, &config);
-  timer_pause(TIMER_GROUP_0, TIMER_0);
-  timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0);
+  ESP_ERROR_CHECK(timer_init(TIMER_GROUP_0, TIMER_0, &config));
+  ESP_ERROR_CHECK(timer_pause(TIMER_GROUP_0, TIMER_0));
+  ESP_ERROR_CHECK(timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0));
+  static const uint32_t TIMER_BASE_CLK = 80000000;
   uint64_t foo = TIMER_BASE_CLK / TIMER_DIVIDER;
-  timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, foo);
-  timer_enable_intr(TIMER_GROUP_0, TIMER_0);
+  ESP_ERROR_CHECK(timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, foo));
+  ESP_ERROR_CHECK(timer_enable_intr(TIMER_GROUP_0, TIMER_0));
 
-  Serial.printf("Timer base clock: %i Hz\r\n", TIMER_BASE_CLK);
-  timer_isr_callback_add(TIMER_GROUP_0, TIMER_0, timerIsrHandler, nullptr, ESP_INTR_FLAG_IRAM);
-  Serial.printf("Done\r\n");
+  // timer_isr_callback_add(TIMER_GROUP_0, TIMER_0, timerIsrHandler1, nullptr, ESP_INTR_FLAG_IRAM);
+
+  intr_handle_t _isr_handle;
+  ESP_ERROR_CHECK(esp_intr_alloc(ETS_TG0_T0_EDGE_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM,
+        timerIsrHandler2, 0, &_isr_handle));
+  ESP_ERROR_CHECK(esp_intr_enable(_isr_handle));
   timer_start(TIMER_GROUP_0, TIMER_0);
 }
 
-static bool IRAM_ATTR timerIsrHandler(void * p)
+static bool IRAM_ATTR timerIsrHandler1(void * p)
 {
   static uint32_t counter;
 
-  Serial.printf("tick %i\r\n", ++counter);
+  ESP_LOGI("HWTIM", "tick %i\r\n", ++counter);
 
   return false;
+}
+
+static void IRAM_ATTR timerIsrHandler2(void * p)
+{
+  static uint32_t counter;
+
+  ESP_LOGI("HWTIM", "tock %i\r\n", ++counter);
 }

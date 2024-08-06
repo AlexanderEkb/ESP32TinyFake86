@@ -1,7 +1,6 @@
 #include "io/speaker.h"
 #include "config/hardware.h"
 #include "cpu/ports.h"
-#include "esp32-hal-gpio.h"
 #include "covox.h"
 
 static uint32_t period = 0;

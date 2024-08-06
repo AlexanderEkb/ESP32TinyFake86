@@ -2,6 +2,9 @@
 #include "cpu/ports.h"
 #include "io/covox.h"
 
+#define HIGH  0x01
+#define LOW   0x00
+
 // static const uint8_t SW1 = 0b10010010;
 //                           ┌──────── ⌠ Total diskette
 //                           │┌─────── ⌡ drives

@@ -11,7 +11,6 @@
 #include "video/render.h"
 #include "video/gb_sdl_font8x8.h"
 #include "service/service.h"
-#include <Esp.h>
 #include <string.h>
 #include "stats.h"
 #include "debugger/debugger.h"
@@ -170,7 +169,7 @@ static void showColorMenu()
  if(selection <= COLORBURST_DISABLE)
  {
     renderSetColorburstOverride(selection);
-    LOG("renderSetColorburstOverride(%i)\n", selection);
+    ESP_LOGI("osd", "renderSetColorburstOverride(%i)\n", selection);
  }
 }
 
@@ -406,7 +405,7 @@ OSD_RESULT_t do_tinyOSD()
       ShowTinyDSKMenu(1);
       break;
     case 2:
-      ESP.restart();
+      esp_restart();
       break;
     case 3:
       ShowTinySpeedMenu();

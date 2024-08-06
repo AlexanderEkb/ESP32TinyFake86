@@ -26,11 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef use_lib_log_serial
-#define LOG(...) Serial.printf(__VA_ARGS__)
-#else
-#define LOG(...) (void)
-#endif
+#define TAG "disk"
 
 extern SdCard sdcard;
 extern union _bytewordregs_ regs;
@@ -59,14 +55,21 @@ void setResult(uint8_t _result)
 
 void diskInit()
 {
-  pinMode(DISK_LED, OUTPUT_OPEN_DRAIN);
-  digitalWrite(DISK_LED, false);
+  gpio_config_t config = {
+    .pin_bit_mask = 1 << DISK_LED,          /*!< GPIO pin: set with bit mask, each bit maps to a GPIO */
+    .mode = GPIO_MODE_OUTPUT_OD,            /*!< GPIO mode: set input/output mode                     */
+    .pull_up_en = GPIO_PULLUP_DISABLE,      /*!< GPIO pull-up                                         */
+    .pull_down_en = GPIO_PULLDOWN_DISABLE,  /*!< GPIO pull-down                                       */
+    .intr_type = GPIO_INTR_DISABLE          /*!< GPIO interrupt type                                  */
+  };
+  gpio_config(&config);
+  gpio_set_level(DISK_LED, 0);
   const bool sdCardOk = Drive_t::sdCard.Init();
   if(sdCardOk)
   {
     driveC.openImage(DEFAULT_HDD_IMAGE);
   }
-  digitalWrite(DISK_LED, true);
+  gpio_set_level(DISK_LED, 1);
   lastResult = RESULT_OK;
 }
 
@@ -78,12 +81,12 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_
     setResult(RESULT_WRONG_PARAM);
     return;
   }
-  digitalWrite(DISK_LED, false);
+  gpio_set_level(DISK_LED, 0);
   Drive_t *drive = drives[src.drive];
   uint8_t result = drive->read(src, getramloc(dst.linear()));
 
   setResult(result);
-  digitalWrite(DISK_LED, true);
+  gpio_set_level(DISK_LED, 1);
   if (result == RESULT_OK)
   {
     regs.byteregs[regal] = src.sectorCount;
@@ -91,14 +94,14 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_
   }
   else
   {
-    LOG("Reading error: D%i C%i H%i S%i L%i %04X:%04X ", src.drive, src.cylinder, src.head, src.sector, src.sectorCount, dst.segment, dst.offset);
+    ESP_LOGE(TAG, "Reading error: D%i C%i H%i S%i L%i %04X:%04X ", src.drive, src.cylinder, src.head, src.sector, src.sectorCount, dst.segment, dst.offset);
   }
 }
 
 void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
 {
   // LOG("Writing D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
-  digitalWrite(DISK_LED, false);
+  gpio_set_level(DISK_LED, 0);
   Drive_t *drive = drives[dst.drive];
   uint8_t result = drive->write(getramloc(src.linear()), dst);
 
@@ -109,10 +112,10 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
   }
   else
   {
-    LOG("Writing error: D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
+    ESP_LOGE(TAG, "Writing error: D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
   }
   setResult(result);
-  digitalWrite(DISK_LED, true);
+  gpio_set_level(DISK_LED, 1);
 }
 
 void diskhandler()
@@ -203,16 +206,16 @@ uint8_t getBootDrive()
 {
   if(driveA.isReady())
   {
-    LOG("Booting from drive A:\n");
+    ESP_LOGI(TAG, "Booting from drive A:\n");
     return 0x00;
   }
   else if(driveC.isReady())
   {
-    LOG("Booting from drive C:\n");
+    ESP_LOGI(TAG, "Booting from drive C:\n");
     return 0x02;
   }
   else
-    LOG("Booting to BASIC\n");
+    ESP_LOGI(TAG, "Booting to BASIC\n");
 
   return 0xFF;
 }

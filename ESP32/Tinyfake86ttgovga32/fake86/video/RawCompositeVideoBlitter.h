@@ -30,6 +30,8 @@
 #define AUDIO_PIN         18  // can be any pin
 #define DOUBLE_PIXEL_RATE 1
 
+#define TAG "rcvb"
+
 //#define IR_PIN      0   // TSOP4838 or equivalent on any pin if desired
 
 #include "esp_types.h"
@@ -37,6 +39,7 @@
 #include "esp_attr.h"
 #include "esp_intr_alloc.h"
 #include "esp_err.h"
+#include "esp_log.h"
 #include "soc/gpio_reg.h"
 #include "soc/rtc.h"
 #include "soc/soc.h"
@@ -247,9 +250,9 @@ const uint32_t *ntsc_palette_even() { return atari_4_phase_ntsc_even; };
 const uint16_t *ntsc_palette_odd() { return atari_4_phase_ntsc_odd; };
 const uint32_t *pal_palette() { return atari_4_phase_pal; }
 
-constexpr unsigned int NTSC_DEFAULT_WIDTH = 336;
-constexpr unsigned int Screen_WIDTH = NTSC_DEFAULT_WIDTH;
-constexpr unsigned int Screen_HEIGHT = 240;
+constexpr uint32_t NTSC_DEFAULT_WIDTH = 336;
+constexpr uint32_t Screen_WIDTH = NTSC_DEFAULT_WIDTH;
+constexpr uint32_t Screen_HEIGHT = 240;
 
 uint8_t  ** _lines;
 bool        bColorburstEnabled = true;
@@ -286,97 +289,103 @@ void IRAM_ATTR video_isr(volatile void* buf);
 // simple isr
 static void IRAM_ATTR i2s_intr_handler_video(void *arg) {
     if (I2S0.int_st.out_eof)
-        video_isr(((lldesc_t*)I2S0.out_eof_des_addr)->buf); // get the next line of video
+        video_isr((volatile void *)((lldesc_t*)I2S0.out_eof_des_addr)->buf); // get the next line of video
     I2S0.int_clr.val = I2S0.int_st.val;                     // reset the interrupt
 }
 
 static esp_err_t start_dma(int line_width,int samples_per_cc, int ch = 1)
 {
-    periph_module_enable(PERIPH_I2S0_MODULE);
+  periph_module_enable(PERIPH_I2S0_MODULE);
 
-    // setup interrupt
-    if (esp_intr_alloc(ETS_I2S0_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_INTRDISABLED,
-        i2s_intr_handler_video, 0, &_isr_handle) != ESP_OK)
-        return -1;
+  // setup interrupt
+  if (esp_intr_alloc(ETS_I2S0_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_INTRDISABLED,
+      i2s_intr_handler_video, 0, &_isr_handle) != ESP_OK)
+      return -1;
 
-    // reset conf
-    I2S0.conf.val = 1;
-    I2S0.conf.val = 0;
-    I2S0.conf.tx_right_first = 1;
-    I2S0.conf.tx_mono = (ch == 2 ? 0 : 1);
+  // reset conf
+  I2S0.conf.val = 1;
+  I2S0.conf.val = 0;
+  I2S0.conf.tx_right_first = 1;
+  I2S0.conf.tx_mono = (ch == 2 ? 0 : 1);
 
-    I2S0.conf2.lcd_en = 1;
-    I2S0.fifo_conf.tx_fifo_mod_force_en = 1;
-    I2S0.sample_rate_conf.tx_bits_mod = 16;
-    I2S0.conf_chan.tx_chan_mod = (ch == 2) ? 0 : 1;
+  I2S0.conf2.lcd_en = 1;
+  I2S0.fifo_conf.tx_fifo_mod_force_en = 1;
+  I2S0.sample_rate_conf.tx_bits_mod = 16;
+  I2S0.conf_chan.tx_chan_mod = (ch == 2) ? 0 : 1;
 
-    // Create TX DMA buffers
-    for (int i = 0; i < 2; i++) {
-        int n = line_width*2*ch;
-        if (n >= 4092) {
-            printf("DMA chunk too big: %i\n",n);
-            return -1;
-        }
-        _dma_desc[i].buf = (uint8_t*)heap_caps_calloc(1, n, MALLOC_CAP_DMA);
-        if (!_dma_desc[i].buf)
-            return -1;
-        
-        _dma_desc[i].owner = 1;
-        _dma_desc[i].eof = 1;
-        _dma_desc[i].length = n;
-        _dma_desc[i].size = n;
-        _dma_desc[i].empty = (uint32_t)(i == 1 ? _dma_desc : _dma_desc+1);
-    }
-    I2S0.out_link.addr = (uint32_t)_dma_desc;
+  // Create TX DMA buffers
+  for (int i = 0; i < 2; i++) {
+      int n = line_width*2*ch;
+      if (n >= 4092) {
+          ESP_LOGE(TAG, "DMA chunk too big: %i\n", n);
+          return -1;
+      }
+      _dma_desc[i].buf = (uint8_t*)heap_caps_calloc(1, n, MALLOC_CAP_DMA);
+      if (!_dma_desc[i].buf)
+          return -1;
+      
+      _dma_desc[i].owner = 1;
+      _dma_desc[i].eof = 1;
+      _dma_desc[i].length = n;
+      _dma_desc[i].size = n;
+      _dma_desc[i].empty = (uint32_t)(i == 1 ? _dma_desc : _dma_desc+1);
+  }
+  I2S0.out_link.addr = (uint32_t)_dma_desc;
 
-    //  Setup up the apll: See ref 3.2.7 Audio PLL
-    //  f_xtal = (int)rtc_clk_xtal_freq_get() * 1000000;
-    //  f_out = xtal_freq * (4 + sdm2 + sdm1/256 + sdm0/65536); // 250 < f_out < 500
-    //  apll_freq = f_out/((o_div + 2) * 2)
-    //  operating range of the f_out is 250 MHz ~ 500 MHz
-    //  operating range of the apll_freq is 16 ~ 128 MHz.
-    //  select sdm0,sdm1,sdm2 to produce nice multiples of colorburst frequencies
+  //  Setup up the apll: See ref 3.2.7 Audio PLL
+  //  f_xtal = (int)rtc_clk_xtal_freq_get() * 1000000;
+  //  f_out = xtal_freq * (4 + sdm2 + sdm1/256 + sdm0/65536); // 250 < f_out < 500
+  //  apll_freq = f_out/((o_div + 2) * 2)
+  //  operating range of the f_out is 250 MHz ~ 500 MHz
+  //  operating range of the apll_freq is 16 ~ 128 MHz.
+  //  select sdm0,sdm1,sdm2 to produce nice multiples of colorburst frequencies
 
-    //  see calc_freq() for math: (4+a)*10/((2 + b)*2) mhz
-    //  up to 20mhz seems to work ok:
-    //  rtc_clk_apll_enable(1,0x00,0x00,0x4,0);   // 20mhz for fancy DDS
+  //  see calc_freq() for math: (4+a)*10/((2 + b)*2) mhz
+  //  up to 20mhz seems to work ok:
+  //  rtc_clk_apll_enable(1,0x00,0x00,0x4,0);   // 20mhz for fancy DDS
 
-    #if SUPPORT_NTSC
-        if (!_pal_) {
-            switch (samples_per_cc) {
-                case 3: rtc_clk_apll_enable(1,0x46,0x97,0x4,2);   break;    // 10.7386363636 3x NTSC (10.7386398315mhz)
-                case 4: rtc_clk_apll_enable(1,0x46,0x97,0x4,1);   break;    // 14.3181818182 4x NTSC (14.3181864421mhz)
-            }
-        }
-    #endif
-    #if SUPPORT_PAL
-        if (_pal_) {
-            rtc_clk_apll_enable(1,0x04,0xA4,0x6,1);     // 17.734476mhz ~4x PAL
-        }
-    #endif
+  #if SUPPORT_NTSC
+      if (!_pal_) {
+          switch (samples_per_cc) {
+              case 3:
+                rtc_clk_apll_enable(true);
+                rtc_clk_apll_coeff_set(2, 0x46, 0x97, 0x04);     // 10.7386363636 3x NTSC (10.7386398315mhz)
+                break;
+              case 4:
+                rtc_clk_apll_enable(true);
+                rtc_clk_apll_coeff_set(1, 0x46, 0x97, 0x04);
+                break;    // 14.3181818182 4x NTSC (14.3181864421mhz)
+          }
+      }
+  #endif
+  #if SUPPORT_PAL
+      if (_pal_) {
+          rtc_clk_apll_enable(1,0x04,0xA4,0x6,1);     // 17.734476mhz ~4x PAL
+      }
+  #endif
 
-    I2S0.clkm_conf.clkm_div_num = 1;            // I2S clock divider’s integral value.
-    I2S0.clkm_conf.clkm_div_b = 0;              // Fractional clock divider’s numerator value.
-    I2S0.clkm_conf.clkm_div_a = 1;              // Fractional clock divider’s denominator value
-    I2S0.sample_rate_conf.tx_bck_div_num = 1;
-    I2S0.clkm_conf.clka_en = 1;                 // Set this bit to enable clk_apll.
-    I2S0.fifo_conf.tx_fifo_mod = (ch == 2) ? 0 : 1; // 32-bit dual or 16-bit single channel data
+  I2S0.clkm_conf.clkm_div_num = 1;            // I2S clock divider’s integral value.
+  I2S0.clkm_conf.clkm_div_b = 0;              // Fractional clock divider’s numerator value.
+  I2S0.clkm_conf.clkm_div_a = 1;              // Fractional clock divider’s denominator value
+  I2S0.sample_rate_conf.tx_bck_div_num = 1;
+  I2S0.clkm_conf.clka_en = 1;                 // Set this bit to enable clk_apll.
+  I2S0.fifo_conf.tx_fifo_mod = (ch == 2) ? 0 : 1; // 32-bit dual or 16-bit single channel data
 
-    dac_output_enable(DAC_CHANNEL_1);           // DAC, video on GPIO25
-    dac_i2s_enable();                           // start DAC!
+  dac_output_enable(DAC_CHANNEL_1);           // DAC, video on GPIO25
+  dac_i2s_enable();                           // start DAC!
 
-    I2S0.conf.tx_start = 1;                     // start DMA!
-    I2S0.int_clr.val = 0xFFFFFFFF;
-    I2S0.int_ena.out_eof = 1;
-    I2S0.out_link.start = 1;
-    return esp_intr_enable(_isr_handle);        // start interruprs!
+  I2S0.conf.tx_start = 1;                     // start DMA!
+  I2S0.int_clr.val = 0xFFFFFFFF;
+  I2S0.int_ena.out_eof = 1;
+  I2S0.out_link.start = 1;
+  return esp_intr_enable(_isr_handle);        // start interruprs!
 }
 
 static void stop_dma()
 {
     dac_i2s_disable();
     dac_output_disable(DAC_CHANNEL_1);
-    rtc_clk_apll_enable(0,0x00,0x00,0x00,0);
+    rtc_clk_apll_enable(false);
     // Dispose TX DMA buffers
     for (int i = 0; i < 2; i++) {
         free((void *)(_dma_desc[i].buf));
@@ -780,7 +789,7 @@ void video_init(VideoStandard standard)
     /// @return 
     void IRAM_ATTR blitter_1(uint8_t *src, uint16_t *dst)
     {
-      const unsigned int *destPalette = RawCompositeVideoBlitter::_palette;
+      const uint32_t *destPalette = RawCompositeVideoBlitter::_palette;
       static const uint32_t STEP = 4;
 
       uint32_t *d = (uint32_t *)(dst + 32);

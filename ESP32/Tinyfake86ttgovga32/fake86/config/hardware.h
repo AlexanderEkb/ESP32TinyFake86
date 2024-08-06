@@ -2,13 +2,16 @@
 #define _HARDWARE_H
 
 #include "gbConfig.h"
+#include "soc/gpio_num.h"
 
 #define RG_STORAGE_DRIVER 2
 
 #define VIDEO_PIN     25
 
-#define KEYBOARD_DATA 35
-#define KEYBOARD_CLK  34
+static const gpio_num_t KEYBOARD_DATA = GPIO_NUM_35;
+static const gpio_num_t KEYBOARD_CLK  = GPIO_NUM_34;
+
+static const gpio_num_t DISK_LED      = GPIO_NUM_13;
 // #define KEYBOARD_RDY  32
 #if RG_STORAGE_DRIVER == 1
 #define RG_STORAGE_HOST             HSPI_HOST           // Used by SDSPI and SDMMC
@@ -25,7 +28,6 @@
 #define SDIO_CLK      14
 #define SDIO_CMD      15
 #endif
-#define DISK_LED      13
 
 #define RED_H         22         
 #define RED_L         21

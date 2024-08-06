@@ -5,12 +5,6 @@
  #include <stdio.h>
  #include "io/keyboard.h" 
 
-#ifdef use_lib_log_serial
-#define LOG(...) Serial.printf(__VA_ARGS__)
-#else
-#define LOG(...) (void)
-#endif
-
 extern unsigned char bootdrive;
 
 extern unsigned char cf;

@@ -40,7 +40,6 @@
 #include "mb/i8253.h"
 #include "mb/i8259.h"
 #include "cpu/ports.h"
-#include <Arduino.h>
 #include <stdint.h>
 #include <stdio.h>
 

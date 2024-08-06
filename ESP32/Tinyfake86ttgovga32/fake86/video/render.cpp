@@ -26,9 +26,11 @@
 #include "gbGlobals.h"
 #include "video/CompositeColorOutput.h"
 #include "video/gb_sdl_font8x8.h"
-#include <Arduino.h>
 #include <stdio.h>
+#include <string.h>
+#include <esp_log.h>
 
+#define TAG "render"
 #define EFFECTIVE_HEIGHT (200)
 
 #define BLITTER_HIRES (0)
@@ -273,14 +275,17 @@ void renderInit()
   memcpy(&pendingRender, &render, sizeof(render_t));
 
   bufferNTSC = (char **)malloc(CompositeColorOutput::YRES * sizeof(char *));
+  assert(bufferNTSC);
   for (int y = 0; y < CompositeColorOutput::YRES; y++)
   {
     bufferNTSC[y] = (char *)malloc(CompositeColorOutput::XRES * 2);
+    assert(bufferNTSC[y]);
     memset(bufferNTSC[y], 0x00, CompositeColorOutput::XRES * 2);
   }
 
   void IRAM_ATTR blitter_0(uint8_t * src, uint16_t * dst);
   void IRAM_ATTR blitter_1(uint8_t * src, uint16_t * dst);
+  ESP_LOGI(TAG, "composite.init()");
   composite.init(&bufferNTSC);
 }
 
@@ -506,7 +511,7 @@ static void dump640x200()
 
       srcAddr++;
     }
-    dest = (unsigned int *)bufferNTSC[yDest + VERTICAL_OFFSET];
+    dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
     memcpy((void *)dest + render.hOffset, line, 640);
   }
   OnDumpDone();

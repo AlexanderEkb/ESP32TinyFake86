@@ -1,6 +1,5 @@
 #include "registers.h"
 #include "io/keys.h"
-#include <Arduino.h>
 #include <service/service.h>
 #include <stdio.h>
 /*
