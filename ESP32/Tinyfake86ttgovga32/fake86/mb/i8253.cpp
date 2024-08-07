@@ -29,14 +29,14 @@
 #include <string.h>
 #include "io/speaker.h"
 
-#include <driver/periph_ctrl.h>
-#include <driver/timer.h>
-
+#include <driver/gptimer.h>
 
 #define PIT_MODE_LATCHCOUNT 0
 #define PIT_MODE_LOBYTE 1
 #define PIT_MODE_HIBYTE 2
 #define PIT_MODE_TOGGLE 3
+
+#define TAG "i8253"
 
 typedef struct i8253_s
 {
@@ -139,7 +139,7 @@ static uint8_t readControl(uint32_t address)
 
 void init8253()
 {
-  // initializeHWTimer();
+  initializeHWTimer();
   for(uint32_t channel=0; channel<3; channel++)
   {
     i8253[channel].update = 0x0001;
@@ -171,52 +171,63 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR i8253Exec()
   }
 }
 
-static bool IRAM_ATTR timerIsrHandler1(void * p);
-static void IRAM_ATTR timerIsrHandler2(void * p);
+static bool IRAM_ATTR timerIsrHandler2(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx);
+
+static const uint32_t PIT_CLOCK_HZ = 100000;
 
 static void initializeHWTimer()
 {
-  static const uint32_t TIMER_DIVIDER = 16;
-  periph_module_enable(PERIPH_TIMG0_MODULE);
-  timer_config_t config = {
-    TIMER_ALARM_EN,
-    TIMER_PAUSE,
-    TIMER_INTR_LEVEL,
-    TIMER_COUNT_UP,
-    TIMER_AUTORELOAD_EN,
-    TIMER_SRC_CLK_APB,
-    TIMER_DIVIDER
+  gptimer_handle_t gptimer = nullptr;
 
-  }; // default clock source is APB
-  ESP_ERROR_CHECK(timer_init(TIMER_GROUP_0, TIMER_0, &config));
-  ESP_ERROR_CHECK(timer_pause(TIMER_GROUP_0, TIMER_0));
-  ESP_ERROR_CHECK(timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0));
-  static const uint32_t TIMER_BASE_CLK = 80000000;
-  uint64_t foo = TIMER_BASE_CLK / TIMER_DIVIDER;
-  ESP_ERROR_CHECK(timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, foo));
-  ESP_ERROR_CHECK(timer_enable_intr(TIMER_GROUP_0, TIMER_0));
-
-  // timer_isr_callback_add(TIMER_GROUP_0, TIMER_0, timerIsrHandler1, nullptr, ESP_INTR_FLAG_IRAM);
-
-  intr_handle_t _isr_handle;
-  ESP_ERROR_CHECK(esp_intr_alloc(ETS_TG0_T0_EDGE_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM,
-        timerIsrHandler2, 0, &_isr_handle));
-  ESP_ERROR_CHECK(esp_intr_enable(_isr_handle));
-  timer_start(TIMER_GROUP_0, TIMER_0);
+  gptimer_config_t timer_cfg = {
+    .clk_src = GPTIMER_CLK_SRC_APB,
+    .direction = GPTIMER_COUNT_UP,
+    .resolution_hz = PIT_CLOCK_HZ
+  };
+  ESP_ERROR_CHECK(gptimer_new_timer(&timer_cfg, &gptimer));
+  ESP_LOGI(TAG, "gptimer_new_timer()");
+  // ---
+  gptimer_event_callbacks_t event_cfg = {
+    .on_alarm = timerIsrHandler2
+  };
+  ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &event_cfg, nullptr));
+  ESP_LOGI(TAG, "gptimer_register_event_callback()");
+  // ---
+  ESP_ERROR_CHECK(gptimer_enable(gptimer));
+  ESP_LOGI(TAG, "gptimer_enable()");
+  // ---
+  gptimer_alarm_config_t alarm_cfg = {
+    .alarm_count = 1,
+    .reload_count = 0,
+    .flags = {
+      .auto_reload_on_alarm = 1
+    }
+  };
+  ESP_ERROR_CHECK(gptimer_set_alarm_action(gptimer, &alarm_cfg));
+  ESP_LOGI(TAG, "gptimer_set_alarm_action()");
+  // ---
+  ESP_ERROR_CHECK(gptimer_start(gptimer));
+  ESP_LOGI(TAG, "gptimer_start()");
 }
 
-static bool IRAM_ATTR timerIsrHandler1(void * p)
+volatile static bool foo = false;
+
+static bool IRAM_ATTR timerIsrHandler2(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
 {
   static uint32_t counter;
 
-  ESP_LOGI("HWTIM", "tick %i\r\n", ++counter);
+  counter++;
+  if((counter %= PIT_CLOCK_HZ) == 0)
+  {
+    foo = true;
+  }
 
   return false;
 }
 
-static void IRAM_ATTR timerIsrHandler2(void * p)
+volatile bool isFoo() 
 {
-  static uint32_t counter;
-
-  ESP_LOGI("HWTIM", "tock %i\r\n", ++counter);
+  bool bar = foo;
+  foo = false;
+  return bar;
 }

@@ -125,7 +125,7 @@ void setup()
   inithardware();
 
 #ifndef use_lib_singlecore
-  xTaskCreatePinnedToCore(&videoTask, "video", 1024 * 4, NULL, 5, &videoTaskHandle, 1);
+  xTaskCreatePinnedToCore(&videoTask, "video", 1024 * 4, NULL, configMAX_PRIORITIES - 1, &videoTaskHandle, 1);
 #endif
 
 // #ifndef use_lib_speaker_cpu
@@ -135,20 +135,31 @@ void setup()
 
   diskInit();
 
-  // Take a snapshot of the number of tasks in case it changes while this
-  // function is executing.
   uint32_t count = uxTaskGetNumberOfTasks();
   ESP_LOGI(TAG, "%i tasks are running:", count);
 
-  // Allocate a TaskStatus_t structure for each task.  An array could be
-  // allocated statically at compile time.
   TaskStatus_t *pxTaskStatusArray = (TaskStatus_t *)pvPortMalloc( count * sizeof( TaskStatus_t ) );
   uint32_t runtime;
 
   uxTaskGetSystemState(pxTaskStatusArray, count, &runtime);
   for(uint32_t i=0; i<count; i++)
   {
-    ESP_LOGI(TAG, "  %s", pxTaskStatusArray[i].pcTaskName);
+    char c = '?';
+    switch ( pxTaskStatusArray[i].eCurrentState )
+    {
+      case eRunning:    c = 'R'; break;
+      case eReady:      c = 'W'; break;
+      case eBlocked:    c = 'B'; break;
+      case eSuspended:  c = 'S'; break;
+      case eDeleted:    c = 'D'; break;
+      case eInvalid:    c = 'I'; break;
+    }
+    ESP_LOGI(TAG, "  %03i:%s\t%i\t%i\t%c", 
+                    pxTaskStatusArray[i].xTaskNumber,
+                    pxTaskStatusArray[i].pcTaskName,
+                    pxTaskStatusArray[i].uxBasePriority,
+                    pxTaskStatusArray[i].uxCurrentPriority,
+                    c);
   }
   vPortFree(pxTaskStatusArray);
 }
@@ -187,34 +198,12 @@ void loop()
     execKeyboard();
     execMisc();
   }
-#ifdef use_lib_singlecore
-  execVideo();
-#endif
   stats.exec();
 }
 
 void execCPU(uint32_t const count)
 {
-#ifdef use_lib_singlecore
-  static bool gb_cpunoexe = false;
-  static uint32_t gb_cpunoexe_timer_ini;
-  static uint32_t tiene_que_tardar = 0;
-
-  if (!gb_cpunoexe)
-  {
-    exec86(10000);
-    gb_cpunoexe = 1;
-    gb_cpunoexe_timer_ini = millis();
-    tiene_que_tardar = gb_delay_tick_cpu_milis;
-  }
-  else if ((millis() - gb_cpunoexe_timer_ini) >= tiene_que_tardar)
-  {
-    gb_cpunoexe = 0;
-  }
-
-#else
     exec86(count); // Tarda 22 milis usar 2 cores
-#endif
 }
 
 void execKeyboard()
@@ -226,19 +215,6 @@ void execKeyboard()
     doirq(1);
   }
 }
-
-#ifdef use_lib_singlecore
-void execVideo()
-{
-  static uint32_t gb_ini_vga, gb_cur_vga;
-  gb_cur_vga = millis();
-  if ((gb_cur_vga - gb_ini_vga) >= gb_vga_poll_milis)
-  {
-    draw();
-    gb_ini_vga = gb_cur_vga;
-  }
-}
-#endif
 
 void execMisc()
 {
@@ -257,12 +233,15 @@ void execMisc()
   }
 }
 
+
 extern "C"
 {
   void app_main()
   {
     setup();
     while(true)
+    {
       loop();
+    }
   }
 }

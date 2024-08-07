@@ -649,6 +649,12 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 
 	for (loopcount = 0; loopcount < execloops; loopcount++)
 	{
+      volatile bool isFoo();
+      if(isFoo())
+      {
+        ESP_LOGI(TAG, "Foo!!!");
+      }
+
     // TODO:  Get rid of totalexec
     if ((totalexec & 3) == 0)
       i8253Exec();
