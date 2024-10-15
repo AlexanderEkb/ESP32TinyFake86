@@ -211,7 +211,7 @@ uint8_t getBootDrive()
   }
   else if(driveC.isReady())
   {
-    ESP_LOGI(TAG, "Booting from drive C:\n");
+    ESP_EARLY_LOGI(TAG, "Booting from drive C:\n");
     return 0x02;
   }
   else

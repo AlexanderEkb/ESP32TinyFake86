@@ -47,9 +47,12 @@ class KeyboardDriverSTM : public KeyboardDriver
         .intr_type = GPIO_INTR_NEGEDGE
       };
       ESP_ERROR_CHECK(gpio_config(&cfg_dat));
+      ESP_ERROR_CHECK(gpio_intr_enable(KEYBOARD_CLK));
       intr_handle_t handle;
-      ESP_ERROR_CHECK(esp_intr_alloc(ETS_GPIO_INTR_SOURCE, ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM, kb_interruptHandler, nullptr, &handle));
-      ESP_ERROR_CHECK(esp_intr_enable(handle));
+      ESP_ERROR_CHECK(gpio_install_isr_service(ESP_INTR_FLAG_IRAM));
+      ESP_ERROR_CHECK(gpio_isr_handler_add(KEYBOARD_CLK, kb_interruptHandler, nullptr));
+      // ESP_ERROR_CHECK(esp_intr_alloc(ETS_GPIO_INTR_SOURCE, ESP_INTR_FLAG_EDGE | ESP_INTR_FLAG_IRAM, kb_interruptHandler, nullptr, &handle));
+      // ESP_ERROR_CHECK(esp_intr_enable(handle));
     }
 
     virtual void Reset() {

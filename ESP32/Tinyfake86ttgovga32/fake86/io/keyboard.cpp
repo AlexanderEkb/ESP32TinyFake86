@@ -1,3 +1,4 @@
+#include <esp_log.h>
 #include "io/keyboard.h"
 #include "esp_timer.h"
 
