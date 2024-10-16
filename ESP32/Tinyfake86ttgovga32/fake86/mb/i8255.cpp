@@ -1,6 +1,7 @@
 #include "i8255.h"
 #include "cpu/ports.h"
 #include "io/covox.h"
+#include "io/speaker.h"
 
 #define HIGH  0x01
 #define LOW   0x00
@@ -19,8 +20,6 @@
 //                           ││││││││
 static const uint8_t SW1 = 0b01101101;
 static const uint32_t PB2_HIGH_SWITCHES = 0x08;
-
-extern bool speakerDrivenByTimer;
 
 static uint8_t onPort0x60Read(uint32_t addrress);
 static uint8_t onPort0x62Read(uint32_t addrress);
@@ -51,12 +50,13 @@ void onPort0x61Write(uint32_t address, uint8_t val)
   static const uint8_t ENABLE_SPEAKER = 0x02;
 
   static const uint8_t TIMER_DRIVEN = (GATE_TIM_CH2_TO_SPEAKER | ENABLE_SPEAKER);
-  speakerDrivenByTimer = ((val & TIMER_DRIVEN) == TIMER_DRIVEN);
+  bool const speakerDrivenByTimer = ((val & TIMER_DRIVEN) == TIMER_DRIVEN);
   if (!speakerDrivenByTimer)
   {
     uint8_t level = (val & ENABLE_SPEAKER) ? HIGH : LOW;
     Covox_t::getInstance().driveSpeaker(level);
   }
+  Speaker_t::attachToTimer(speakerDrivenByTimer);
 }
 
 static uint8_t onPort0x62Read(uint32_t addrress)

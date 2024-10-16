@@ -54,12 +54,12 @@ static uint8_t const *const font = getFont();
 
 static const uint8_t paletteHiRes[16] = {
  // BLACK   BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
-    0x00,   0x86,   0xC8,   0xB9,   0x36,   0x57,   0xE7,   0x0A,
-    0x05,   0x88,   0xCA,   0xBB,   0x39,   0x5A,   0xEB,   0x0F};
+    0x00,   0xC3,   0x45,   0xE6,   0x64,   0x95,   0x57,   0x0A,
+    0x05,   0xC8,   0x4A,   0xEB,   0x69,   0x9A,   0x5C,   0x0F};
 static const uint8_t paletteLoRes[16] = {
 // BLACK   BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
-    0x00,   0x46,   0x97,   0x79,   0xC4,   0x15,   0xA7,   0x0A,
-    0x05,   0x48,   0x99,   0x7B,   0xC9,   0x1A,   0xAC,   0x0F};
+    0x00,   0x96,   0xD7,   0xB9,   0x44,   0x55,   0x27,   0x0A,
+    0x05,   0x98,   0xD9,   0xBB,   0x49,   0x5A,   0x2C,   0x0F};
 static const uint8_t paletteBW[16] = {
 // BLACK   BLUE    GREEN   CYAN    RED     MGNTA   YELLOW  WHITE
     0x00,   0x01,   0x05,   0x06,   0x02,   0x04,   0x07,   0x0C,
@@ -130,14 +130,14 @@ typedef struct
 } videoMode_t;
 
 const videoMode_t modes[MODE_COUNT] = {
-    {40, dump40x25, BLITTER_LORES,    16},
-    {80, dump80x25, BLITTER_HIRES,    22},
-    {40, dump320x200, BLITTER_LORES,  8},
-    {40, dump320x200, BLITTER_LORES,  8},
-    {40, dump40x25, BLITTER_LORES,    16},
-    {80, dump80x25, BLITTER_HIRES,    22},
-    {80, dump640x200, BLITTER_HIRES,  1},
-    {80, dump640x200, BLITTER_HIRES,  1}};
+    {40, dump40x25,   BLITTER_LORES, 0},
+    {80, dump80x25,   BLITTER_HIRES, 0},
+    {40, dump320x200, BLITTER_LORES, 0},
+    {40, dump320x200, BLITTER_LORES, 0},
+    {40, dump40x25,   BLITTER_LORES, 0},
+    {80, dump80x25,   BLITTER_HIRES, 0},
+    {80, dump640x200, BLITTER_HIRES, 2},
+    {80, dump640x200, BLITTER_HIRES, 2}};
 
 class cursor_t {
   public:
@@ -180,6 +180,10 @@ typedef struct render_t
   uint32_t textColCount;
 
   uint32_t startAddr;
+  uint32_t pixelsPerLine;
+  uint32_t horizontalPosition;
+  uint32_t rightBorderPosition;
+  uint32_t rightBorderWidth;
   uint32_t hOffset;
   uint32_t blitter;
   vmode_t vmode;
@@ -264,7 +268,13 @@ void renderInit()
   render.textColCount = 80;
 
   render.startAddr = 0;
-  render.hOffset = 22;
+
+  render.hOffset = 0;
+  render.pixelsPerLine = 640;
+  render.horizontalPosition = 16;
+  render.rightBorderPosition = 656;
+  render.rightBorderWidth = 16;
+
   render.blitter = BLITTER_HIRES;
   render.vmode = TEXT_HI;
 
@@ -394,7 +404,7 @@ static void dump320x200()
       cont++;
     }
     uint32_t *dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    memcpy((void *)dest + render.hOffset, line, 320);
+    memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
 
   cont = 0x2000;
@@ -420,7 +430,7 @@ static void dump320x200()
       cont++;
     }
     uint32_t *dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    memcpy((void *)dest + render.hOffset, line, 320);
+    memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
   OnDumpDone();
 }
@@ -472,7 +482,7 @@ static void dump640x200()
       srcAddr++;
     }
     dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    memcpy((void *)dest + render.hOffset, line, 640);
+    memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
 
   srcAddr = 0x2000;
@@ -512,7 +522,7 @@ static void dump640x200()
       srcAddr++;
     }
     dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    memcpy((void *)dest + render.hOffset, line, 640);
+    memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
   OnDumpDone();
 }
@@ -521,17 +531,18 @@ static void dump640x200()
 static void printChar_c(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t backcolor)
 {
   int nBaseOffset = code << 3;
-  const bool cbTime = render.frameCount & 0x04;
+  const bool blink = render.frameCount & 0x04;
   for (unsigned int row = 0; row < render.textCharHeight; row++)
   {
-    const bool cbFill = (row >= cursor.getStart()) && (row <= cursor.getEnd()) && cbTime;
-    unsigned char bLine = ((row >= 6) && (cbTime)) ? 0xFF : font[nBaseOffset + row];
+    const bool cbFill = (row >= cursor.getStart()) && (row <= cursor.getEnd()) && blink;
+    unsigned char src = ((row >= 6) && (blink)) ? 0xFF : font[nBaseOffset + row];
+    const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
+    uint32_t vgaCol = x + render.horizontalPosition;
     for (int col = 0; col < render.textCharHeight; col++)
     {
-      unsigned char Pixel = ((bLine >> col) & 0x01);
-      const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
-      const uint32_t vgaCol = x - col + render.hOffset;
-      bufferNTSC[vgaLine][vgaCol] = palette[(Pixel != 0) ? color : backcolor];
+      bufferNTSC[vgaLine][vgaCol] = palette[((src & 0x80) != 0) ? color : backcolor];
+      vgaCol++;
+      src <<= 1;
     }
   }
 }
@@ -547,13 +558,14 @@ static void printChar(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t 
     int nBaseOffset = code << 3; //*8
     for (unsigned int row = 0; row < render.textCharHeight; row++)
     {
-      unsigned char bLine = font[nBaseOffset + row];
+      unsigned char src = font[nBaseOffset + row];
+      const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
+      uint32_t vgaCol = x + render.horizontalPosition;
       for (int col = 0; col < 8; col++)
       {
-        unsigned char Pixel = ((bLine >> col) & 0x01);
-        const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
-        const uint32_t vgaCol = x - col + render.hOffset;
-        bufferNTSC[vgaLine][vgaCol] = palette[(Pixel != 0) ? color : backcolor];
+        bufferNTSC[vgaLine][vgaCol] = palette[((src & 0x80) != 0) ? color : backcolor];
+        src <<= 1;
+        vgaCol++;
       }
     }
   }
@@ -607,13 +619,20 @@ void renderSetCursorAddrLSB(uint8_t addr)
 void renderUpdateSettings(uint8_t settings, uint8_t colors)
 {
   // LOG("renderUpdateSettings(%02X, %02X)\n", settings, colors);
-  uint8_t _mode                 = (settings & 0x03) | ((settings >> 2) & 0x04);
-  const bool colorSuppressed    = (settings & 0x04);
-  pendingRender.hasColor        = colorSuppressed ? COLORBURST_DISABLE : COLORBURST_ENABLE;
-  pendingRender.dumper          = modes[_mode].dumper;
-  pendingRender.textColCount    = modes[_mode].textColCount;
-  pendingRender.hOffset         = modes[_mode].hOffset;
-  pendingRender.blitter         = modes[_mode].blitter;
+  uint8_t _mode                     = (settings & 0x03) | ((settings >> 2) & 0x04);
+  const bool colorSuppressed        = (settings & 0x04);
+  pendingRender.hasColor            = colorSuppressed ? COLORBURST_DISABLE : COLORBURST_ENABLE;
+  pendingRender.dumper              = modes[_mode].dumper;
+  pendingRender.textColCount        = modes[_mode].textColCount;
+  pendingRender.hOffset             = modes[_mode].hOffset;
+  pendingRender.blitter             = modes[_mode].blitter;
+
+  const uint32_t pixelsPerLine      = (modes[_mode].blitter == BLITTER_HIRES) ? 640 : 320;
+  const uint32_t effectiveWidth     = CompositeColorOutput::XRES * ((modes[_mode].blitter == BLITTER_HIRES) ? 2 : 1);
+  pendingRender.pixelsPerLine       = pixelsPerLine;
+  pendingRender.horizontalPosition  = ((effectiveWidth - pixelsPerLine) >> 1) + modes[_mode].hOffset;
+  pendingRender.rightBorderPosition = pendingRender.horizontalPosition + pixelsPerLine;
+  pendingRender.rightBorderWidth    = effectiveWidth - pendingRender.rightBorderPosition;
 
   composite.setBlitter(modes[_mode].blitter);
 
@@ -632,9 +651,6 @@ void renderUpdateSettings(uint8_t settings, uint8_t colors)
 
 void renderUpdateBorder()
 {
-  uint32_t rightOrg = (render.blitter == 0) ? 655 : 328;
-  uint32_t barWidthL = (render.blitter == 0) ? 15 : 8;
-  uint32_t barWidthR = (render.blitter == 0) ? 17 : 8;
   uint32_t barHeight = 20;
   uint32_t barColor = 0;
 
@@ -659,13 +675,13 @@ void renderUpdateBorder()
   }
   for (int y = 0; y < EFFECTIVE_HEIGHT; y++)
   {
-    for (int x = 0; x < barWidthL; x++)
+    for (int x = 0; x < render.horizontalPosition; x++)
     {
       bufferNTSC[y + VERTICAL_OFFSET][x] = barColor;
     }
-    for (int x = 0; x < barWidthR; x++)
+    for (int x = 0; x < render.rightBorderWidth; x++)
     {
-      bufferNTSC[y + VERTICAL_OFFSET][x + rightOrg] = barColor;
+      bufferNTSC[y + VERTICAL_OFFSET][x + render.rightBorderPosition] = barColor;
     }
   }
 }

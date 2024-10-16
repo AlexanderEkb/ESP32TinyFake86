@@ -128,10 +128,7 @@ void setup()
   xTaskCreatePinnedToCore(&videoTask, "video", 1024 * 4, NULL, 5, &videoTaskHandle, 1);
 #endif
 
-// #ifndef use_lib_speaker_cpu
-//   float auxTimer = (float)1.0 / (float)SAMPLE_RATE;
-//   gb_ticker_callback.attach(auxTimer, my_callback_speaker_func);
-// #endif
+  Speaker_t::init();
 
   diskInit();
 
