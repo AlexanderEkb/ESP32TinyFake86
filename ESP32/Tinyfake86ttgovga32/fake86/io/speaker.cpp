@@ -4,44 +4,26 @@
 #include "covox.h"
 #include <driver/periph_ctrl.h>
 #include <esp_err.h>
+#include <esp_timer.h>
 
-Speaker_t Speaker_t::instance;
 bool Speaker_t::isAttachedToTimer;
 uint32_t Speaker_t::period;
 
 volatile bool speakerMute = false;
 
-Speaker_t::Speaker_t()
-{
-
-}
-
 void Speaker_t::init()
 {
-  
-  static const uint32_t TIMER_DIVIDER = 2;
-  periph_module_enable(PERIPH_TIMG0_MODULE);
-  gptimer_config_t conf = {
-    GPTIMER_CLK_SRC_APB,
-    GPTIMER_COUNT_UP,
-    SAMPLE_RATE,
-    0,
-    {0, 0}
+  esp_timer_create_args_t config = {
+    .callback = &timerISR,
+    .arg = nullptr,
+    .dispatch_method = ESP_TIMER_TASK,
+    .name = "speaker",
+    .skip_unhandled_events = true
   };
-  gptimer_handle_t timer = nullptr;
-  ESP_ERROR_CHECK(gptimer_new_timer(&conf, &timer));
-  gptimer_event_callbacks_t cbs = {
-    .on_alarm = timerISR,
-  };
-  ESP_ERROR_CHECK(gptimer_register_event_callbacks(timer, &cbs, nullptr));
-  ESP_ERROR_CHECK(gptimer_enable(timer));
-  gptimer_alarm_config_t alarm_config = {
-        .alarm_count = 1,
-        .reload_count = 0,
-        .flags = {true}
-    };
-    ESP_ERROR_CHECK(gptimer_set_alarm_action(timer, &alarm_config));
-    ESP_ERROR_CHECK(gptimer_start(timer));
+
+  esp_timer_handle_t timer;
+  ESP_ERROR_CHECK(esp_timer_create(&config, &timer));
+  ESP_ERROR_CHECK(esp_timer_start_periodic(timer, 1000000UL / SAMPLE_RATE));
 }
 
 void Speaker_t::updateValue(uint16_t value)
@@ -58,7 +40,7 @@ void Speaker_t::attachToTimer(bool enable)
   isAttachedToTimer = enable;
 }
 
-bool IRAM_ATTR Speaker_t::timerISR(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
+void IRAM_ATTR Speaker_t::timerISR(void * p)
 {
   static uint32_t counter = 0;
   static bool speaker;
@@ -76,6 +58,4 @@ bool IRAM_ATTR Speaker_t::timerISR(gptimer_handle_t timer, const gptimer_alarm_e
       }
     }
   }
-
-  return false;
 }
