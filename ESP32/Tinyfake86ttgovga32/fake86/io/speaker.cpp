@@ -16,7 +16,7 @@ void Speaker_t::init()
   esp_timer_create_args_t config = {
     .callback = &timerISR,
     .arg = nullptr,
-    .dispatch_method = ESP_TIMER_TASK,
+    .dispatch_method = ESP_TIMER_ISR,
     .name = "speaker",
     .skip_unhandled_events = true
   };
