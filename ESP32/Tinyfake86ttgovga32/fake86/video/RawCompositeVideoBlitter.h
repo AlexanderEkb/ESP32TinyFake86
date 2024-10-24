@@ -807,7 +807,7 @@ void video_init(VideoStandard standard)
       const uint16_t *destPaletteOdd = RawCompositeVideoBlitter::ntsc_palette_odd();
       static const uint32_t STEP = 4;
 
-      uint32_t *d = (uint32_t *)(dst + 35);
+      uint32_t *d = (uint32_t *)(dst + 32);
       for (int i = 0; i < RawCompositeVideoBlitter::NTSC_DEFAULT_WIDTH; i += STEP) // 84 steps, 4 pixels per step
       {
         d[0] = destPalette[src[0]];
