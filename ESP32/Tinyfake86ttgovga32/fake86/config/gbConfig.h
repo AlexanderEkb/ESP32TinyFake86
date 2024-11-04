@@ -76,10 +76,7 @@
   #define use_lib_force_sdl_8bpp
   //milisegundos espera en cada frame
   #define use_lib_delay_tick_cpu_auto 0
-  #define use_lib_delay_tick_cpu_milis 0
   #define use_lib_vga_poll_milis 10
-  #define use_lib_keyboard_poll_milis 20
-  #define use_lib_timers_poll_milis 54
   //Logs
   #define use_lib_log_serial
 

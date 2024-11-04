@@ -1,14 +1,3 @@
-//Convertir
-//if (dst & 0xFF00) {
-//cf = 1;
-//}
-//else {
-//cf = 0;
-//}
-//
-//En
-//cf = (dst & 0xFF00) != 0;
-
 //  Fake86: A portable, open-source 8086 PC emulator.
 //  Copyright (C)2010-2012 Mike Chambers
 //
@@ -29,6 +18,7 @@
 //
 // cpu.c: functions to emulate the 8086/V20 CPU in software. the heart of Fake86.
 
+#include "machine_xt.h"
 #include "cpu.h"
 #include "config/config.h"
 #include "config/gbConfig.h"
@@ -59,7 +49,7 @@
 #define putsegreg(regid, writeval) segregs[regid] = writeval
 #define segbase(x) ((uint32_t)x << 4)
 
-extern uint8_t * ram;
+uint8_t * ram;
 extern struct structpic i8259;
 uint64_t curtimer, lasttimer, timerfreq;
 
@@ -83,6 +73,9 @@ static unsigned char tempcf, pf, af, zf, sf, tf, ifl, df, of, mode, reg, rm;
 static unsigned short int oper1, oper2, res16, disp16, temp16, dummy, stacksize, frametemp;
 static unsigned char oper1b, oper2b, res8, disp8, temp8, nestlev, addrbyte;
 static unsigned int temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32, ea;
+
+unsigned char cf;
+
 uint64_t totalexec;
 
 union _bytewordregs_ regs;
@@ -140,11 +133,9 @@ void write86 (unsigned int addr32, unsigned char value)
  //if ((addr32 >= 0xB8000) && (addr32 < (0xB8000+16384)))
  switch(addr32)
  {
-   case 0x0000 ... RAM_SIZE:
+   case 0x0000 ... RAM_SIZE:  // Main memory
+   case 0xB8000 ... 0xBC000:  // CGA video memory
      ram[addr32]= value;
-     return;
-   case 0xB8000 ... 0xBC000:
-     gb_video_cga[(addr32-0xB8000)]= value;
      return;
  }
 
@@ -167,10 +158,9 @@ unsigned char read86 (unsigned int addr32)
 {
   switch (addr32)
   {
-    case 0x00000 ... RAM_SIZE:
+    case 0x00000 ... RAM_SIZE:  // Main memory
+    case 0xB8000 ... 0xBBFFF:   // CGA video memory
       return (ram[addr32]);
-    case 0xB8000 ... 0xBBFFF:
-      return gb_video_cga[(addr32-0xB8000)];
     case 0xF6000 ... 0xFDFFF:
       return gb_rom_basic[(addr32-0xF6000)];
     case 0xFE000 ... 0xFFFFF:
@@ -537,6 +527,11 @@ void reset86() {
 	ip = 0x0000;
 }
 
+void init86()
+{
+  ram = MachineXT_t::getInstance().getRAM();
+}
+
  static inline unsigned short int readrm16 (unsigned char rmval)
  {
   if (mode < 3)
@@ -594,6 +589,8 @@ extern void diskhandler();
 
 void intcall86(unsigned char intnum)
 {
+  unsigned char bootdrive = 0;
+
   switch (intnum)
   {
   /************************************/

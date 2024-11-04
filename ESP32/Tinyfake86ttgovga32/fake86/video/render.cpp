@@ -18,6 +18,7 @@
 //   it is a bit messy. i plan to rework much of this in the future. i am also
 //   going to add hardware accelerated scaling soon.
 
+#include "machine_xt.h"
 #include "video/render.h"
 #include "config/gbConfig.h"
 #include "cpu/cpu.h"
@@ -36,6 +37,7 @@
 #define BLITTER_HIRES (0)
 #define BLITTER_LORES (1)
 
+uint8_t * gb_video_cga;
 static const uint32_t VERTICAL_OFFSET = 20;
 
 typedef void (*dumper_t)(void);
@@ -255,6 +257,7 @@ void cursor_t::updatePosition()
 
 void renderInit()
 {
+  gb_video_cga = MachineXT_t::getInstance().getVideoRAM();
   memcpy(palette, paletteHiRes, sizeof(palette));
 
   render.pendingChanges = false;

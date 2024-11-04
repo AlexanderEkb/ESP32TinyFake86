@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "mb/i8253.h"
+#include "mb/i8259.h"
 #include "gbGlobals.h"
 #include "cpu/ports.h"
 #include <Arduino.h>

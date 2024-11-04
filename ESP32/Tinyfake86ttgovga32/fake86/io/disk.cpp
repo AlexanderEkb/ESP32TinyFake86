@@ -16,6 +16,7 @@
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // disk.c: disk emulation routines for Fake86. works at the BIOS interrupt 13h level.
 
+#include "machine_xt.h"
 #include "config/gbConfig.h"
 #include "cpu/cpu.h"
 #include "gbGlobals.h"
@@ -34,10 +35,6 @@
 
 extern SdCard sdcard;
 extern union _bytewordregs_ regs;
-extern uint8_t * ram;
-
-extern uint8_t read86 (uint32_t addr32);
-extern void write86 (uint32_t addr32, uint8_t value);
 
 static void getDriveParameters(uint8_t drive);
 
@@ -59,14 +56,14 @@ void setResult(uint8_t _result)
 
 void diskInit()
 {
-  pinMode(DISK_LED, OUTPUT_OPEN_DRAIN);
-  digitalWrite(DISK_LED, false);
+  pinMode(DISK_LED, OUTPUT);
+  digitalWrite(DISK_LED, true);
   const bool sdCardOk = Drive_t::sdCard.Init();
   if(sdCardOk)
   {
     driveC.openImage(DEFAULT_HDD_IMAGE);
   }
-  digitalWrite(DISK_LED, true);
+  digitalWrite(DISK_LED, false);
   lastResult = RESULT_OK;
 }
 
@@ -78,12 +75,12 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_
     setResult(RESULT_WRONG_PARAM);
     return;
   }
-  digitalWrite(DISK_LED, false);
+  digitalWrite(DISK_LED, true);
   Drive_t *drive = drives[src.drive];
   uint8_t result = drive->read(src, getramloc(dst.linear()));
 
   setResult(result);
-  digitalWrite(DISK_LED, true);
+  digitalWrite(DISK_LED, false);
   if (result == RESULT_OK)
   {
     regs.byteregs[regal] = src.sectorCount;
@@ -98,7 +95,7 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_
 void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
 {
   // LOG("Writing D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
-  digitalWrite(DISK_LED, false);
+  digitalWrite(DISK_LED, true);
   Drive_t *drive = drives[dst.drive];
   uint8_t result = drive->write(getramloc(src.linear()), dst);
 
@@ -112,11 +109,12 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
     LOG("Writing error: D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
   }
   setResult(result);
-  digitalWrite(DISK_LED, true);
+  digitalWrite(DISK_LED, false);
 }
 
 void diskhandler()
 { 
+  static uint8_t * const ram = MachineXT_t::getInstance().getRAM();
   const uint8_t  drive = regs.byteregs[regdl];
   const uint16_t cylinder = 
     (static_cast<uint16_t>(regs.byteregs[regcl] & 0xC0) << 2) |

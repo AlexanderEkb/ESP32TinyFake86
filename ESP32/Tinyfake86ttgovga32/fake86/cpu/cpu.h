@@ -86,6 +86,7 @@ void SetCF(unsigned short int a);
 unsigned char read86 (unsigned int addr32);
 void write86 (unsigned int addr32, unsigned char value);
 void reset86(void);
+void init86();
 void exec86 (uint32_t count);
 uint8_t *getramloc(uint32_t addr);
 

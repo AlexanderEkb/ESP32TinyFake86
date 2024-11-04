@@ -3,6 +3,10 @@
 #include "io/keyboard.h"
 #include "service/service.h"
 
+// CRUTCH!!!
+#include "machine_xt.h"
+KeyboardDriver * keyboard = MachineXT_t::getInstance().getKeyboard();
+
 debugger_t debugger_t::instance;
 
 debugger_t::debugger_t()
