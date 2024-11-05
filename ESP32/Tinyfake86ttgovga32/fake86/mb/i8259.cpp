@@ -28,6 +28,7 @@
 #include "config/gbConfig.h"
 #include "gbGlobals.h"
 
+#define TAG "i8259"
 extern KeyboardDriver *keyboard;
 
 struct structpic i8259;
@@ -105,9 +106,6 @@ uint8_t nextintr() {
 	return(0); //this won't be reached, but without it the compiler gives a warning
 }
 
-#ifdef use_lib_fast_doirq
-
-#else
  void doirq(unsigned char irqnum)
  {
   i8259.irr |= (1 << irqnum);
@@ -116,7 +114,6 @@ uint8_t nextintr() {
     keyboardwaitack = 1;
   }  
  } 
-#endif 
 
 void init8259() {
 	 memset((void *)&i8259, 0, sizeof(i8259));

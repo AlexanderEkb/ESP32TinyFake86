@@ -12,32 +12,27 @@
 
 #define TAG "XT"
 
-MachineXT_t MachineXT_t::instance;
+MachineXT_t MachineXT_t::instance = MachineXT_t();
 
 static void videoTask(void *unused);
 
 MachineXT_t::MachineXT_t()
 {
-  ram = (uint8_t *)0x3F820000;
+  ram = (uint8_t *)0x3FA00000;
+  keyboard = nullptr;
+  videoTaskHandle = nullptr;
+  ticker = Ticker();
+  stats = Stats();
 }
 
 void MachineXT_t::init()
 {
-  const uint32_t coreID = xPortGetCoreID();
-  ESP_LOGI(TAG, "Machine init@core#%i", coreID);
-
-  // ESP_LOGI(TAG, "Create RAM");
-  // ram = (uint8_t *)0x3F800000;
+  ESP_LOGI(TAG, "Machine init");
   // createRAM();
-
-  ESP_LOGI(TAG, "Initializing keyboard");
-  keyboard = new KeyboardDriverSTM();
-  keyboard->Init();
 
   ESP_LOGI(TAG, "Reset CPU");
   init86();
   reset86();
-  Covox_t::getInstance().init();
   ESP_LOGI(TAG, "Initializing emulated hardware:");
   ESP_LOGI(TAG, "  - Intel 8253 timer");
   init8253();
@@ -46,13 +41,20 @@ void MachineXT_t::init()
   ESP_LOGI(TAG, "  - Intel 8237 DMA controller");
   init8237();
 
+  ESP_LOGI(TAG, "Initializing keyboard");
+  keyboard = new KeyboardDriverSTM();
+  keyboard->Init();
+
   float auxTimer = (float)1.0 / (float)SAMPLE_RATE;
   ticker.attach(auxTimer, my_callback_speaker_func);
+
+  Covox_t::getInstance().init();
 
   diskInit();
 
   ESP_LOGI(TAG, "Init render");
   renderInit();
+  ESP_LOGI(TAG, "Starting dumper");
   xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
 
   ESP_LOGI(TAG, "END SETUP %d", ESP.getFreeHeap());
@@ -60,10 +62,10 @@ void MachineXT_t::init()
 
 bool MachineXT_t::createRAM()
 {
-  const uint32_t coreID = xPortGetCoreID();
-  const uint32_t ramAddr = SOC_EXTRAM_DATA_LOW + (coreID == 1 ? 2 * 1024 * 1024 : 0);
-  ram = reinterpret_cast<uint8_t *>(ramAddr);
-  ESP_LOGI(TAG, "RAM initialized: core #%i, addr:0x%08X", coreID, ramAddr);
+  // const uint32_t coreID = xPortGetCoreID();
+  // const uint32_t ramAddr = SOC_EXTRAM_DATA_LOW + (coreID == 1 ? 2 * 1024 * 1024 : 0);
+  // ram = reinterpret_cast<uint8_t *>(ramAddr);
+  // ESP_LOGI(TAG, "RAM initialized: core #%i, addr:0x%08X", coreID, ramAddr);
 }
 
 void MachineXT_t::run()
@@ -71,7 +73,6 @@ void MachineXT_t::run()
   stats.startIteration();
   exec86(10000);
   stats.countCPUTime();
-
   static uint32_t before;
   const uint32_t now = millis();
   if ((now - before) > KEYB_POLL_PERIOD_ms)
@@ -112,11 +113,6 @@ void MachineXT_t::execMisc()
 uint8_t * MachineXT_t::getRAM()
 {
   return ram;
-}
-
-uint8_t * MachineXT_t::getVideoRAM()
-{
-  return ram + 0xB8000;
 }
 
 void MachineXT_t::suspend()

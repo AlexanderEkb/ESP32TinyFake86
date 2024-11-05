@@ -1,7 +1,9 @@
+#include <esp_log.h>
 #include "i8255.h"
 #include "cpu/ports.h"
 #include "io/covox.h"
 
+#define TAG "i8255"
 // static const uint8_t SW1 = 0b10010010;
 //                           ┌──────── ⌠ Total diskette
 //                           │┌─────── ⌡ drives
@@ -36,7 +38,7 @@ static uint8_t &PC = port_062h.value;
 static uint8_t onPort0x60Read(uint32_t addrress)
 {
   (void)addrress;
-  // LOG("Reading 60h: %s = %02X\n", showSwitches?"SW1":"scancode", result);
+  ESP_LOGI(TAG, "Reading 60h: %02X", PA);
   return PA;
 }
 

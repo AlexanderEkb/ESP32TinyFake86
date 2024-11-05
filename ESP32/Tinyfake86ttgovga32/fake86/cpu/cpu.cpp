@@ -33,6 +33,9 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <esp_log.h>
+
+#define TAG "CPU"
 
 #define StepIP(x) ip += x
 #define getmem8(x, y) read86(segbase(x) + y)
@@ -50,6 +53,7 @@
 #define segbase(x) ((uint32_t)x << 4)
 
 uint8_t * ram;
+extern uint8_t videomem[];
 extern struct structpic i8259;
 uint64_t curtimer, lasttimer, timerfreq;
 
@@ -129,22 +133,21 @@ unsigned char gb_check_memory_before;
 //********************************************************
 void write86 (unsigned int addr32, unsigned char value)
 {
- //Primero CGA
- //if ((addr32 >= 0xB8000) && (addr32 < (0xB8000+16384)))
- switch(addr32)
- {
-   case 0x0000 ... RAM_SIZE:  // Main memory
-   case 0xB8000 ... 0xBC000:  // CGA video memory
-     ram[addr32]= value;
-     return;
- }
+  switch(addr32)
+  {
+    case 0x0000 ... RAM_SIZE:
+      ram[addr32]= value;
+      return;
+    case 0xB8000 ... 0xBC000:
+      videomem[(addr32-0xB8000)]= value;
+      return;
+  }
 
- if (addr32 > 1048575)
- {
-  addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
-
-  ram[addr32] = value;  
- }
+  if (addr32 > 1048575)
+  {
+    addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
+    ram[addr32] = value;  
+  }
 
 }
 
@@ -158,9 +161,10 @@ unsigned char read86 (unsigned int addr32)
 {
   switch (addr32)
   {
-    case 0x00000 ... RAM_SIZE:  // Main memory
-    case 0xB8000 ... 0xBBFFF:   // CGA video memory
+    case 0x00000 ... RAM_SIZE:
       return (ram[addr32]);
+    case 0xB8000 ... 0xBBFFF:
+      return videomem[(addr32-0xB8000)];
     case 0xF6000 ... 0xFDFFF:
       return gb_rom_basic[(addr32-0xF6000)];
     case 0xFE000 ... 0xFFFFF:
@@ -529,6 +533,7 @@ void reset86() {
 
 void init86()
 {
+  ESP_LOGI(TAG, "init86()");
   ram = MachineXT_t::getInstance().getRAM();
 }
 

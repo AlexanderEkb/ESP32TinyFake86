@@ -19,7 +19,6 @@ class MachineXT_t
     void resume();
 
     uint8_t * getRAM();
-    uint8_t * getVideoRAM();
 
     // CRUTCH!! Remove ASAP!!!
     KeyboardDriver * getKeyboard() {return keyboard;};

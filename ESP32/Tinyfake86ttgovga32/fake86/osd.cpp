@@ -15,7 +15,9 @@
 #include <string.h>
 #include "stats.h"
 #include "debugger/debugger.h"
+#include "machine_xt.h"
 
+#define TAG "OSD"
 static struct osd {
   bool active       = false;
 } osd;
@@ -358,8 +360,9 @@ void ShowTinyVideoMenu()
 OSD_RESULT_t do_tinyOSD()
 {
   unsigned char aSelNum;
-  extern KeyboardDriver *keyboard;
+  KeyboardDriver *keyboard = MachineXT_t::getInstance().getKeyboard();
   uint8_t scancode = keyboard->getLastKey();
+
   if (scancode == KEY_F12)
   {
     osd.active = true;

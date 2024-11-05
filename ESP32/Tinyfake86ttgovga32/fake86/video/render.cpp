@@ -37,7 +37,7 @@
 #define BLITTER_HIRES (0)
 #define BLITTER_LORES (1)
 
-uint8_t * gb_video_cga;
+extern uint8_t videomem[];
 static const uint32_t VERTICAL_OFFSET = 20;
 
 typedef void (*dumper_t)(void);
@@ -257,7 +257,6 @@ void cursor_t::updatePosition()
 
 void renderInit()
 {
-  gb_video_cga = MachineXT_t::getInstance().getVideoRAM();
   memcpy(palette, paletteHiRes, sizeof(palette));
 
   render.pendingChanges = false;
@@ -351,11 +350,11 @@ static void dump80x25()
   {
     for (uint32_t x = 0; x < 80; x++)
     {
-      aChar = gb_video_cga[src];
+      aChar = videomem[src];
       src++;
-      aColor = gb_video_cga[src] & 0x0F;
-      aBgColor = ((gb_video_cga[src] >> 4) & 0x07);
-      printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
+      aColor = videomem[src] & 0x0F;
+      aBgColor = ((videomem[src] >> 4) & 0x07);
+      printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor);
       src++;
     }
   }
@@ -369,10 +368,10 @@ static void dump40x25()
   {
     for (uint32_t x = 0; x < 40; x++)
     {
-      uint8_t aChar = gb_video_cga[src];
+      uint8_t aChar = videomem[src];
       src++;
-      uint8_t aColor = gb_video_cga[src] & 0x0F;
-      uint8_t aBgColor = ((gb_video_cga[src] >> 4) & 0x07);
+      uint8_t aColor = videomem[src] & 0x0F;
+      uint8_t aBgColor = ((videomem[src] >> 4) & 0x07);
       printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
       src++;
     }
@@ -391,7 +390,7 @@ static void dump320x200()
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
-      uint8_t src = gb_video_cga[cont];
+      uint8_t src = videomem[cont];
       uint8_t bPixel3 = (src & 0x03);
       src >>= 2;
       uint8_t bPixel2 = (src & 0x03);
@@ -417,7 +416,7 @@ static void dump320x200()
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
-      uint8_t src = gb_video_cga[cont];
+      uint8_t src = videomem[cont];
       uint8_t bPixel3 = (src & 0x03);
       src >>= 2;
       uint8_t bPixel2 = (src & 0x03);
@@ -455,7 +454,7 @@ static void dump640x200()
     uint32_t offset = INITIAL_OFFSET;
     for (x = 0; x < 80; x++)
     {
-      unsigned char src = gb_video_cga[srcAddr];
+      unsigned char src = videomem[srcAddr];
       uint8_t a7 = (src & 0x01);
       src >>= 1;
       uint8_t a6 = (src & 0x01);
@@ -495,7 +494,7 @@ static void dump640x200()
     uint32_t offset = INITIAL_OFFSET;
     for (x = 0; x < 80; x++)
     {
-      unsigned char src = gb_video_cga[srcAddr];
+      unsigned char src = videomem[srcAddr];
       uint8_t a7 = (src & 0x01);
       src >>= 1;
       uint8_t a6 = (src & 0x01);

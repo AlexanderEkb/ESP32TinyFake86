@@ -114,6 +114,8 @@ static uint8_t        port3DAh = 0;       // Some sort of local cache
 static uint8_t        mc6845RegSelector;  // 3D4h port writes modify this var
 static uint8_t        mc6845Registers[MC6845_REG_TOTAL];
 
+uint8_t videomem[16384];
+
 static void write3D4h (uint32_t portnum, uint8_t value)
 {
   (void)portnum;
