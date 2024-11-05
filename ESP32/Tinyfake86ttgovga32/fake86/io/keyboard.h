@@ -12,6 +12,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
+#define TAG "keyboard"
+
 void IRAM_ATTR kb_interruptHandler(void);
 uint8_t getScancode(void);
 

@@ -365,12 +365,10 @@ OSD_RESULT_t do_tinyOSD()
 
   if (scancode == KEY_F12)
   {
+    ESP_LOGI(TAG, "Entering OSD");
     osd.active = true;
-    return OSD_RESULT_PREPARE;
-  }
+    MachineXT_t::getInstance().suspend();
 
-  if (osd.active)
-  {
     composite.saveSettings();
     composite.setBlitter(1);
     composite.setColorburstEnabled(true);
@@ -409,6 +407,8 @@ OSD_RESULT_t do_tinyOSD()
     speakerMute = false;
     keyboard->Reset();
     osdLeave();
+    MachineXT_t::getInstance().resume();
+    ESP_LOGI(TAG, "Leaving OSD");
     return OSD_RESULT_RETURN;
   }
 

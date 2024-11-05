@@ -35,7 +35,6 @@ class MachineXT_t
 
     bool createRAM();
     void execKeyboard();
-    void execMisc();
 };
 
 #endif /* __MACHINE_XT__ */
