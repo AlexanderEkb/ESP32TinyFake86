@@ -66,6 +66,7 @@ bool MachineXT_t::createRAM()
   const uint32_t ramAddr = SOC_EXTRAM_DATA_LOW + (coreID == 1 ? 2 * 1024 * 1024 : 0);
   ram = reinterpret_cast<uint8_t *>(ramAddr);
   ESP_LOGI(TAG, "RAM initialized: core #%i, addr:0x%08X", coreID, ramAddr);
+  return true; // We allocate RAM statically, so it is always successful.
 }
 
 void MachineXT_t::run()
