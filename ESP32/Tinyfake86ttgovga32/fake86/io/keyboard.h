@@ -23,7 +23,6 @@ class KeyboardDriver {
     virtual void Reset() = 0;
     virtual uint8_t Poll() = 0;
     virtual uint8_t getLastKey() = 0;
-    virtual void resetRdy();
 };
 
 class KeyboardDriverSTM : public KeyboardDriver
@@ -37,23 +36,17 @@ class KeyboardDriverSTM : public KeyboardDriver
     virtual void Init() {
       pinMode(KEYBOARD_DATA, INPUT_PULLUP);
       pinMode(KEYBOARD_CLK, INPUT_PULLUP);
-      // pinMode(KEYBOARD_RDY, OUTPUT_OPEN_DRAIN);
-      // digitalWrite(KEYBOARD_DATA, true);
-      // digitalWrite(KEYBOARD_CLK, true);
-      // digitalWrite(KEYBOARD_RDY, true);
       attachInterrupt(digitalPinToInterrupt(KEYBOARD_CLK), kb_interruptHandler, FALLING);
     }
 
     virtual void Reset() {
       lastKey = 0;
-      resetRdy();
       xQueueReset(q);
     }
 
     virtual uint8_t getLastKey() {
       uint8_t result = lastKey;
       lastKey = 0;
-      resetRdy();
       return result;
     }
 
@@ -62,11 +55,6 @@ class KeyboardDriverSTM : public KeyboardDriver
       if(xQueueReceive(q, &result, 0) != pdTRUE)
         result = 0;
       return result;
-    }
-
-    virtual void resetRdy()
-    {
-      // digitalWrite(KEYBOARD_RDY, true);
     }
 
   private:

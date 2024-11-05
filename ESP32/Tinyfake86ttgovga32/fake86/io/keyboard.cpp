@@ -30,7 +30,6 @@ void IRAM_ATTR kb_interruptHandler(void)
   bitcount++;
   if (bitcount == 8) {
     bitcount = 0;
-    ESP_LOGI(TAG, "OnKey()");
     KeyboardDriverSTM::OnKey(shifter);
   }
 }
