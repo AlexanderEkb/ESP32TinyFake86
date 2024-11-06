@@ -60,14 +60,20 @@ class KeyboardDriverSTM : public KeyboardDriver
   private:
     static uint8_t lastKey;
     static QueueHandle_t q;
-    static void OnKey(uint8_t scancode) {
+    static void OnKey(uint8_t scancode)
+    {
       portBASE_TYPE foo;
       xQueueSendFromISR(q, &scancode, &foo);
       if(!(scancode & 0x80))
       {
         lastKey = scancode;
       }
+      if(foo)
+      {
+        portYIELD_FROM_ISR ();
+      }
     }
+
     friend void IRAM_ATTR kb_interruptHandler(void);
     /*
     // https://homepages.cwi.nl/~aeb/linux/kbd/scancodes-1.html

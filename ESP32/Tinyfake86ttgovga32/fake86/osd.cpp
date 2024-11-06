@@ -128,12 +128,10 @@ uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char 
   for (int i = 0; i < width; i++)
     svcPrintChar(' ', pos + (i << 3), gb_pos_y_menu, MENU_HEADER_FOREGROUND, MENU_HEADER_BACKGROUND);
   svcPrintText(cadTitle,pos,gb_pos_y_menu,MENU_HEADER_FOREGROUND, MENU_HEADER_BACKGROUND);
-
   OSDMenuRowsDisplayScroll(ptrValue,0,aMax, width, pos, highlight);
-
+  KeyboardDriver * keyboard = MachineXT_t::getInstance().getKeyboard();
   while (!bExit)
   {
-    extern KeyboardDriver *keyboard;
     uint8_t scancode = keyboard->getLastKey();
     switch (scancode)
     {
@@ -365,10 +363,8 @@ OSD_RESULT_t do_tinyOSD()
 
   if (scancode == KEY_F12)
   {
-    ESP_LOGI(TAG, "Entering OSD");
     osd.active = true;
     MachineXT_t::getInstance().suspend();
-
     composite.saveSettings();
     composite.setBlitter(1);
     composite.setColorburstEnabled(true);
@@ -378,8 +374,8 @@ OSD_RESULT_t do_tinyOSD()
     svcPrintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
 
     speakerMute = true;
-
     aSelNum = ShowTinyMenu("MAIN MENU", gb_main_menu, max_gb_main_menu, 10, 10);
+
     switch (aSelNum)
     {
     case 0:
@@ -405,10 +401,8 @@ OSD_RESULT_t do_tinyOSD()
     }
 
     speakerMute = false;
-    keyboard->Reset();
     osdLeave();
     MachineXT_t::getInstance().resume();
-    ESP_LOGI(TAG, "Leaving OSD");
     return OSD_RESULT_RETURN;
   }
 
@@ -420,8 +414,7 @@ static void osdLeave()
   osd.active = false;
   composite.restoreSettings();
   renderUpdateBorder();
-  extern KeyboardDriver *keyboard;
-  keyboard->Reset();
+  MachineXT_t::getInstance().getKeyboard()->Reset();
 }
 
 void svcDrawTableLoRes(uint32_t p)
