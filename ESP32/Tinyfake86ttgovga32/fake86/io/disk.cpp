@@ -83,7 +83,9 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_
   for(uint32_t i=0; (i < src.sectorCount) && (result == RESULT_OK); i++)
   {
     // ESP_LOGI(TAG, "Reading sector #%i", sector);
-    result = drive->sectorRead(sector, getramloc(addr));
+    uint8_t buffer[Drive_t::SECTOR_SIZE];
+    result = drive->sectorRead(sector, buffer);
+    MachineXT_t::getInstance().memory.writeBulk(dst.linear(), buffer, Drive_t::SECTOR_SIZE);
     addr += Drive_t::SECTOR_SIZE;
     sector++;
   }
@@ -117,7 +119,9 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
   for(uint32_t i=0; (i < dst.sectorCount) && (result == RESULT_OK); i++)
   {
     // ESP_LOGI(TAG, "Reading sector #%i", sector);
-    result = drive->sectorWrite(sector, getramloc(addr));
+    uint8_t buffer[Drive_t::SECTOR_SIZE];
+    MachineXT_t::getInstance().memory.readBulk(src.linear(), buffer, Drive_t::SECTOR_SIZE);
+    result = drive->sectorWrite(sector, buffer);
     addr += Drive_t::SECTOR_SIZE;
     sector++;
   }
@@ -138,7 +142,6 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
 
 void diskhandler()
 { 
-  static uint8_t * const ram = MachineXT_t::getInstance().getRAM();
   const uint8_t  drive = regs.byteregs[regdl];
   const uint16_t cylinder = 
     (static_cast<uint16_t>(regs.byteregs[regcl] & 0xC0) << 2) |
@@ -186,7 +189,7 @@ void diskhandler()
 
 	if (regs.byteregs[regdl] & 0x80)
   {
-	  ram[0x474]= regs.byteregs[regah];
+    MachineXT_t::getInstance().memory.write(0x474, regs.byteregs[regah]);
   }
 }
 

@@ -2,7 +2,6 @@
 #include <Arduino.h>
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
-#include "mb/memory.h"
 #include "mb/i8253.h"
 #include "mb/i8259.h"
 #include "mb/i8237.h"
@@ -19,7 +18,6 @@ static void videoTask(void *unused);
 
 MachineXT_t::MachineXT_t()
 {
-  ram = (uint8_t *)0x3FA00000;
   keyboard = nullptr;
   videoTaskHandle = nullptr;
   ticker = Ticker();
@@ -29,7 +27,7 @@ MachineXT_t::MachineXT_t()
 void MachineXT_t::init()
 {
   ESP_LOGI(TAG, "START SETUP %d", ESP.getFreeHeap());
-  createRAM();
+  memory.init();
 
   ESP_LOGI(TAG, "Reset CPU");
   init86();
@@ -61,18 +59,6 @@ void MachineXT_t::init()
   ESP_LOGI(TAG, "END SETUP %d", ESP.getFreeHeap());
 }
 
-bool MachineXT_t::createRAM()
-{
-  const uint32_t coreID = xPortGetCoreID();
-  const uint32_t ramAddr = SOC_EXTRAM_DATA_LOW + (coreID == 1 ? 2 * 1024 * 1024 : 0);
-  ram = reinterpret_cast<uint8_t *>(ramAddr);
-  ESP_LOGI(TAG, "RAM initialized: core #%i, addr:0x%08X", coreID, ramAddr);
-  return true; // We allocate RAM statically, so it is always successful.
-  // ram = reinterpret_cast<uint8_t *>(malloc(RAM_SIZE));
-  // assert(ram);
-  // return true;
-}
-
 void MachineXT_t::run()
 {
   stats.startIteration();
@@ -100,11 +86,6 @@ void MachineXT_t::execKeyboard()
     IOPortSpace::getInstance().get(0x060)->value = scancode;
     doirq(1);
   }
-}
-
-uint8_t * MachineXT_t::getRAM()
-{
-  return ram;
 }
 
 void MachineXT_t::suspend()

@@ -7,6 +7,7 @@
 #include <Ticker.h>
 
 #include "io/keyboard.h"
+#include "mb/memory.h"
 #include "stats.h"
 
 class MachineXT_t
@@ -18,7 +19,7 @@ class MachineXT_t
     void suspend();
     void resume();
 
-    uint8_t * getRAM();
+    Memory_t memory;
 
     // CRUTCH!! Remove ASAP!!!
     KeyboardDriver * getKeyboard() {return keyboard;};
@@ -26,14 +27,12 @@ class MachineXT_t
     MachineXT_t();
     static const uint32_t SAMPLE_RATE = 16000;
     static const uint32_t KEYB_POLL_PERIOD_ms = 20;
-    uint8_t * ram;
     static MachineXT_t instance;
     KeyboardDriver *keyboard;
     TaskHandle_t videoTaskHandle;
     Ticker ticker;
     Stats stats;
 
-    bool createRAM();
     void execKeyboard();
 };
 
