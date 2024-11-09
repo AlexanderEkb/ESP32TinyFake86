@@ -26,7 +26,6 @@ static uint8_t onPort0x62Read(uint32_t addrress);
 static void onPort0x61Write(uint32_t address, uint8_t val);
 
 IOPort port_060h = IOPort(0x60, 0x00, onPort0x60Read, nullptr);
-// IOPort port_060h = IOPort(0x60, 0x00, nullptr, nullptr);
 IOPort port_061h = IOPort(0x61, 0xFF, nullptr, onPort0x61Write);
 IOPort port_062h = IOPort(0x62, 0x00, onPort0x62Read, nullptr);
 IOPort port_063h = IOPort(0x63, 0x00, nullptr, nullptr);
@@ -38,7 +37,7 @@ static uint8_t &PC = port_062h.value;
 static uint8_t onPort0x60Read(uint32_t addrress)
 {
   (void)addrress;
-  ESP_LOGI(TAG, "Reading 60h: %02X", PA);
+  // ESP_LOGI(TAG, "Reading 60h: %02X", PA);
   return PA;
 }
 

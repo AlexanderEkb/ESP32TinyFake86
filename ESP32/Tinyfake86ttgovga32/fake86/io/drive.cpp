@@ -13,7 +13,20 @@ bool Drive_t::isReady()
   return pImage != nullptr;
 }
 
-uint8_t Drive_t::read(DISK_ADDR &src, uint8_t * dst)
+uint8_t Drive_t::sectorRead(uint32_t sector, uint8_t *dst)
+{
+  uint32_t filePos = sector * SECTOR_SIZE;
+  if (pImage == nullptr)
+    return RESULT_NOT_READY;
+  if (fseek(pImage, filePos, SEEK_SET) != 0)
+    return RESULT_TRACK_NOT_FOUND;
+  if (fread(dst, SECTOR_SIZE, 1, pImage) != 1)
+    return RESULT_GENERAL_FAILURE;
+
+  return RESULT_OK;
+}
+
+uint8_t Drive_t::bulkRead(DISK_ADDR &src, uint8_t * dst)
 {
   if (!isValid(src))
     return RESULT_WRONG_PARAM;
@@ -29,7 +42,22 @@ uint8_t Drive_t::read(DISK_ADDR &src, uint8_t * dst)
   return RESULT_OK;
 }
 
-uint8_t Drive_t::write(uint8_t * src, DISK_ADDR &dst)
+uint8_t Drive_t::sectorWrite(uint32_t sector, uint8_t *src)
+{
+  if (pImage == nullptr)
+    return RESULT_NOT_READY;
+  uint32_t filePos = sector * SECTOR_SIZE;
+
+  if(fseek(pImage, filePos, SEEK_SET) != 0)
+    return RESULT_TRACK_NOT_FOUND;
+  if(fwrite(src, SECTOR_SIZE, 1, pImage) != 1)
+    return RESULT_GENERAL_FAILURE;
+  if (fflush(pImage) != 0)
+    return (RESULT_GENERAL_FAILURE);
+  return RESULT_OK;
+}
+
+uint8_t Drive_t::bulkWrite(uint8_t * src, DISK_ADDR &dst)
 {
   if (!isValid(dst))
     return RESULT_WRONG_PARAM;

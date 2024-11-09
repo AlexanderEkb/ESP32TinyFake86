@@ -286,6 +286,7 @@ void renderInit()
 
   memcpy(&pendingRender, &render, sizeof(render_t));
 
+  ESP_LOGI(TAG, "Host video memory allocation, %i bytes available", ESP.getFreeHeap());
   bufferNTSC = (char **)malloc(CompositeColorOutput::YRES * sizeof(char *));
   assert(bufferNTSC);
   for (int y = 0; y < CompositeColorOutput::YRES; y++)
@@ -294,11 +295,12 @@ void renderInit()
     assert(bufferNTSC[y]);
     memset(bufferNTSC[y], 0x00, CompositeColorOutput::XRES * 2);
   }
-
+  ESP_LOGI(TAG, "Allocated, %i bytes available", ESP.getFreeHeap());
   void IRAM_ATTR blitter_0(uint8_t * src, uint16_t * dst);
   void IRAM_ATTR blitter_1(uint8_t * src, uint16_t * dst);
   ESP_LOGI(TAG, "composite.init()");
   composite.init(&bufferNTSC);
+  ESP_LOGI(TAG, "Done, %i bytes available", ESP.getFreeHeap());
 }
 
 void draw();

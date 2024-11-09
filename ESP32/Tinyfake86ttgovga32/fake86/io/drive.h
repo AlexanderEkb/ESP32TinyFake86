@@ -58,21 +58,23 @@ typedef struct DISK_ADDR
 class Drive_t
 {
   public:
+      static const uint32_t SECTOR_SIZE = 512;
       static SdCard sdCard;
       Drive_t();
-      uint8_t read(DISK_ADDR &src, uint8_t *dst);
-      uint8_t write(uint8_t *src, DISK_ADDR &dst);
+      uint8_t sectorRead(uint32_t sector, uint8_t *dst);
+      uint8_t sectorWrite(uint32_t sector, uint8_t *src);
+      uint8_t bulkRead(DISK_ADDR &src, uint8_t *dst);
+      uint8_t bulkWrite(uint8_t *src, DISK_ADDR &dst);
+      uint32_t lba(DISK_ADDR const &a);
       void getGeometry(Geometry_t *dst);
       bool isReady();
       bool openImage(char const *imgName);
 
   protected:
       static const uint32_t MAX_NAME_LENGTH = 256;
-      static const uint32_t SECTOR_SIZE = 512;
       Geometry_t geometry;
       FILE *pImage;
       int32_t imgIndex;
-      uint32_t lba(DISK_ADDR const &a);
       bool isValid(DISK_ADDR const &a);
 };
 

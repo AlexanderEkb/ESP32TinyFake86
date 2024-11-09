@@ -131,32 +131,6 @@ unsigned char gb_check_memory_before;
  }
 
 //********************************************************
-void write86 (unsigned int addr32, unsigned char value)
-{
-  switch(addr32)
-  {
-    case 0x0000 ... RAM_SIZE:
-      ram[addr32]= value;
-      return;
-    case 0xB8000 ... 0xBC000:
-      videomem[(addr32-0xB8000)]= value;
-      return;
-  }
-
-  if (addr32 > 1048575)
-  {
-    addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
-    ram[addr32] = value;  
-  }
-
-}
-
- static inline void writew86 (unsigned int addr32, unsigned short int value)
- {
-  write86 (addr32, (unsigned char) value);
-  write86 (addr32 + 1, (unsigned char) (value >> 8) );
- } 
-
 unsigned char read86 (unsigned int addr32) 
 {
   switch (addr32)
@@ -179,17 +153,41 @@ unsigned char read86 (unsigned int addr32)
  return 0xFF; 
 }
 
+void write86 (unsigned int addr32, unsigned char value)
+{
+  switch(addr32)
+  {
+    case 0x0000 ... RAM_SIZE:
+      ram[addr32]= value;
+      return;
+    case 0xB8000 ... 0xBC000:
+      videomem[(addr32-0xB8000)]= value;
+      return;
+  }
+
+  if (addr32 > 1048575)
+  {
+    addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
+    ram[addr32] = value;  
+  }
+
+}
+
+static inline unsigned short int readw86 (unsigned int addr32)
+{
+  return ( (unsigned short int) read86 (addr32) | (unsigned short int) (read86 (addr32 + 1) << 8) );
+}
+
+static inline void writew86 (unsigned int addr32, unsigned short int value)
+{
+  write86 (addr32,      (unsigned char) value);
+  write86 (addr32 + 1,  (unsigned char) (value >> 8) );
+} 
+
 uint8_t * getramloc(uint32_t addr)
 {
   return &ram[addr];
 }
-
- static inline unsigned short int readw86 (unsigned int addr32)
- {
-  return ( (unsigned short int) read86 (addr32) | (unsigned short int) (read86 (addr32 + 1) << 8) );
- }
-
-
 
  static inline void flag_szp8(unsigned char value)
  {

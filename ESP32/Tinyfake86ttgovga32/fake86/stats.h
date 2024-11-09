@@ -5,17 +5,7 @@
 #include <stdint.h>
 #include "config.h"
 
-#ifdef use_lib_log_serial
-#define LOG(...) Serial.printf(__VA_ARGS__)
-#else
-#define LOG(...) (void)
-#endif
-
-#ifdef STATS_ON
-#define PRINT_STATS(...) Serial.printf(__VA_ARGS__)
-#else
-#define PRINT_STATS(...) (void)(__VA_ARGS__)
-#endif
+#define TAG "STATS"
 
 class Stats
 {
@@ -52,10 +42,12 @@ class Stats
 
   void printAndReset()
   {
-    PRINT_STATS("c:%u m:%u mx:%u\n", CPU_TIME.instant, CPU_TIME.min, CPU_TIME.max);
+  #ifdef STATS_ON
+    ESP_LOGI(TAG, "c:%u m:%u mx:%u", CPU_TIME.instant, CPU_TIME.min, CPU_TIME.max);
     CPU_TIME.min = 1000000;
     CPU_TIME.max = 0;
     CPU_TIME.instant = 0;
+  #endif
   }
 
   private:

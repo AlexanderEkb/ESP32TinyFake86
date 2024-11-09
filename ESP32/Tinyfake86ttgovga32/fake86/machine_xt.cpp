@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
+#include "mb/memory.h"
 #include "mb/i8253.h"
 #include "mb/i8259.h"
 #include "mb/i8237.h"
@@ -27,7 +28,7 @@ MachineXT_t::MachineXT_t()
 
 void MachineXT_t::init()
 {
-  ESP_LOGI(TAG, "Machine init");
+  ESP_LOGI(TAG, "START SETUP %d", ESP.getFreeHeap());
   createRAM();
 
   ESP_LOGI(TAG, "Reset CPU");
@@ -67,6 +68,9 @@ bool MachineXT_t::createRAM()
   ram = reinterpret_cast<uint8_t *>(ramAddr);
   ESP_LOGI(TAG, "RAM initialized: core #%i, addr:0x%08X", coreID, ramAddr);
   return true; // We allocate RAM statically, so it is always successful.
+  // ram = reinterpret_cast<uint8_t *>(malloc(RAM_SIZE));
+  // assert(ram);
+  // return true;
 }
 
 void MachineXT_t::run()
