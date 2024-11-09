@@ -23,8 +23,6 @@
 #include "config/config.h"
 #include "config/gbConfig.h"
 #include "config/hardware.h"
-#include "dataFlash/bios/biospcxt.h"
-#include "dataFlash/rom/rombasic.h"
 #include "io/disk.h"
 #include "gbGlobals.h"
 #include "mb/i8253.h"
@@ -52,7 +50,6 @@
 #define putsegreg(regid, writeval) segregs[regid] = writeval
 #define segbase(x) ((uint32_t)x << 4)
 
-uint8_t * ram;
 extern uint8_t videomem[];
 extern struct structpic i8259;
 uint64_t curtimer, lasttimer, timerfreq;
@@ -133,61 +130,59 @@ unsigned char gb_check_memory_before;
 //********************************************************
 unsigned char read86 (unsigned int addr32) 
 {
-  switch (addr32)
-  {
-    case 0x00000 ... RAM_SIZE:
-      return (ram[addr32]);
-    case 0xB8000 ... 0xBBFFF:
-      return videomem[(addr32-0xB8000)];
-    case 0xF6000 ... 0xFDFFF:
-      return gb_rom_basic[(addr32-0xF6000)];
-    case 0xFE000 ... 0xFFFFF:
-      return gb_bios_pcxt[(addr32-0xFE000)];
-  }
+  return MachineXT_t::getInstance().memory.read(addr32);
+  // switch (addr32)
+  // {
+  //   case 0x00000 ... RAM_SIZE:
+  //     return (ram[addr32]);
+  //   case 0xB8000 ... 0xBBFFF:
+  //     return videomem[(addr32-0xB8000)];
+  //   case 0xF6000 ... 0xFDFFF:
+  //     return gb_rom_basic[(addr32-0xF6000)];
+  //   case 0xFE000 ... 0xFFFFF:
+  //     return gb_bios_pcxt[(addr32-0xFE000)];
+  // }
 
- if (addr32 > 1048575)
- {
-  addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
-  return (ram[addr32]);
- }
- return 0xFF; 
+//  if (addr32 > 1048575)
+//  {
+//   addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
+//   return (ram[addr32]);
+//  }
+//  return 0xFF; 
 }
 
 void write86 (unsigned int addr32, unsigned char value)
 {
-  switch(addr32)
-  {
-    case 0x0000 ... RAM_SIZE:
-      ram[addr32]= value;
-      return;
-    case 0xB8000 ... 0xBC000:
-      videomem[(addr32-0xB8000)]= value;
-      return;
-  }
+  MachineXT_t::getInstance().memory.write(addr32, value);
+  // switch(addr32)
+  // {
+  //   case 0x0000 ... RAM_SIZE:
+  //     ram[addr32]= value;
+  //     return;
+  //   case 0xB8000 ... 0xBC000:
+  //     videomem[(addr32-0xB8000)]= value;
+  //     return;
+  // }
 
-  if (addr32 > 1048575)
-  {
-    addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
-    ram[addr32] = value;  
-  }
-
+  // if (addr32 > 1048575)
+  // {
+  //   addr32 = addr32 & 0xFFFFF; //FIX EXPAND MICROSOFT ERROR MADMIX GAME
+  //   ram[addr32] = value;  
+  // }
 }
 
 static inline unsigned short int readw86 (unsigned int addr32)
 {
-  return ( (unsigned short int) read86 (addr32) | (unsigned short int) (read86 (addr32 + 1) << 8) );
+  // return ( (unsigned short int) read86 (addr32) | (unsigned short int) (read86 (addr32 + 1) << 8) );
+  return MachineXT_t::getInstance().memory.readWord(addr32);
 }
 
 static inline void writew86 (unsigned int addr32, unsigned short int value)
 {
-  write86 (addr32,      (unsigned char) value);
-  write86 (addr32 + 1,  (unsigned char) (value >> 8) );
+  MachineXT_t::getInstance().memory.writeWord(addr32, value);
+  // write86 (addr32,      (unsigned char) value);
+  // write86 (addr32 + 1,  (unsigned char) (value >> 8) );
 } 
-
-uint8_t * getramloc(uint32_t addr)
-{
-  return &ram[addr];
-}
 
  static inline void flag_szp8(unsigned char value)
  {
@@ -532,7 +527,6 @@ void reset86() {
 void init86()
 {
   ESP_LOGI(TAG, "init86()");
-  ram = MachineXT_t::getInstance().getRAM();
 }
 
  static inline unsigned short int readrm16 (unsigned char rmval)
