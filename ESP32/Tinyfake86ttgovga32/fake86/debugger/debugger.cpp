@@ -5,12 +5,10 @@
 
 // CRUTCH!!!
 #include "machine_xt.h"
-KeyboardDriver * keyboard = MachineXT_t::getInstance().getKeyboard();
 
-debugger_t debugger_t::instance;
-
-debugger_t::debugger_t()
+debugger_t::debugger_t(KeyboardDriver * keyboard)
 {
+  this->keyboard = keyboard;
   add(&codeBrowser);
   add(&regBrowser);
   add(&memBrowser);

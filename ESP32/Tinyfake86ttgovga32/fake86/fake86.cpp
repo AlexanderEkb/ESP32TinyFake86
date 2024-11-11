@@ -6,6 +6,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////// Local macros
 #define TAG "HOST"
 
+MachineXT_t * machine;
+static KeyboardDriverSTM * keyboard;
+
 //****************************
 void setup()
 {
@@ -19,11 +22,16 @@ void setup()
   ESP_LOGI(TAG, "Init cache");
   esp_spiram_init_cache();
 
-  MachineXT_t::getInstance().init();
+  ESP_LOGI(TAG, "Initializing keyboard");
+  keyboard = new KeyboardDriverSTM();
+  keyboard->Init();
+
+  machine = new MachineXT_t(keyboard);
+  machine->init();
 }
 
 // Loop main
 void loop()
 {
-  MachineXT_t::getInstance().run();
+  machine->run();
 }

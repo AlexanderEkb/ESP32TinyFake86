@@ -1,6 +1,7 @@
 #ifndef SIMPLE_DEBUGGER_H
 #define SIMPLE_DEBUGGER_H
 
+#include "io/keyboard.h"
 #include "service/list.h"
 #include "service/service.h"
 #include "service/widget.h"
@@ -11,7 +12,7 @@
 class debugger_t : public widget_t
 {
 public:
-    static debugger_t &getInstance() { return instance; };
+    debugger_t(KeyboardDriver * keyboard);
     void execute();
     virtual bool onKey(uint8_t scancode) override;
   private : 
@@ -29,10 +30,11 @@ public:
 
     DBG_MEM_ADDR memPosition;
     DBG_MEM_ADDR codePosition;
+
+    KeyboardDriver * keyboard;
+
     bool isRunning;
 
-    debugger_t();
-    static debugger_t instance;
     void nextBrowser();
     void doSingleStep();
     void onEnter();

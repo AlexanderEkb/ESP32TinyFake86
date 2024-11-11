@@ -12,8 +12,6 @@
 
 #define TAG "XT"
 
-MachineXT_t MachineXT_t::instance = MachineXT_t();
-
 static void videoTask(void *unused);
 
 MachineXT_t::MachineXT_t()
@@ -39,10 +37,6 @@ void MachineXT_t::init()
   init8259();
   ESP_LOGI(TAG, "  - Intel 8237 DMA controller");
   init8237();
-
-  ESP_LOGI(TAG, "Initializing keyboard");
-  keyboard = new KeyboardDriverSTM();
-  keyboard->Init();
 
   float auxTimer = (float)1.0 / (float)SAMPLE_RATE;
   ticker.attach(auxTimer, my_callback_speaker_func);
@@ -96,6 +90,28 @@ void MachineXT_t::suspend()
 void MachineXT_t::resume()
 {
   vTaskResume(videoTaskHandle);
+}
+
+// TODO: Consider getting rid of this crutch
+void MachineXT_t::boot()
+{
+  extern union _bytewordregs_ regs;
+
+  uint8_t bootdrive = getBootDrive();
+  if (bootdrive < 255)
+  { // read first sector of boot drive into 07C0:0000 and execute it
+    regs.byteregs[regdl] = bootdrive;
+    DISK_ADDR src = DISK_ADDR(bootdrive, 0, 0, 1, 1);
+    MEM_ADDR dst = MEM_ADDR(0x07C0, 0x0000);
+    readdisk(src, dst);
+    segregs[regcs] = 0x0000;
+    SetRegIP(0x7C00);
+  }
+  else
+  {
+    segregs[regcs] = 0xF600; // start ROM BASIC at bootstrap if requested
+    SetRegIP(0x0000);
+  }
 }
 
 //******************************

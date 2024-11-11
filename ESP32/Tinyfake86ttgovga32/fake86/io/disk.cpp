@@ -32,25 +32,14 @@
 extern SdCard sdcard;
 extern union _bytewordregs_ regs;
 
-static void getDriveParameters(uint8_t drive);
-
-static uint8_t lastResult = 0;
-
-FloppyDrive_t driveA;
-FloppyDrive_t driveB;
-HDD_t driveC;
-
-static const uint32_t DRIVE_COUNT = 3;
-Drive_t * drives[DRIVE_COUNT] = {&driveA, &driveB, &driveC};
-
-void setResult(uint8_t _result)
+void MachineXT_t::setDiskIOResult(uint8_t _result)
 {
-  lastResult = _result;
+  lastDiskIOResult = _result;
   regs.byteregs[regah] = _result;
   ExternalSetCF((_result == 0)?0:1);
 }
 
-void diskInit()
+void MachineXT_t::diskInit()
 {
   pinMode(DISK_LED, OUTPUT);
   digitalWrite(DISK_LED, true);
@@ -60,15 +49,15 @@ void diskInit()
     driveC.openImage(DEFAULT_HDD_IMAGE);
   }
   digitalWrite(DISK_LED, false);
-  lastResult = RESULT_OK;
+  lastDiskIOResult = RESULT_OK;
 }
 
-void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_ADDR &dst)
+void __attribute__((optimize("-Ofast"))) IRAM_ATTR MachineXT_t::readdisk(DISK_ADDR &src, MEM_ADDR &dst)
 {
   // LOG("Reading D%i C%i H%i S%i L%i %04X:%04X ", src.drive, src.cylinder, src.head, src.sector, src.sectorCount, dst.segment, dst.offset);
   if(src.drive >= DRIVE_COUNT)
   {
-    setResult(RESULT_WRONG_PARAM);
+    setDiskIOResult(RESULT_WRONG_PARAM);
     return;
   }
   digitalWrite(DISK_LED, true);
@@ -85,13 +74,13 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_
     // ESP_LOGI(TAG, "Reading sector #%i", sector);
     uint8_t buffer[Drive_t::SECTOR_SIZE];
     result = drive->sectorRead(sector, buffer);
-    MachineXT_t::getInstance().memory.writeBulk(dst.linear(), buffer, Drive_t::SECTOR_SIZE);
+    memory.writeBulk(dst.linear(), buffer, Drive_t::SECTOR_SIZE);
     addr += Drive_t::SECTOR_SIZE;
     sector++;
   }
 #endif
 
-  setResult(result);
+  setDiskIOResult(result);
   digitalWrite(DISK_LED, false);
   if (result == RESULT_OK)
   {
@@ -105,7 +94,7 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_
   // ESP_LOGI(TAG, "Reading OK");
 }
 
-void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
+void MachineXT_t::writedisk (DISK_ADDR & dst, MEM_ADDR & src)
 {
   // LOG("Writing D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
   digitalWrite(DISK_LED, true);
@@ -120,7 +109,7 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
   {
     // ESP_LOGI(TAG, "Reading sector #%i", sector);
     uint8_t buffer[Drive_t::SECTOR_SIZE];
-    MachineXT_t::getInstance().memory.readBulk(src.linear(), buffer, Drive_t::SECTOR_SIZE);
+    memory.readBulk(src.linear(), buffer, Drive_t::SECTOR_SIZE);
     result = drive->sectorWrite(sector, buffer);
     addr += Drive_t::SECTOR_SIZE;
     sector++;
@@ -136,11 +125,11 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
   {
     ESP_LOGE(TAG, "Writing error: D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
   }
-  setResult(result);
+  setDiskIOResult(result);
   digitalWrite(DISK_LED, false);
 }
 
-void diskhandler()
+void MachineXT_t::diskhandler()
 { 
   const uint8_t  drive = regs.byteregs[regdl];
   const uint16_t cylinder = 
@@ -157,10 +146,10 @@ void diskhandler()
 	switch (serviceNum)
   {
     case 0: //reset disk system
-      setResult(RESULT_OK);
+      setDiskIOResult(RESULT_OK);
       break;
     case 1: // return last status
-      setResult(lastResult);
+      setDiskIOResult(lastDiskIOResult);
       return;
     case 2: // read sector(s) into memory
       readdisk(diskAddr, buffer);
@@ -170,12 +159,12 @@ void diskhandler()
       break;
     case 4: // verify sector(s)
     case 5: // format track
-      setResult(RESULT_OK);
+      setDiskIOResult(RESULT_OK);
       break;
     case 8: //get drive parameters
       cf = 0;
       getDriveParameters(translatedDrive);
-      setResult(RESULT_OK);
+      setDiskIOResult(RESULT_OK);
       break;
     case 9:
     case 10:
@@ -184,20 +173,20 @@ void diskhandler()
     case 13:
       break;
     default:
-      setResult(RESULT_GENERAL_FAILURE);
+      setDiskIOResult(RESULT_GENERAL_FAILURE);
 	}
 
 	if (regs.byteregs[regdl] & 0x80)
   {
-    MachineXT_t::getInstance().memory.write(0x474, regs.byteregs[regah]);
+    memory.write(0x474, regs.byteregs[regah]);
   }
 }
 
-static void getDriveParameters(uint8_t drive)
+void MachineXT_t::getDriveParameters(uint8_t drive)
 {
   if(drive >= DRIVE_COUNT)
   {
-    setResult(RESULT_WRONG_PARAM);
+    setDiskIOResult(RESULT_WRONG_PARAM);
   }
   else
   {
@@ -220,11 +209,11 @@ static void getDriveParameters(uint8_t drive)
       regs.byteregs[regbl] = 0; // Floppy type. Don't know what has to be returned for a HDD.
       regs.byteregs[regdl] = 1; // Drive count
     }
-    setResult(RESULT_OK);
+    setDiskIOResult(RESULT_OK);
   }
 }
 
-uint8_t getBootDrive()
+uint8_t MachineXT_t::getBootDrive()
 {
   if(driveA.isReady())
   {

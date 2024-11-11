@@ -50,6 +50,7 @@
 #define putsegreg(regid, writeval) segregs[regid] = writeval
 #define segbase(x) ((uint32_t)x << 4)
 
+static MachineXT_t * _machine;
 extern uint8_t videomem[];
 extern struct structpic i8259;
 uint64_t curtimer, lasttimer, timerfreq;
@@ -130,7 +131,7 @@ unsigned char gb_check_memory_before;
 //********************************************************
 unsigned char read86 (unsigned int addr32) 
 {
-  return MachineXT_t::getInstance().memory.read(addr32);
+  return _machine->memory.read(addr32);
   // switch (addr32)
   // {
   //   case 0x00000 ... RAM_SIZE:
@@ -153,7 +154,7 @@ unsigned char read86 (unsigned int addr32)
 
 void write86 (unsigned int addr32, unsigned char value)
 {
-  MachineXT_t::getInstance().memory.write(addr32, value);
+  _machine->memory.write(addr32, value);
   // switch(addr32)
   // {
   //   case 0x0000 ... RAM_SIZE:
@@ -174,12 +175,12 @@ void write86 (unsigned int addr32, unsigned char value)
 static inline unsigned short int readw86 (unsigned int addr32)
 {
   // return ( (unsigned short int) read86 (addr32) | (unsigned short int) (read86 (addr32 + 1) << 8) );
-  return MachineXT_t::getInstance().memory.readWord(addr32);
+  return _machine->memory.readWord(addr32);
 }
 
 static inline void writew86 (unsigned int addr32, unsigned short int value)
 {
-  MachineXT_t::getInstance().memory.writeWord(addr32, value);
+  _machine->memory.writeWord(addr32, value);
   // write86 (addr32,      (unsigned char) value);
   // write86 (addr32 + 1,  (unsigned char) (value >> 8) );
 } 
@@ -524,8 +525,9 @@ void reset86() {
 	ip = 0x0000;
 }
 
-void init86()
+void init86(MachineXT_t * machine)
 {
+  _machine = machine;
   ESP_LOGI(TAG, "init86()");
 }
 
@@ -586,29 +588,13 @@ extern void diskhandler();
 
 void intcall86(unsigned char intnum)
 {
-  unsigned char bootdrive = 0;
-
   switch (intnum)
   {
   /************************************/
   /******** INT19H : Bootstrap ********/
   /************************************/
   case 0x19: // bootstrap
-    bootdrive = getBootDrive();
-    if (bootdrive < 255)
-    { // read first sector of boot drive into 07C0:0000 and execute it
-      regs.byteregs[regdl] = bootdrive;
-      DISK_ADDR src = DISK_ADDR(bootdrive, 0, 0, 1, 1);
-      MEM_ADDR dst = MEM_ADDR(0x07C0, 0x0000);
-      readdisk(src, dst);
-      segregs[regcs] = 0x0000;
-      ip = 0x7C00;
-    }
-    else
-    {
-      segregs[regcs] = 0xF600; // start ROM BASIC at bootstrap if requested
-      ip = 0x0000;
-    }
+    _machine->boot();
     return;
   /************************************/
   /********** INT13H : Disks **********/
