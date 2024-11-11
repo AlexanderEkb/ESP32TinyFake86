@@ -1,6 +1,6 @@
 #include "debugger/debugger.h"
 #include "cpu/cpu.h"
-#include "io/keyboard.h"
+#include "host/keyboard/keyboard.h"
 #include "service/service.h"
 
 // CRUTCH!!!

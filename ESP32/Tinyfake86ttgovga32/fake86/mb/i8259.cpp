@@ -22,14 +22,12 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "io/keyboard.h"
 #include "mb/i8259.h"
 #include "cpu/ports.h"
 #include "config/gbConfig.h"
 #include "gbGlobals.h"
 
 #define TAG "i8259"
-extern KeyboardDriver *keyboard;
 
 struct structpic i8259;
 

@@ -98,18 +98,18 @@ void MemoryArea_t::readBulk(uint32_t addr, uint8_t * buffer, uint32_t count)
   memcpy(buffer, &mem[addr], count);
 }
 
-void IRAM_ATTR MemoryArea_t::write(uint32_t addr, uint8_t byte)
+void IRAM_ATTR MemoryRAM_t::write(uint32_t addr, uint8_t byte)
 {
   mem[addr - start] = byte;
 }
 
-void IRAM_ATTR MemoryArea_t::writeWord(uint32_t addr, uint16_t word)
+void IRAM_ATTR MemoryRAM_t::writeWord(uint32_t addr, uint16_t word)
 {
   mem[addr - start] = (uint8_t)(word & 0x00FF);
   mem[addr - start + 1] = (uint8_t)((word >> 8) & 0x00FF);
 }
 
-void MemoryArea_t::writeBulk(uint32_t addr, uint8_t * buffer, uint32_t count)
+void MemoryRAM_t::writeBulk(uint32_t addr, uint8_t * buffer, uint32_t count)
 {
   memcpy(&mem[addr], buffer, count);
 }

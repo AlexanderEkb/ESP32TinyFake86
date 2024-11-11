@@ -14,14 +14,22 @@ class MemoryArea_t
     bool IRAM_ATTR belongs(uint32_t addr);
     uint8_t IRAM_ATTR read(uint32_t addr);
     uint16_t IRAM_ATTR readWord(uint32_t addr);
-    virtual void readBulk(uint32_t addr, uint8_t * buffer, uint32_t count);
-    virtual void IRAM_ATTR write(uint32_t addr, uint8_t byte);
-    virtual void IRAM_ATTR writeWord(uint32_t addr, uint16_t word);
-    virtual void writeBulk(uint32_t addr, uint8_t * buffer, uint32_t count);
+    void readBulk(uint32_t addr, uint8_t * buffer, uint32_t count);
+    virtual void IRAM_ATTR write(uint32_t addr, uint8_t byte) = 0;
+    virtual void IRAM_ATTR writeWord(uint32_t addr, uint16_t word) = 0;
+    virtual void writeBulk(uint32_t addr, uint8_t * buffer, uint32_t count) = 0;
   protected:
     uint32_t start;
     uint32_t end;
     uint8_t * mem;
+};
+
+class MemoryRAM_t : public MemoryArea_t
+{
+  public:
+    virtual void IRAM_ATTR write(uint32_t addr, uint8_t byte) override;
+    virtual void IRAM_ATTR writeWord(uint32_t addr, uint16_t word) override;
+    virtual void writeBulk(uint32_t addr, uint8_t * buffer, uint32_t count) override;
 };
 
 class MemoryROM_t : public MemoryArea_t
@@ -31,6 +39,16 @@ class MemoryROM_t : public MemoryArea_t
     virtual void IRAM_ATTR writeWord(uint32_t addr, uint16_t word) {};
     virtual void writeBulk(uint32_t addr, uint8_t * buffer, uint32_t count) {};
   private:
+};
+
+class BIOS_t : public MemoryROM_t
+{
+
+};
+
+class RomBasic_t : public MemoryROM_t
+{
+
 };
 
 class Memory_t

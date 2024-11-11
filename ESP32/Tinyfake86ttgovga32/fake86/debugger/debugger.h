@@ -1,7 +1,7 @@
 #ifndef SIMPLE_DEBUGGER_H
 #define SIMPLE_DEBUGGER_H
 
-#include "io/keyboard.h"
+#include "host/keyboard/keyboard.h"
 #include "service/list.h"
 #include "service/service.h"
 #include "service/widget.h"

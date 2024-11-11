@@ -6,10 +6,21 @@
 #include <freertos/task.h>
 #include <Ticker.h>
 
-#include "io/keyboard.h"
+#include "host/keyboard/keyboard.h"
 #include "io/drive.h"
 #include "mb/memory.h"
 #include "stats.h"
+
+typedef enum Event_t
+{
+  EVENT_KEY,
+} Event_t;
+
+typedef struct Message_t
+{
+  Event_t event;
+  uint32_t param;
+} Message_t;
 
 class MachineXT_t
 {

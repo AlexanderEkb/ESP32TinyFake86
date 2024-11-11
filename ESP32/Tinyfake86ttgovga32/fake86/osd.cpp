@@ -4,7 +4,7 @@
 #include "cpu/ports.h"
 #include "fake86.h"
 #include "gbGlobals.h"
-#include "io/keyboard.h"
+#include "host/keyboard/keyboard.h"
 #include "io/keys.h"
 #include "io/disk.h"
 #include "video/CompositeColorOutput.h"
