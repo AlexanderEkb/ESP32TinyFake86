@@ -30,5 +30,9 @@ void Host_t::init()
 
 void Host_t::run()
 {
+  uint8_t result;
+  if(xQueueReceive(keyboardEvents, &result, 0) != pdTRUE)
+    result = 0;
+
   machine->run();
 }

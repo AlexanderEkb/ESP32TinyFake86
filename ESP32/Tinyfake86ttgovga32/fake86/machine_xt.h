@@ -22,7 +22,16 @@ typedef struct Message_t
   uint32_t param;
 } Message_t;
 
-class MachineXT_t
+class Machine_t
+{
+  public:
+    virtual void init() = 0;
+    virtual void run() = 0;
+    virtual void suspend() = 0;
+    virtual void resume() = 0;
+};
+
+class MachineXT_t : public Machine_t
 {
   public:
     MachineXT_t(KeyboardDriver * keyboard) :
@@ -31,10 +40,10 @@ class MachineXT_t
       videoTaskHandle(nullptr),
       stats(Stats())
     {};
-    void init();
-    void run();
-    void suspend();
-    void resume();
+    virtual void init() override;
+    virtual void run() override;
+    virtual void suspend() override;
+    virtual void resume() override;
 
     Memory_t memory;
 
