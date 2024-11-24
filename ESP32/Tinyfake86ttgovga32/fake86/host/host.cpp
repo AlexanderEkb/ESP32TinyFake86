@@ -1,9 +1,10 @@
 #include "host.h"
+#include "machines/ibm_xt/machine_xt.h"
 
 #define TAG "HOST"
 
-MachineXT_t * Host_t::machine;
-KeyboardDriverCustom_t * Host_t::keyboard;
+Machine_t * Host_t::machine;
+Keyboard_t * Host_t::keyboard;
 QueueHandle_t Host_t::keyboardEvents;
 
 void Host_t::init()
@@ -33,6 +34,5 @@ void Host_t::run()
   uint8_t result;
   if(xQueueReceive(keyboardEvents, &result, 0) != pdTRUE)
     result = 0;
-
   machine->run();
 }
