@@ -11,6 +11,8 @@ typedef enum Event_t
 
 typedef struct Message_t
 {
+  Message_t(Event_t event, uint32_t param) :
+    event(event), param(param) {};
   Event_t event;
   uint32_t param;
 } Message_t;

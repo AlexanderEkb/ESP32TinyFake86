@@ -2,7 +2,6 @@
 #define _PORTS_H
 
 #include <stdint.h>
-#include <esp_log.h>
 
 typedef uint8_t(* portReader_t)(uint32_t address);
 typedef void (* portWriter_t)(uint32_t address, uint8_t value);

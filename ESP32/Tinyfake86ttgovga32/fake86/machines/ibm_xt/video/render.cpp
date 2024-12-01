@@ -27,7 +27,7 @@
 #include "gb_sdl_font8x8.h"
 #include <stdio.h>
 #include <string.h>
-#include <esp_log.h>
+#include <esp32-hal-log.h>
 
 #define TAG "render"
 #define EFFECTIVE_HEIGHT (200)

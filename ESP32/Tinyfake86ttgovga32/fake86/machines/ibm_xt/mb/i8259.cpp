@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <esp32-hal-log.h>
 #include "../mb/i8259.h"
 #include "../cpu/ports.h"
 #include "config/gbConfig.h"
@@ -108,6 +109,8 @@ uint8_t nextintr() {
   }  
  } 
 
-void init8259() {
-	 memset((void *)&i8259, 0, sizeof(i8259));
+void init8259()
+{
+  ESP_LOGI(TAG, "  - Intel 8259 interrupt controller");
+  memset((void *)&i8259, 0, sizeof(i8259));
 }

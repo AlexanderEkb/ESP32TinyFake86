@@ -22,7 +22,8 @@ class MachineXT_t : public Machine_t
       ticker(Ticker()),
       stats(Stats()),
       isMachineRunning(true),
-      osd(this)
+      osd(this),
+      memory(new Memory_t())
     {};
     virtual void init() override;
     virtual void run() override;
@@ -31,7 +32,7 @@ class MachineXT_t : public Machine_t
     virtual void onEvent(Message_t * msg) override;
     virtual Keyboard_t * getKeyboard() override;
     Drive_t * getDrive(uint32_t index);
-    Memory_t memory;
+    Memory_t * memory;
 
     // To boot the machine we must have these two methods public:
     void boot();
@@ -48,7 +49,7 @@ class MachineXT_t : public Machine_t
 
     FloppyDrive_t driveA;
     FloppyDrive_t driveB;
-    HDD_t driveC;
+    HDD_t         driveC;
     static const uint32_t DRIVE_COUNT = 3;
     Drive_t * drives[DRIVE_COUNT] = {&driveA, &driveB, &driveC};
     uint8_t lastDiskIOResult = 0;

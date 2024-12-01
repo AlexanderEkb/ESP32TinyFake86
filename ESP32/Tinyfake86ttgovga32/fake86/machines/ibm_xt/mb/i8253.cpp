@@ -38,6 +38,8 @@
 #define PIT_MODE_HIBYTE 2
 #define PIT_MODE_TOGGLE 3
 
+#define TAG "i8253"
+
 typedef struct i8253_s
 {
   uint16_t update;
@@ -140,6 +142,7 @@ static uint8_t readControl(uint32_t address)
 
 void init8253()
 {
+  ESP_LOGI(TAG, "  - Intel 8253 timer");
   // initializeHWTimer();
   for(uint32_t channel=0; channel<3; channel++)
   {

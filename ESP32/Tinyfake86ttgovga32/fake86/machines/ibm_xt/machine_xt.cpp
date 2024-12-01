@@ -13,21 +13,14 @@
 #include "osd.h"
 
 static void videoTask(void *unused);
+#define TAG "XT"
 
 void MachineXT_t::init()
 {
   ESP_LOGI(TAG, "START SETUP %d", ESP.getFreeHeap());
-  memory.init();
-
-  ESP_LOGI(TAG, "Reset CPU");
-  init86(this);
-  reset86();
   ESP_LOGI(TAG, "Initializing emulated hardware:");
-  ESP_LOGI(TAG, "  - Intel 8253 timer");
   init8253();
-  ESP_LOGI(TAG, "  - Intel 8259 interrupt controller");
   init8259();
-  ESP_LOGI(TAG, "  - Intel 8237 DMA controller");
   init8237();
 
   float auxTimer = (float)1.0 / (float)SAMPLE_RATE;
@@ -37,10 +30,12 @@ void MachineXT_t::init()
 
   diskInit();
 
-  ESP_LOGI(TAG, "Init render");
   renderInit();
   ESP_LOGI(TAG, "Starting dumper");
   xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
+  extern uint8_t videomem[];
+  memory->init(videomem);
+  init86(this);
 
   ESP_LOGI(TAG, "END SETUP %d", ESP.getFreeHeap());
 }
@@ -65,6 +60,7 @@ void MachineXT_t::onEvent(Message_t * msg)
   switch(msg->event)
   {
     case EVENT_KEY:
+      ESP_LOGI(TAG, "EVENT_KEY 0x%X", msg->param);
       IOPortSpace::getInstance().get(0x060)->value = (uint8_t)msg->param;
       doirq(1);
       break;

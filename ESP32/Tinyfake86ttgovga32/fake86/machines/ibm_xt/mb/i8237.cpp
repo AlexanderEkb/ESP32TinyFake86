@@ -20,15 +20,15 @@
 /* i8237.c: functions to emulate the Intel 8237 DMA controller.
    the Sound Blaster Pro emulation functions rely on this! */
 
-#include "config/config.h"
-#include "config/gbConfig.h"
 #include <stdint.h>
 #include <stdio.h>
-#include "i8237.h"
-#include "../cpu/ports.h"
 #include <string.h>
+#include <esp32-hal-log.h>
+#include "i8237.h"
+#include "config/config.h"
+#include "../cpu/ports.h"
 
-// JJ extern struct blaster_s blaster;
+#define TAG "i8237"
 
 struct dmachan_s dmachan[4];
 uint8_t flipflop = 0;
@@ -160,6 +160,6 @@ uint8_t in8237(uint16_t addr)
 
 void init8237()
 {
+  ESP_LOGI(TAG, "  - Intel 8237 DMA controller");
   memset(dmachan, 0, sizeof(dmachan));
-
 }

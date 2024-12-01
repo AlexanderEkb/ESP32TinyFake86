@@ -86,7 +86,6 @@ void SetCF(unsigned short int a);
 
 unsigned char read86 (unsigned int addr32);
 void write86 (unsigned int addr32, unsigned char value);
-void reset86(void);
 void init86(MachineXT_t * machine);
 void exec86 (uint32_t count);
 

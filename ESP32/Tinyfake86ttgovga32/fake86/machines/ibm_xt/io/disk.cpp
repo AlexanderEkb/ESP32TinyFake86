@@ -27,6 +27,7 @@
 #include <string.h>
 
 #define BULK_READ_WRITE 0
+#define TAG "DISK"
 
 extern SdCard sdcard;
 extern union _bytewordregs_ regs;
@@ -53,7 +54,7 @@ void MachineXT_t::diskInit()
 
 void __attribute__((optimize("-Ofast"))) IRAM_ATTR MachineXT_t::readdisk(DISK_ADDR &src, MEM_ADDR &dst)
 {
-  // LOG("Reading D%i C%i H%i S%i L%i %04X:%04X ", src.drive, src.cylinder, src.head, src.sector, src.sectorCount, dst.segment, dst.offset);
+  // ESP_LOGI(TAG, "Reading D%i C%i H%i S%i L%i %04X:%04X ", src.drive, src.cylinder, src.head, src.sector, src.sectorCount, dst.segment, dst.offset);
   if(src.drive >= DRIVE_COUNT)
   {
     setDiskIOResult(RESULT_WRONG_PARAM);
@@ -73,7 +74,7 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR MachineXT_t::readdisk(DISK_AD
     // ESP_LOGI(TAG, "Reading sector #%i", sector);
     uint8_t buffer[Drive_t::SECTOR_SIZE];
     result = drive->sectorRead(sector, buffer);
-    memory.writeBulk(dst.linear(), buffer, Drive_t::SECTOR_SIZE);
+    memory->writeBulk(addr, buffer, Drive_t::SECTOR_SIZE);
     addr += Drive_t::SECTOR_SIZE;
     sector++;
   }
@@ -106,9 +107,9 @@ void MachineXT_t::writedisk (DISK_ADDR & dst, MEM_ADDR & src)
   uint32_t addr = src.linear();
   for(uint32_t i=0; (i < dst.sectorCount) && (result == RESULT_OK); i++)
   {
-    // ESP_LOGI(TAG, "Reading sector #%i", sector);
+    // ESP_LOGI(TAG, "Writing sector #%i", sector);
     uint8_t buffer[Drive_t::SECTOR_SIZE];
-    memory.readBulk(src.linear(), buffer, Drive_t::SECTOR_SIZE);
+    memory->readBulk(addr, buffer, Drive_t::SECTOR_SIZE);
     result = drive->sectorWrite(sector, buffer);
     addr += Drive_t::SECTOR_SIZE;
     sector++;
@@ -179,7 +180,7 @@ void MachineXT_t::diskhandler()
 
 	if (regs.byteregs[regdl] & 0x80)
   {
-    memory.write(0x474, regs.byteregs[regah]);
+    memory->write(0x474, regs.byteregs[regah]);
   }
 }
 

@@ -18,8 +18,6 @@
 //
 // cpu.c: functions to emulate the 8086/V20 CPU in software. the heart of Fake86.
 
-#define TAG "CPU"
-
 #include "../machine_xt.h"
 #include "cpu.h"
 #include "config/config.h"
@@ -32,7 +30,8 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <esp_log.h>
+
+#define TAG "CPU"
 
 #define StepIP(x) ip += x
 #define getmem8(x, y) read86(segbase(x) + y)
@@ -130,7 +129,9 @@ unsigned char gb_check_memory_before;
 //********************************************************
 unsigned char read86 (unsigned int addr32) 
 {
-  return _machine->memory.read(addr32);
+  uint8_t b = _machine->memory->read(addr32);
+  // ESP_LOGI(TAG, "read from %05Xh: %02Xh", addr32, b);
+  return b;
   // switch (addr32)
   // {
   //   case 0x00000 ... RAM_SIZE:
@@ -153,7 +154,8 @@ unsigned char read86 (unsigned int addr32)
 
 void write86 (unsigned int addr32, unsigned char value)
 {
-  _machine->memory.write(addr32, value);
+  // ESP_LOGI(TAG, "write to %05Xh", addr32);
+  _machine->memory->write(addr32, value);
   // switch(addr32)
   // {
   //   case 0x0000 ... RAM_SIZE:
@@ -173,13 +175,16 @@ void write86 (unsigned int addr32, unsigned char value)
 
 static inline unsigned short int readw86 (unsigned int addr32)
 {
+  uint16_t w = _machine->memory->readWord(addr32);
+  // ESP_LOGI(TAG, "readWord from %05Xh: %04Xh", addr32, w);
   // return ( (unsigned short int) read86 (addr32) | (unsigned short int) (read86 (addr32 + 1) << 8) );
-  return _machine->memory.readWord(addr32);
+  return w;
 }
 
 static inline void writew86 (unsigned int addr32, unsigned short int value)
 {
-  _machine->memory.writeWord(addr32, value);
+  // ESP_LOGI(TAG, "writeWord to %05Xh", addr32);
+  _machine->memory->writeWord(addr32, value);
   // write86 (addr32,      (unsigned char) value);
   // write86 (addr32 + 1,  (unsigned char) (value >> 8) );
 } 
@@ -519,15 +524,12 @@ void getea (uint8_t rmval)
   return tempval;
  }  
 
-void reset86() {
-	segregs[regcs] = 0xFFFF;
-	ip = 0x0000;
-}
-
 void init86(MachineXT_t * machine)
 {
-  _machine = machine;
   ESP_LOGI(TAG, "init86()");
+  _machine = machine;
+	segregs[regcs] = 0xFFFF;
+	ip = 0x0000;
 }
 
  static inline unsigned short int readrm16 (unsigned char rmval)

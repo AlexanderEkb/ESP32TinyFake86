@@ -18,7 +18,7 @@
 //   as functions for emulated hardware components to register their
 //   read/write callback functions across the port address range.
 
-#include "esp_log.h"
+#include <esp32-hal-log.h>
 #include "ports.h"
 #include "cpu.h"
 #include "../io/speaker.h"
