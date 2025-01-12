@@ -14,7 +14,7 @@ class osd_t
 {
   public:
     osd_t();
-    OSD_RESULT_t execute();
+    void execute();
   private:
     void osdLeave();
     void svcDrawTableLoRes(uint32_t p);
@@ -35,6 +35,6 @@ class osd_t
 
 };
 
-OSD_RESULT_t do_tinyOSD(void);
+void do_tinyOSD(void);
 
 #endif

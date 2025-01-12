@@ -1,6 +1,7 @@
 #include "debugger/debugger.h"
 #include "cpu/cpu.h"
-#include "io/keyboard.h"
+#include "keyboard/keyboard.h"
+#include "keyboard/keys.h"
 #include "service/service.h"
 
 debugger_t debugger_t::instance;
@@ -46,7 +47,7 @@ void debugger_t::execute()
 
     extern KeyboardDriver *keyboard;
     uint8_t scancode = 0;
-    while (!(scancode = keyboard->getLastKey()));
+    while (!(scancode = keyboard->Poll()));
     onKey(scancode);
   }
 }

@@ -4,11 +4,22 @@
 #include "gbConfig.h"
 
 #define RG_STORAGE_DRIVER 2
-
-#define VIDEO_PIN     25
-
+/**
+ @brief Keyboard driver used in the system.
+ 0 is for simplified XT driver (custom keyboard, uses a kind of receive-only SPI bus).
+ 1 is for AT keyboard (fully-functional PS/2 one).
+*/
+#define KEYBOARD_DRIVER 1
+#if (KEYBOARD_DRIVER == 0)
 #define KEYBOARD_DATA 35
-#define KEYBOARD_CLK  34
+#define KEYBOARD_CLK  34 
+#elif (KEYBOARD_DRIVER == 1)
+#define KEYBOARD_DATA 26
+#define KEYBOARD_CLK  27
+#else
+#error Choose any correct keyboard driver!
+#endif
+#define VIDEO_PIN     25
 // #define KEYBOARD_RDY  32
 #if RG_STORAGE_DRIVER == 1
 #define RG_STORAGE_HOST             HSPI_HOST           // Used by SDSPI and SDMMC

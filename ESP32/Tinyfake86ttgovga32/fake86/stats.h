@@ -5,12 +5,6 @@
 #include <stdint.h>
 #include "config.h"
 
-#ifdef use_lib_log_serial
-#define LOG(...) Serial.printf(__VA_ARGS__)
-#else
-#define LOG(...) (void)
-#endif
-
 #ifdef STATS_ON
 #define PRINT_STATS(...) Serial.printf(__VA_ARGS__)
 #else

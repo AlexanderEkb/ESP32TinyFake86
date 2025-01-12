@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "io/keyboard.h"
+#include "keyboard/keyboard.h"
 #include "mb/i8259.h"
 #include "cpu/ports.h"
 #include "config/gbConfig.h"
@@ -76,10 +76,6 @@ static void write_20h(uint32_t address, uint8_t value)
       if ((i8259.isr >> i) & 1)
       {
         i8259.isr ^= (1 << i);
-        if(i == 1)
-        {
-          keyboard->resetRdy();
-        }
         return;
       }
   }

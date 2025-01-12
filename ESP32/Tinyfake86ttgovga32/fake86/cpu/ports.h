@@ -94,9 +94,9 @@ class IOPort
 
     void scan()
     {
-      LOG("IO port handled in this implementation...\n");
+      ESP_LOGI("PORTS", "IO port handled in this implementation...\n");
       _scan(root);
-      LOG("Scan finished.\n");
+      ESP_LOGI("PORTS", "Scan finished.\n");
     }
 
     uint8_t read(uint32_t address)
@@ -173,7 +173,7 @@ class IOPort
     {
     if(startPoint != nullptr)
     {
-      LOG("Port %03xh\n", startPoint->address);
+      ESP_LOGI("PORTS", "Port %03xh\n", startPoint->address);
       _scan(startPoint->right);
       _scan(startPoint->left);
     }

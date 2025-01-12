@@ -4,8 +4,8 @@
 #include "cpu/ports.h"
 #include "fake86.h"
 #include "gbGlobals.h"
-#include "io/keyboard.h"
-#include "io/keys.h"
+#include "keyboard/keyboard.h"
+#include "keyboard/keys.h"
 #include "io/disk.h"
 #include "video/CompositeColorOutput.h"
 #include "video/render.h"
@@ -15,10 +15,6 @@
 #include <string.h>
 #include "stats.h"
 #include "debugger/debugger.h"
-
-static struct osd {
-  bool active       = false;
-} osd;
 
 extern char **bufferNTSC;
 extern CompositeColorOutput composite;
@@ -132,7 +128,7 @@ uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char 
   while (!bExit)
   {
     extern KeyboardDriver *keyboard;
-    uint8_t scancode = keyboard->getLastKey();
+    uint8_t scancode = keyboard->Poll();
     switch (scancode)
     {
     case (KEY_CURSOR_LEFT):
@@ -170,7 +166,7 @@ static void showColorMenu()
  if(selection <= COLORBURST_DISABLE)
  {
     renderSetColorburstOverride(selection);
-    LOG("renderSetColorburstOverride(%i)\n", selection);
+    ESP_LOGI("RENDER", "renderSetColorburstOverride(%i)\n", selection);
  }
 }
 
@@ -271,7 +267,7 @@ void ShowTinyVideoMenu()
       while (!bExit)
       {
         extern KeyboardDriver *keyboard;
-        uint8_t scancode = keyboard->getLastKey();
+        uint8_t scancode = keyboard->Poll();
         switch(scancode)
         {
           case KEY_ESC:
@@ -312,7 +308,7 @@ void ShowTinyVideoMenu()
         sprintf(buffer, "phase: %i", phase);
         svcPrintText(buffer, 24, 128, 15, 0);
         extern KeyboardDriver *keyboard;
-        uint8_t scancode = keyboard->getLastKey();
+        uint8_t scancode = keyboard->Poll();
         switch (scancode)
         {
         case KEY_ESC:
@@ -373,66 +369,53 @@ void ShowTinyVideoMenu()
 
 //*******************************************
 //Very small tiny osd
-OSD_RESULT_t do_tinyOSD()
+void do_tinyOSD()
 {
   unsigned char aSelNum;
   extern KeyboardDriver *keyboard;
-  uint8_t scancode = keyboard->getLastKey();
-  if (scancode == KEY_F12)
+  uint8_t scancode = keyboard->Poll();
+  composite.saveSettings();
+  composite.setBlitter(1);
+  composite.setColorburstEnabled(true);
+  svcClearScreen(SCREEN_BACKGROUND);
+  svcBar(8, OSD_VERTICAL_OFFSET, 21, 320, HEADER_BACKGROUND);
+  svcPrintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
+  svcPrintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
+
+  speakerMute = true;
+
+  aSelNum = ShowTinyMenu("MAIN MENU", gb_main_menu, max_gb_main_menu, 10, 10);
+  switch (aSelNum)
   {
-    osd.active = true;
-    return OSD_RESULT_PREPARE;
+  case 0:
+    ShowTinyDSKMenu(0);
+    break;
+  case 1:
+    ShowTinyDSKMenu(1);
+    break;
+  case 2:
+    ESP.restart();
+    break;
+  case 3:
+    ShowTinySpeedMenu();
+    break;
+  case 4:
+    ShowTinyVideoMenu();
+    break;
+  case 5:
+    debugger_t::getInstance().execute();
+    break;
+  default:
+    break;
   }
 
-  if (osd.active)
-  {
-    composite.saveSettings();
-    composite.setBlitter(1);
-    composite.setColorburstEnabled(true);
-    svcClearScreen(SCREEN_BACKGROUND);
-    svcBar(8, OSD_VERTICAL_OFFSET, 21, 320, HEADER_BACKGROUND);
-    svcPrintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
-    svcPrintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
-
-    speakerMute = true;
-
-    aSelNum = ShowTinyMenu("MAIN MENU", gb_main_menu, max_gb_main_menu, 10, 10);
-    switch (aSelNum)
-    {
-    case 0:
-      ShowTinyDSKMenu(0);
-      break;
-    case 1:
-      ShowTinyDSKMenu(1);
-      break;
-    case 2:
-      ESP.restart();
-      break;
-    case 3:
-      ShowTinySpeedMenu();
-      break;
-    case 4:
-      ShowTinyVideoMenu();
-      break;
-    case 5:
-      debugger_t::getInstance().execute();
-      break;
-    default:
-      break;
-    }
-
-    speakerMute = false;
-    keyboard->Reset();
-    osdLeave();
-    return OSD_RESULT_RETURN;
-  }
-
-  return OSD_RESULT_NONE;
+  speakerMute = false;
+  keyboard->Reset();
+  osdLeave();
 }
 
 static void osdLeave()
 {
-  osd.active = false;
   composite.restoreSettings();
   renderUpdateBorder();
   extern KeyboardDriver *keyboard;

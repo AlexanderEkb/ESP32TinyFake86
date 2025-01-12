@@ -5,13 +5,13 @@
           ─┤EN                 23├─            │            ─┤C13               GND├╢        │ Power: >2
           ─┤36 (i)(VP)         22├─            │            ─┤C14               5V0├─×       │
           ─┤39 (i)(VN)      (TX)1├─            │            ─┤C15                B9├─ COL9c    │
- KEYB_CLK ─┤34 (i)          (RX)3├─            │       ROW0 ─┤A0                 B8├─ COL8   │
-KEYB_DATA ─┤35 (i)             21├─            │       ROW1 ─┤A1                 B7├─ COL7   │
+          ─┤34 (i)          (RX)3├─            │       ROW0 ─┤A0                 B8├─ COL8   │
+          ─┤35 (i)             21├─            │       ROW1 ─┤A1                 B7├─ COL7   │
  KEYB_RDY ─┤32                GND├╢            │       ROW2 ─┤A2                 B6├─ COL6   │
     AUDIO ─┤33                 19├─            │       ROW3 ─┤A3                 B5├─ COL5   │
     VIDEO ─┤25                 18├─            │       ROW4 ─┤A4                 B4├─ COL4   │
-          ─┤26                 ⁵5├─            │       ROW5 ─┤A5                 B3├─        │
-          ─┤27             17 GND├╢            │       ROW6 ─┤A6                A15├─        │
+KEYB_DATA ─┤26                 ⁵5├─            │       ROW5 ─┤A5                 B3├─        │
+ KEYB_CLK ─┤27             17 GND├╢            │       ROW6 ─┤A6                A15├─        │
  SDIO_CLK ─┤14             16 GND├╢            │       ROW7 ─┤A7                A12├─ LED2   │
           ─┤12¹                 4├─            │            ─┤B0                A11├─ LED1   │
   AV_GND ╟─┤GND                ³0├─            │            ─┤B1                A10├─ RDY    │
@@ -32,7 +32,7 @@ KEYB_DATA ─┤35 (i)             21├─            │       ROW1 ─┤A1  
 ⁵ SDIO_SLAVE timing   ???         ???         1
 
 Note that the I/O GPIO pads are 0-­19, 21-­23, 25-­27, 32-­39, while the output GPIOs are 0­-19, 21-­23, 25-­27, 32-­33. GPIO pads 34-­39 are input-­only.
-ESP32-WROVER lacks GPIO37 and GPIO38. Also GPIO16 and GPIO17 in some modules are used internally to coltrol the external memory and are not routed outside.
+ESP32-WROVER lacks GPIO37 and GPIO38. Also GPIO16 and GPIO17 in some modules are used internally to control the external memory and are not routed outside.
 
 GND MISO(D0) CLK MOSI(CMD) LED 3V3
 Keyboard conn:

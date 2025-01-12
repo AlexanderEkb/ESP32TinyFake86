@@ -17,7 +17,9 @@
 // #include "gb_sdl_font8x8.h"
 #include "config/hardware.h"
 #include "cpu/ports.h"
-#include "io/keyboard.h"
+#include "keyboard/keyboard_simplifiedXT.h"
+#include "keyboard/keyboard_AT.h"
+#include "keyboard/keys.h"
 #include "io/covox.h"
 #include "io/speaker.h"
 #include "mb/i8237.h"
@@ -29,6 +31,8 @@
 #include "video/render.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////// Local macros
+
+#define TAG "FAKE86"
 
 #ifndef use_lib_singlecore
 // Video Task Core BEGIN
@@ -46,8 +50,11 @@ unsigned char gb_keyboard_poll_milis = use_lib_keyboard_poll_milis;
 unsigned char gb_timers_poll_milis = use_lib_timers_poll_milis;
 
 unsigned char gb_reset = 0;
-
-KeyboardDriver *keyboard = new KeyboardDriverSTM(); // stm32keyboard();
+#if (KEYBOARD_DRIVER == 0)
+KeyboardDriver *keyboard = new KeyboardDriverSimplifiedXT(); // stm32keyboard();
+#elif (KEYBOARD_DRIVER == 1)
+KeyboardDriver *keyboard = new KeyboardDriverAT(); // stm32keyboard();
+#endif
 Stats stats;
 
 uint8_t     * ram;
@@ -74,16 +81,16 @@ uint32_t speed = 0;
 
 void inithardware()
 {
-  LOG("Initializing emulated hardware:\n");
-  LOG("  - Intel 8253 timer: ");
+  ESP_LOGI(TAG, "Initializing emulated hardware:");
+  ESP_LOGI(TAG, "  - Intel 8253 timer: ");
   init8253();
-  LOG("OK\n");
-  LOG("  - Intel 8259 interrupt controller: ");
+  ESP_LOGI(TAG, "OK");
+  ESP_LOGI(TAG, "  - Intel 8259 interrupt controller: ");
   init8259();
-  LOG("OK\n");
-  LOG("  - Intel 8237 DMA controller: ");
+  ESP_LOGI(TAG, "OK");
+  ESP_LOGI(TAG, "  - Intel 8237 DMA controller: ");
   init8237();
-  LOG("OK\n");
+  ESP_LOGI(TAG, "OK");
 }
 
 void DoSoftReset()
@@ -103,7 +110,7 @@ void CreateRAM()
   const uint32_t coreID = xPortGetCoreID();
   const uint32_t ramAddr = SOC_EXTRAM_DATA_LOW + (coreID == 1 ? 2 * 1024 * 1024 : 0);
   ram = reinterpret_cast<uint8_t *>(ramAddr);
-  LOG("RAM initialized: core #%i, addr:0x%08X\n", coreID, ramAddr);
+  ESP_LOGI(TAG, "RAM initialized: core #%i, addr:0x%08X", coreID, ramAddr);
 }
 
 void setup()
@@ -113,22 +120,18 @@ void setup()
   disableCore1WDT();
 
   if (esp_spiram_init() != ESP_OK)
-    LOG("This app requires a board with PSRAM!\n");
+    ESP_LOGE(TAG, "This app requires a board with PSRAM!");
 
   esp_spiram_init_cache();
 
-#ifdef use_lib_log_serial
-  Serial.begin(115200);
-  Serial.printf("\nHEAP BEGIN %d\n", ESP.getFreeHeap());
-#endif
   CreateRAM();
   
   renderInit();
-  LOG("VGA %d\n", ESP.getFreeHeap());
+  ESP_LOGI(TAG, "VGA %d", ESP.getFreeHeap());
   keyboard->Init();
 
   reset86();
-  LOG("OK!\n");
+  ESP_LOGI(TAG, "OK!");
   Covox_t::getInstance().init();
   inithardware();
 
@@ -143,7 +146,7 @@ void setup()
 
   diskInit();
 
-  LOG("END SETUP %d\n", ESP.getFreeHeap());
+  ESP_LOGI(TAG, "END SETUP %d", ESP.getFreeHeap());
 }
 
 #ifndef use_lib_singlecore
@@ -215,8 +218,17 @@ void execKeyboard()
   const uint8_t scancode = keyboard->Poll();
   if (scancode != 0)
   {
-    IOPortSpace::getInstance().get(0x060)->value = scancode;
-    doirq(1);
+    if(scancode == KEY_F12)
+    {
+      vTaskSuspend(videoTaskHandle);
+      do_tinyOSD();
+      vTaskResume(videoTaskHandle);
+    }
+    else
+    {
+      IOPortSpace::getInstance().get(0x060)->value = scancode;
+      doirq(1);
+    }
   }
 }
 
@@ -238,14 +250,5 @@ void execMisc()
   if (gb_reset == 1)
   {
     DoSoftReset();
-  }
-  OSD_RESULT_t result = do_tinyOSD();
-  if (result == OSD_RESULT_PREPARE)
-  {
-    vTaskSuspend(videoTaskHandle);
-  }
-  else if (result == OSD_RESULT_RETURN)
-  {
-    vTaskResume(videoTaskHandle);
   }
 }

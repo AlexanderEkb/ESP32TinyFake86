@@ -1,5 +1,5 @@
 #include "code.h"
-#include "io/keys.h"
+#include "keyboard/keys.h"
 #include <service/service.h>
 #include <stdio.h>
 #include <string.h>

@@ -26,11 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef use_lib_log_serial
-#define LOG(...) Serial.printf(__VA_ARGS__)
-#else
-#define LOG(...) (void)
-#endif
+#define TAG "DISK"
 
 extern SdCard sdcard;
 extern union _bytewordregs_ regs;
@@ -91,7 +87,7 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR readdisk(DISK_ADDR &src, MEM_
   }
   else
   {
-    LOG("Reading error: D%i C%i H%i S%i L%i %04X:%04X ", src.drive, src.cylinder, src.head, src.sector, src.sectorCount, dst.segment, dst.offset);
+    ESP_LOGE(TAG, "Reading error: D%i C%i H%i S%i L%i %04X:%04X ", src.drive, src.cylinder, src.head, src.sector, src.sectorCount, dst.segment, dst.offset);
   }
 }
 
@@ -109,7 +105,7 @@ void writedisk (DISK_ADDR & dst, MEM_ADDR & src)
   }
   else
   {
-    LOG("Writing error: D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
+    ESP_LOGE(TAG, "Writing error: D%i C%i H%i S%i L%i %04X:%04X ", dst.drive, dst.cylinder, dst.head, dst.sector, dst.sectorCount, src.segment, src.offset);
   }
   setResult(result);
   digitalWrite(DISK_LED, true);
@@ -203,16 +199,16 @@ uint8_t getBootDrive()
 {
   if(driveA.isReady())
   {
-    LOG("Booting from drive A:\n");
+    ESP_LOGI(TAG, "Booting from drive A:\n");
     return 0x00;
   }
   else if(driveC.isReady())
   {
-    LOG("Booting from drive C:\n");
+    ESP_LOGI(TAG, "Booting from drive C:\n");
     return 0x02;
   }
   else
-    LOG("Booting to BASIC\n");
+    ESP_LOGI(TAG, "Booting to BASIC\n");
 
   return 0xFF;
 }

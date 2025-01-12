@@ -3,13 +3,8 @@
  #include <stdint.h>
  #include "config/gbConfig.h"
  #include <stdio.h>
- #include "io/keyboard.h" 
-
-#ifdef use_lib_log_serial
-#define LOG(...) Serial.printf(__VA_ARGS__)
-#else
-#define LOG(...) (void)
-#endif
+ #include "Arduino.h"
+ #include "keyboard/keyboard.h" 
 
 extern unsigned char bootdrive;
 
