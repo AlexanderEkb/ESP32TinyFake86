@@ -13,7 +13,6 @@ class codeBrowser_t : public browser_t
       };
       void init(DBG_MEM_ADDR * position);
       virtual bool onKey(uint8_t scancode) override;
-      virtual void refresh() override;
       virtual void repaint() override;
       DBG_MEM_ADDR getNextInstruction();
   private:

@@ -21,11 +21,12 @@ II. Disks
 
 III. Hardware
 =============
+0. Mouse!!!!!!!
 1. Possibility of attaching gamepads (NES-style or so)
 2. DB-9 connector instead of present pair of RCAs
 3. Reset button on the rear side
 4. ~~Implement keyboard "typematic" feature~~
-5. Reliable keyboard (get rid of missing or extra presses/releases)
+5. ~~Reliable keyboard (get rid of missing or extra presses/releases)~~
 6. Two-way communication with the keyboard (let STM32 serve LEDs, also this may be useful for gamepad support) ???
 7. ~~Grey '+' and '-' in Fn layer~~
 

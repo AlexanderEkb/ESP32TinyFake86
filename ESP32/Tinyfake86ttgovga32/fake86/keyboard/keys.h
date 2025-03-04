@@ -53,6 +53,8 @@
 #define KEY_N   0x31
 #define KEY_M   0x32
 
+#define KEY_SEMICOLON 0x27
+
 #define KEY_CURSOR_LEFT 0x4B
 #define KEY_CURSOR_DOWN 0x50
 #define KEY_CURSOR_RIGHT 0x4D
@@ -64,7 +66,7 @@
 #define KEY_PAGE_UP 0xE07D
 #define KEY_PAGE_DOWN 0xE07A
 #define KEY_PAUSE 0xE11477E1F014E077
-#define KEY_BACKSPACE 0x66
+#define KEY_BACKSPACE 0x0E
 #define KEY_DELETE 0x71
 
 #endif

@@ -3,6 +3,7 @@
 
 #include "cpu/cpu.h"
 #include "debugger/browser.h"
+#include "service/inputbox.h"
 
 class memBrowser_t : public browser_t
 {
@@ -10,7 +11,6 @@ class memBrowser_t : public browser_t
     memBrowser_t() : position(nullptr) {};
     void init(DBG_MEM_ADDR * position);
     virtual bool onKey(uint8_t scancode) override;
-    virtual void refresh() override;
     virtual void repaint() override;
 private:
     static const uint32_t FG_ACTIVE = 0x0F;
@@ -21,6 +21,10 @@ private:
     static const uint32_t FG_MEM_CONTENT = 0xA8;
 
     DBG_MEM_ADDR * position;
+
+    InputBox_t * box;
+    void createAddressBox();
+    void parseAddressString(char * string);
 };
 
 #endif /* _DEBUGGER_MEMORY_H_ */

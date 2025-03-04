@@ -3,13 +3,6 @@
 
 #include <stdint.h>
 
-typedef enum OSD_RESULT_t
-{
-  OSD_RESULT_NONE,
-  OSD_RESULT_PREPARE,
-  OSD_RESULT_RETURN
-} OSD_RESULT_t;
-
 class osd_t
 {
   public:

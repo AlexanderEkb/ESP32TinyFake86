@@ -16,7 +16,7 @@ DBG_MEM_ADDR codeBrowser_t::getNextInstruction()
 void codeBrowser_t::init(DBG_MEM_ADDR * position)
 {
   area.left   = 0 * ACTUAL_FONT_WIDTH;
-  area.top    = 1 * ACTUAL_FONT_WIDTH;
+  area.top    = 0 * ACTUAL_FONT_WIDTH;
   area.width  = 34 * ACTUAL_FONT_WIDTH;
   area.height = 14 * ACTUAL_FONT_HEIGHT;
   svcBar(area.left, area.top, area.height, area.width, BG_INACTIVE);
@@ -41,16 +41,8 @@ bool codeBrowser_t::onKey(uint8_t scancode)
   }
 }
 
-void codeBrowser_t::refresh()
-{
-  repaint();
-}
-
 void codeBrowser_t::repaint()
 {
-  const uint8_t BG = focused ? BG_ACTIVE : BG_INACTIVE;
-  svcBar(area.left, area.top, area.height, area.width, BG);
-
   DBG_MEM_ADDR addr = *position;
   const uint32_t lines = (area.height / ACTUAL_FONT_HEIGHT);
   for(uint32_t i=0; i<lines; i++) 
@@ -63,13 +55,13 @@ void codeBrowser_t::repaint()
 
 void codeBrowser_t::printColored(line_t *line, uint32_t pos)
 {
-  const uint8_t FG_DEFAULT = focused ? FG_ACTIVE : FG_INACTIVE;
-  const uint8_t FG_ADDR = focused ? 0x0A : 0x08;
-  const uint8_t FG_MNEMONIC = focused ? 0x7A : 0x78;
-  const uint8_t FG_ARGUMENT = focused ? 0xAA : 0xA8;
-  const uint8_t FG_OTHER = focused ? 0x7A : 0x78;
+  const uint8_t FG_DEFAULT = isFocused ? FG_ACTIVE : FG_INACTIVE;
+  const uint8_t FG_ADDR = isFocused ? 0x0A : 0x08;
+  const uint8_t FG_MNEMONIC = isFocused ? 0x7A : 0x78;
+  const uint8_t FG_ARGUMENT = isFocused ? 0xAA : 0xA8;
+  const uint8_t FG_OTHER = isFocused ? 0x7A : 0x78;
   const bool isCurrentPos = (line->addr == DBG_MEM_ADDR(_dbgGetRegister(_dbgReg_CS), _dbgGetRegister(_dbgReg_IP)));
-  const uint8_t BG = isCurrentPos ? BG_CSIP : (focused ? BG_ACTIVE : BG_INACTIVE);
+  const uint8_t BG = isCurrentPos ? BG_CSIP : (isFocused ? BG_ACTIVE : BG_INACTIVE);
   const uint32_t ROW = area.top + pos * ACTUAL_FONT_HEIGHT;
   // const uint32_t SEG_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
   // const uint32_t SEMICOLON_COL  = area.left + 4 * ACTUAL_FONT_WIDTH;
@@ -79,9 +71,6 @@ void codeBrowser_t::printColored(line_t *line, uint32_t pos)
    const uint32_t MNEMONIC_COL   = area.left + 5 * ACTUAL_FONT_WIDTH;
 
   char _buf[40];
-  sprintf(_buf, "%04X", line->addr.segment);
-  // svcPrintText(_buf, SEG_COL, ROW, FG_ADDR, BG, 0);
-  // svcPrintText(":", SEMICOLON_COL, ROW, FG_OTHER, BG, 0);
   sprintf(_buf, "%04X", line->addr.offset);
   svcPrintText(_buf, OFF_COL, ROW, FG_ADDR, BG, 0);
 
@@ -93,12 +82,9 @@ void codeBrowser_t::printColored(line_t *line, uint32_t pos)
   while(*c)
   {
     if(*c == ' ') mnemo = false;
-    if(mnemo)
-    {
+    if(mnemo) {
       fg = FG_MNEMONIC;
-    }
-    else
-    {
+    } else {
       const bool punct = (strchr("[]:,.+- ", *c) != nullptr);
       fg = punct?FG_OTHER:FG_ARGUMENT;
     }
@@ -106,6 +92,6 @@ void codeBrowser_t::printColored(line_t *line, uint32_t pos)
     c++;
     col += ACTUAL_FONT_WIDTH;
   }
-  const uint32_t _width = 336-col;
+  const uint32_t _width = area.width - col + 1;
   svcBar(col, ROW, ACTUAL_FONT_HEIGHT, _width, BG);
 }

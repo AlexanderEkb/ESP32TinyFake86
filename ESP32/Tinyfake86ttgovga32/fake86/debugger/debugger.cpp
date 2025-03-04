@@ -8,9 +8,10 @@ debugger_t debugger_t::instance;
 
 debugger_t::debugger_t()
 {
-  add(&codeBrowser);
-  add(&regBrowser);
+  area = rect_t(0, 0, 336, 240);
   add(&memBrowser);
+  add(&regBrowser);
+  add(&codeBrowser);
   memPosition = DBG_MEM_ADDR(0, 0);
   codePosition = DBG_MEM_ADDR(0, 0);
 }
@@ -31,8 +32,6 @@ void debugger_t::doSingleStep()
     exec86(1);
     codePosition.segment = _dbgGetRegister(_dbgReg_CS);
     codePosition.offset = _dbgGetRegister(_dbgReg_IP);
-    memPosition.segment = _dbgGetRegister(_dbgReg_CS);
-    memPosition.offset = _dbgGetRegister(_dbgReg_IP) & 0xFFF8;
 }
 
 void debugger_t::execute()
@@ -41,14 +40,13 @@ void debugger_t::execute()
   isRunning = true;
   while (isRunning)
   {
-    memBrowser.refresh();
-    codeBrowser.refresh();
-    regBrowser.refresh();
-
     extern KeyboardDriver *keyboard;
     uint8_t scancode = 0;
     while (!(scancode = keyboard->Poll()));
-    onKey(scancode);
+    if(onKey(scancode))
+    {
+      repaint();
+    }
   }
 }
 
@@ -64,12 +62,17 @@ void debugger_t::onEnter()
 
   browser = &codeBrowser;
   codeBrowser.setFocus();
+  repaint();
 }
 
 bool debugger_t::onKey(uint8_t scancode)
 {
   const bool handled = widget_t::onKey(scancode);
-  if(!handled)
+  if(handled)
+  {
+    return true;
+  }
+  else
   {
     switch (scancode)
     {
@@ -78,7 +81,7 @@ bool debugger_t::onKey(uint8_t scancode)
       uint16_t _if = _dbgGetRegister(_dbgReg_F);
       _if ^= (1 << 9);
       _dbgSetRegister(_dbgReg_F, _if);
-      regBrowser.refresh();
+      regBrowser.repaint();
     }
     break;
     case KEY_5:

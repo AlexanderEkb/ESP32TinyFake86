@@ -37,7 +37,6 @@ uint8_t KeyboardDriverAT::Poll()
   if(xQueueReceive(q, &scancode, 0) != pdTRUE)
     return 0;
   const uint8_t setOneScancode = translateScancode(scancode);
-  ESP_LOGI(TAG, "%02X -> %02X", scancode, setOneScancode);
   return setOneScancode;
 }
 
