@@ -50,19 +50,36 @@ class widget_t
   public:
     rect_t area;
 
-    widget_t();
-    widget_t(rect_t r);
+    widget_t() :
+      area({0, 0, 0, 0}),
+      parent(nullptr),
+      focusedControl(nullptr),
+      isFocused(false)
+      {
+        children.clear();
+      };
+    widget_t(widget_t * p) :
+      area({0, 0, 0, 0}),
+      parent(p),
+      focusedControl(nullptr),
+      isFocused(false)
+      {
+        children.clear();
+      };
+    void setArea(rect_t r);
     void add(widget_t * c);
     void remove(widget_t * c);
     virtual void repaint();
     void toGlobal(rect_t & r);
     virtual WidgetState_t state();
     bool dispatch(Msg_t * msg);
+    void next();
     virtual bool onKey(uint8_t scancode);
     virtual bool onKeyPreview(uint8_t scancode);
     void setFocus();
   protected:
     widget_t * parent;
+    widget_t * focusedControl;
     std::list<widget_t *> children;
     bool isFocused;
     widget_t * root();

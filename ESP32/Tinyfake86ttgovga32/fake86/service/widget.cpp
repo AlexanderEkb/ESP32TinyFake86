@@ -1,25 +1,20 @@
+#include <algorithm>
+#include <esp_log.h>
 #include "widget.h"
 
-widget_t::widget_t()
-{
-  area = {0, 0, 0, 0};
-  parent = nullptr;
-  isFocused = false;
-  children.clear();
-}
+#define TAG "WIDGET"
 
-widget_t::widget_t(rect_t r)
+void widget_t::setArea(rect_t r)
 {
   area = r;
-  parent = nullptr;
-  isFocused = false;
-  children.clear();
+  toGlobal(area);
 }
 
 void widget_t::add(widget_t * c)
 {
   children.push_front(c);
   c->parent = this;
+  focusedControl = c;
 }
 
 void widget_t::remove(widget_t * c)
@@ -39,10 +34,10 @@ void widget_t::repaint()
 
 void widget_t::toGlobal(rect_t & r)
 {
-  r.left += area.left;
-  r.top += area.top;
   if(parent != nullptr)
   {
+    r.left += parent->area.left;
+    r.top += parent->area.top;
     parent->toGlobal(r);
   }
 }
@@ -66,6 +61,17 @@ bool widget_t::dispatch(Msg_t * msg)
   }
 }
 
+void widget_t::next()
+{
+  auto i = std::find(children.begin(), children.end(), focusedControl);
+  widget_t ** b = reinterpret_cast<widget_t **>(&i);
+  i++;
+  if(i == children.end())
+    i = children.begin()++;
+  focusedControl = reinterpret_cast<widget_t *>(*i);
+  focusedControl->setFocus();
+}
+
 bool widget_t::onMessage(Msg_t * msg)
 {
   (void)msg;
@@ -82,7 +88,8 @@ bool widget_t::onKey(uint8_t scancode)
       handled = w->onKey(scancode);
   }
   return handled;
-};
+}
+
 bool widget_t::onKeyPreview(uint8_t scancode)
 {
   return false;

@@ -2,17 +2,18 @@
 #define _DEBUGGER_MEMORY_H_
 
 #include "cpu/cpu.h"
-#include "debugger/browser.h"
+#include "service/service.h"
+#include "service/widget.h"
 #include "service/inputbox.h"
 
-class memBrowser_t : public browser_t
+class memBrowser_t : public widget_t
 {
   public:
-    memBrowser_t() : position(nullptr) {};
+    memBrowser_t(widget_t * p) : position(nullptr) {};
     void init(DBG_MEM_ADDR * position);
     virtual bool onKey(uint8_t scancode) override;
     virtual void repaint() override;
-private:
+  protected:
     static const uint32_t FG_ACTIVE = 0x0F;
     static const uint32_t FG_CHANGED = 0x48;
     static const uint32_t FG_INACTIVE = 0x08;
@@ -25,6 +26,6 @@ private:
     InputBox_t * box;
     void createAddressBox();
     void parseAddressString(char * string);
-};
+  };
 
 #endif /* _DEBUGGER_MEMORY_H_ */

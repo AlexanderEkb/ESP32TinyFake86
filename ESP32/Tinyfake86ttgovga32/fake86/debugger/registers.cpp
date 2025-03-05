@@ -11,7 +11,7 @@
 
 constexpr char * regBrowser_t::regNames[static_cast<uint32_t>(_dbgReg__COUNT)] ;
 
-regBrowser_t::regBrowser_t()
+regBrowser_t::regBrowser_t(widget_t * p)
 {
   const uint32_t COUNT = static_cast<uint32_t>(_dbgReg__COUNT);
   for(uint32_t i=0; i<COUNT; i++)
@@ -74,9 +74,8 @@ void regBrowser_t::beginEdit()
 {
   state = STATE_EDIT;
 
-  rect_t area = rect_t(4 * ACTUAL_FONT_WIDTH, selection * ACTUAL_FONT_HEIGHT, 4 * ACTUAL_FONT_WIDTH, 8);
-  toGlobal(area);
-  box = new InputBox_t(area);
+  box = new InputBox_t(this);
+  box->setArea(rect_t(4 * ACTUAL_FONT_WIDTH, selection * ACTUAL_FONT_HEIGHT, 4 * ACTUAL_FONT_WIDTH, 8));
   add(box);
   repaint();
 }

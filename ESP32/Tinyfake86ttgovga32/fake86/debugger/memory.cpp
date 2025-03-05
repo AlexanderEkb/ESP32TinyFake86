@@ -8,9 +8,9 @@
 void memBrowser_t::init(DBG_MEM_ADDR * position)
 {
   area.left = 0;
-  area.top = 21 * FONT_HEIGHT;
-  area.width = 43 * FONT_WIDTH;
-  area.height = 9 * FONT_HEIGHT;
+  area.top = 21 * ACTUAL_FONT_HEIGHT;
+  area.width = 43 * ACTUAL_FONT_WIDTH;
+  area.height = 9 * ACTUAL_FONT_HEIGHT;
   
   this->position = position;
 }
@@ -66,9 +66,9 @@ void memBrowser_t::repaint()
   else
   {
     uint8_t background = isFocused ? BG_ACTIVE : BG_INACTIVE;
-    svcBar(area.left, area.top, area.height, area.width, background);
+    // svcBar(area.left, area.top, area.height, area.width, background);
 
-    const uint32_t MEM_ROW_COUNT = area.height / FONT_HEIGHT;
+    const uint32_t MEM_ROW_COUNT = area.height / ACTUAL_FONT_HEIGHT;
     const uint32_t MEM_COL_COUNT = 8;
     const uint32_t ADDR_WIDTH = 9;
     const uint32_t NUMBERS_OFF = ADDR_WIDTH + 1;
@@ -81,13 +81,13 @@ void memBrowser_t::repaint()
     {
       static const uint32_t LENGTH = 16;
       char buffer[LENGTH];
-      snprintf(buffer, LENGTH, "%04X:%04X", _pos.segment, _pos.offset);
+      snprintf(buffer, LENGTH, "%04X:%04X ", _pos.segment, _pos.offset);
       svcPrintText(buffer, area.left, area.top + row * ACTUAL_FONT_HEIGHT, FG_ADDR, background, 0);
       for(uint32_t col=0; col<MEM_COL_COUNT; col++)
       {
         const char value = read86(_pos.linear());
         svcPrintChar(value, area.left + (CHARS_OFF + col) * ACTUAL_FONT_WIDTH, area.top + row * ACTUAL_FONT_HEIGHT, FG_INACTIVE, background, 0);
-        snprintf(buffer, LENGTH, "%02X", value);
+        snprintf(buffer, LENGTH, "%02X ", value);
         svcPrintText(buffer, (NUMBERS_OFF + col * 3) * ACTUAL_FONT_WIDTH, area.top + row * ACTUAL_FONT_HEIGHT, FG_MEM_CONTENT, background, 0);
         _pos.inc();
       }
@@ -99,9 +99,8 @@ void memBrowser_t::createAddressBox()
 {
   if(box == nullptr)
   {
-    rect_t area = rect_t(0, 0, 72, 8);
-    toGlobal(area);
-    box = new InputBox_t(area);
+    box = new InputBox_t(this);
+    box->setArea(rect_t(0, 0, 72, 8));
     add(box);
   }
 }

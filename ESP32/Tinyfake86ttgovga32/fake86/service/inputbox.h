@@ -6,7 +6,7 @@
 class InputBox_t : public widget_t
 {
   public:
-    InputBox_t(rect_t r);
+    InputBox_t(widget_t * p);
     ~InputBox_t();
     virtual void repaint() override;
     virtual bool onKey(uint8_t scancode) override;

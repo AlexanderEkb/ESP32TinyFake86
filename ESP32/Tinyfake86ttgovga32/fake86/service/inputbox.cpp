@@ -4,11 +4,9 @@
 
 #define TAG "INBOX"
 
-InputBox_t::InputBox_t(rect_t r)
+InputBox_t::InputBox_t(widget_t * p)
 {
-  area = r;
-  parent = nullptr;
-  isFocused = false;
+  parent = p;
   string = reinterpret_cast<char *>(malloc(MAX_LENGTH));
   assert(string);
   memset(string, 0, MAX_LENGTH);

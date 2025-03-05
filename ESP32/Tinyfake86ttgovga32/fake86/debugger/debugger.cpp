@@ -4,27 +4,11 @@
 #include "keyboard/keys.h"
 #include "service/service.h"
 
-debugger_t debugger_t::instance;
-
-debugger_t::debugger_t()
-{
-  area = rect_t(0, 0, 336, 240);
-  add(&memBrowser);
-  add(&regBrowser);
-  add(&codeBrowser);
-  memPosition = DBG_MEM_ADDR(0, 0);
-  codePosition = DBG_MEM_ADDR(0, 0);
-}
+debugger_t debugger_t::instance = debugger_t();
 
 void debugger_t::nextBrowser()
 {
-  auto i = std::find(children.begin(), children.end(), browser);
-  browser_t ** b = reinterpret_cast<browser_t **>(&i);
-  i++;
-  if(i == children.end())
-    i = children.begin()++;
-  browser = reinterpret_cast<browser_t *>(*i);
-  browser->setFocus();
+  screen.next();
 }
 
 void debugger_t::doSingleStep()
@@ -45,7 +29,7 @@ void debugger_t::execute()
     while (!(scancode = keyboard->Poll()));
     if(onKey(scancode))
     {
-      repaint();
+      screen.repaint();
     }
   }
 }
@@ -60,14 +44,13 @@ void debugger_t::onEnter()
   memBrowser.init(&memPosition);
   codeBrowser.init(&codePosition);
 
-  browser = &codeBrowser;
   codeBrowser.setFocus();
-  repaint();
+  screen.repaint();
 }
 
 bool debugger_t::onKey(uint8_t scancode)
 {
-  const bool handled = widget_t::onKey(scancode);
+  const bool handled = screen.onKey(scancode);
   if(handled)
   {
     return true;

@@ -1,18 +1,18 @@
 #ifndef _DEBUGGER_REGISTERS_H_
 #define _DEBUGGER_REGISTERS_H_
 
-#include "browser.h"
 #include "cpu/cpu.h"
+#include "service/widget.h"
 #include "service/inputbox.h"
 
-class regBrowser_t : public browser_t
+class regBrowser_t : public widget_t
 {
   public:
-    regBrowser_t();
+    regBrowser_t(widget_t * p);
     void init();
     virtual bool onKey(uint8_t scancode) override;
     virtual void repaint() override;
-private:
+protected:
     typedef struct registerDesc_t
     {
       uint16_t value;

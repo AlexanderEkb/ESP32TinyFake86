@@ -15,10 +15,6 @@ DBG_MEM_ADDR codeBrowser_t::getNextInstruction()
 
 void codeBrowser_t::init(DBG_MEM_ADDR * position)
 {
-  area.left   = 0 * ACTUAL_FONT_WIDTH;
-  area.top    = 0 * ACTUAL_FONT_WIDTH;
-  area.width  = 34 * ACTUAL_FONT_WIDTH;
-  area.height = 14 * ACTUAL_FONT_HEIGHT;
   svcBar(area.left, area.top, area.height, area.width, BG_INACTIVE);
 
   this->position = position;
