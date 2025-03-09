@@ -18,7 +18,6 @@ class codeBrowser_t : public widget_t
     void init(DBG_MEM_ADDR * position);
     virtual bool onKey(uint8_t scancode) override;
     virtual void repaint() override;
-    DBG_MEM_ADDR getNextInstruction();
   protected:
     static const uint32_t FG_ACTIVE = 0x0F;
     static const uint32_t FG_CHANGED = 0x48;
@@ -29,6 +28,8 @@ class codeBrowser_t : public widget_t
 
     DBG_MEM_ADDR * position;
     void printColored(line_t * line, uint32_t pos);
+    void nextInstruction();
+    void prevInstruction();
   };
 
 #endif /* _DEBUGGER_CODE_H_ */

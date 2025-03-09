@@ -78,6 +78,77 @@ void svcPrintText(const char *cad, int x, int y, unsigned char color, unsigned c
   }
 }
 
+void svcPrintTextColored(const char *cad, int x, int y, unsigned char color, unsigned char backcolor, int32_t _off)
+{
+  uint8_t fg = color;
+  uint8_t bg = backcolor;
+  char const * ptr = cad;
+  uint8_t parameter;
+  bool ESC = false;
+  while (*ptr != '\0')
+  {
+    unsigned char c = *ptr;
+    ptr++;
+    if(c == '\a') // stands for 'attribute' :)
+    {
+      ESC = true;
+      parameter = 0;
+    } 
+    else if(ESC)
+    {
+      switch(c)
+      {
+        case 0x30 ... 0x39:
+          parameter <<= 4;
+          parameter |= (c - 0x30);
+          break;
+        case 'A':
+          parameter <<= 4;
+          parameter |= 0x0A;
+          break;
+        case 'B':
+          parameter <<= 4;
+          parameter |= 0x0B;
+          break;
+        case 'C':
+          parameter <<= 4;
+          parameter |= 0x0C;
+          break;
+        case 'D':
+          parameter <<= 4;
+          parameter |= 0x0D;
+          break;
+        case 'E':
+          parameter <<= 4;
+          parameter |= 0x0E;
+          break;
+        case 'F':
+          parameter <<= 4;
+          parameter |= 0x0F;
+          break;
+        case 'f':
+          fg = parameter;
+          ESC = false;
+          break;
+        case 'b':
+          bg = parameter;
+          ESC = false;
+          break;
+        default:
+          ESC = false;
+          break;
+      }
+    }
+    else
+    {
+      svcPrintChar(c, x, y, fg, bg, _off);
+      x += getFontWidth();;
+      if(CompositeColorOutput::XRES - x < getFontWidth())
+        return;
+    }
+  }
+}
+
 #include "serviceFont.inc"
 
 void svcPrintCharPetite(char character, int col, int row, unsigned char color, unsigned char backcolor)

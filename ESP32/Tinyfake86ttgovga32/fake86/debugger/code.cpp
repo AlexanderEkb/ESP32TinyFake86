@@ -3,15 +3,11 @@
 #include <service/service.h>
 #include <stdio.h>
 #include <string.h>
+#include <esp_log.h>
+
+#define TAG "CODE"
 
 static disassembler_t dasm;
-
-DBG_MEM_ADDR codeBrowser_t::getNextInstruction()
-{
-  DBG_MEM_ADDR _pos = *position;
-  line_t line;
-  return dasm.decode(_pos, &line);
-}
 
 void codeBrowser_t::init(DBG_MEM_ADDR * position)
 {
@@ -20,21 +16,57 @@ void codeBrowser_t::init(DBG_MEM_ADDR * position)
   this->position = position;
 }
 
-
 bool codeBrowser_t::onKey(uint8_t scancode)
 {
   switch (scancode)
   {
   case KEY_CURSOR_UP:
-    position->dec();
+    prevInstruction();
     return true;
   case KEY_CURSOR_DOWN:
-    position->inc();
+    nextInstruction();
     return true;
 
   default:
     return false;
   }
+}
+
+void codeBrowser_t::nextInstruction()
+{
+  line_t line;
+  DBG_MEM_ADDR next = dasm.decode(position, &line);
+  position->segment = next.segment;
+  position->offset = next.offset;
+}
+
+void codeBrowser_t::prevInstruction()
+{
+  // ESP_LOGI(TAG, "hi!");
+  if(position->offset == 0)
+    return;
+  DBG_MEM_ADDR a = DBG_MEM_ADDR(position);
+  static const uint32_t EURISTIC_DEPTH = 20;
+  const uint32_t BACKSTEP = (a.offset > EURISTIC_DEPTH) ? EURISTIC_DEPTH : a.offset;
+  // ESP_LOGI(TAG, "Backstep is %lu", BACKSTEP);
+  a.offset -= BACKSTEP;
+  DBG_MEM_ADDR next;
+  while(next.offset < position->offset)
+  {
+    line_t line;
+    line.s.clear();
+    next = dasm.decode(a, &line);
+    // ESP_LOGI(TAG, "%04X %s", a.offset, line.s.c_str());
+    if(next == *position)
+    {
+      // ESP_LOGI(TAG, "match!");
+      position->offset = a.offset;
+      return;
+    }
+    a.offset = next.offset;
+  }
+  // ESP_LOGI(TAG, "no match...");
+  position->dec();
 }
 
 void codeBrowser_t::repaint()
@@ -59,14 +91,17 @@ void codeBrowser_t::printColored(line_t *line, uint32_t pos)
   const bool isCurrentPos = (line->addr == DBG_MEM_ADDR(_dbgGetRegister(_dbgReg_CS), _dbgGetRegister(_dbgReg_IP)));
   const uint8_t BG = isCurrentPos ? BG_CSIP : (isFocused ? BG_ACTIVE : BG_INACTIVE);
   const uint32_t ROW = area.top + pos * ACTUAL_FONT_HEIGHT;
-  // const uint32_t SEG_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
-  // const uint32_t SEMICOLON_COL  = area.left + 4 * ACTUAL_FONT_WIDTH;
-  // const uint32_t OFF_COL        = area.left + 5 * ACTUAL_FONT_WIDTH;
-  // const uint32_t MNEMONIC_COL   = area.left + 10 * ACTUAL_FONT_WIDTH;
-   const uint32_t OFF_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
-   const uint32_t MNEMONIC_COL   = area.left + 5 * ACTUAL_FONT_WIDTH;
+  const uint32_t SEG_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
+  const uint32_t SEMICOLON_COL  = area.left + 4 * ACTUAL_FONT_WIDTH;
+  const uint32_t OFF_COL        = area.left + 5 * ACTUAL_FONT_WIDTH;
+  const uint32_t MNEMONIC_COL   = area.left + 10 * ACTUAL_FONT_WIDTH;
+  //  const uint32_t OFF_COL        = area.left + 0 * ACTUAL_FONT_WIDTH;
+  //  const uint32_t MNEMONIC_COL   = area.left + 5 * ACTUAL_FONT_WIDTH;
 
   char _buf[40];
+  sprintf(_buf, "%04X", line->addr.segment);
+  svcPrintText(_buf, SEG_COL, ROW, FG_ADDR, BG, 0);
+  svcPrintChar(':', SEMICOLON_COL, ROW, FG_ADDR, BG, 0);
   sprintf(_buf, "%04X", line->addr.offset);
   svcPrintText(_buf, OFF_COL, ROW, FG_ADDR, BG, 0);
 
