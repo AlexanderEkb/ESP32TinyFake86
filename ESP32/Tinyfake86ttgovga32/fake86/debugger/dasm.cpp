@@ -653,7 +653,8 @@ char * disassembler_t::rm16_imm8(uint32_t *err)
 		sign = '-' ;
 		imm8 = -imm8 ;
 	}
-	snprintf(str, 255, "%s,byte %c%02Xh", s, sign, imm8) ;
+	// snprintf(str, 255, "%s,byte %c%02Xh", s, sign, imm8) ;
+	snprintf(str, 255, "%s,%c%02Xh", s, sign, imm8) ;
 	return str ;
 }
 
