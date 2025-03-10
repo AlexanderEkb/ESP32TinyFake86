@@ -58,14 +58,14 @@ struct i8253_s i8253[CHANNEL_COUNT];
 
 extern uint64_t hostfreq, curtick;
 
-static void initializeHWTimer(timer_group_t const group, timer_idx_t const index, timer_isr_t handler);
-static bool IRAM_ATTR timerIsrHandler(void * p);
+static void initializeHWTimer(timer_group_t group, timer_idx_t idx, void (*isr)(void *));
+static void IRAM_ATTR timerIsrHandler(void * p);
 
 static void out8253(uint32_t portnum, uint8_t value);
 static uint8_t in8253(uint32_t portnum);
 
 static uint16_t getCounter(uint32_t channel);
-static void setReload(uint32_t channel, uint16_t value);
+static void setCounter(uint32_t channel, uint16_t value);
 static void writeCounter(uint32_t address, uint8_t value);
 static void writeControl(uint32_t address, uint8_t value);
 static uint8_t readCounter(uint32_t address);
@@ -78,81 +78,61 @@ IOPort port_043h = IOPort(0x043, 0xFF, readControl, writeControl);
 
 void init8253()
 {
+  periph_module_enable(PERIPH_TIMG0_MODULE);
   initializeHWTimer(TIMER_GROUP_0, TIMER_0, timerIsrHandler);
-  initializeHWTimer(TIMER_GROUP_0, TIMER_1, nullptr);
   for(uint32_t channel=0; channel<3; channel++)
   {
-    i8253[channel].update = 0xFFFF;
+    i8253[channel].update = 0x0000;
     i8253[channel].accessmode = 0x00;
     i8253[channel].MSB = false;
     i8253[channel].active = false;
   }
 }
 
-static void initializeHWTimer(timer_group_t const group, timer_idx_t const index, timer_isr_t handler)
+static void initializeHWTimer(timer_group_t group, timer_idx_t idx, void (*isr)(void *))
 {
   static const uint32_t i8253_NOMINAL_CLOCK_HZ = 1193180;
   static const uint32_t TIMER_DIVIDER = TIMER_BASE_CLK / i8253_NOMINAL_CLOCK_HZ;
-  periph_module_enable(PERIPH_TIMG0_MODULE);
   timer_config_t config = {
-    TIMER_ALARM_EN,
-    TIMER_PAUSE,
-    TIMER_INTR_LEVEL,
-    TIMER_COUNT_DOWN,
-    TIMER_AUTORELOAD_EN,
-    TIMER_DIVIDER
+    .alarm_en = TIMER_ALARM_EN,
+    .counter_en = TIMER_PAUSE,
+    .counter_dir = TIMER_COUNT_DOWN,
+    .auto_reload = TIMER_AUTORELOAD_EN,
+    .divider = TIMER_DIVIDER
   }; // default clock source is APB
-  timer_init(group, index, &config);
-  timer_pause(group, index);
-  timer_set_counter_value(group, index, 0xFFFF);
-  timer_set_alarm_value(group, index, 0);
-  if(handler != nullptr)
+  timer_init(group, idx, &config);
+  timer_set_counter_value(group, idx, 0xFFFF);
+  timer_set_alarm_value(group, idx, 0x0000);
+  if(isr != nullptr)
   {
-    timer_enable_intr(group, index);
-    timer_isr_callback_add(group, index, handler, nullptr, ESP_INTR_FLAG_IRAM);
+    timer_enable_intr(group, idx);
+    timer_isr_register(group, idx, isr, nullptr, ESP_INTR_FLAG_IRAM, nullptr);
   }
-}
-
-void start8253(void)
-{
-  timer_start(TIMER_GROUP_0, TIMER_0);
-  timer_start(TIMER_GROUP_0, TIMER_1);
+  timer_start(group, idx);
 }
 
 static uint16_t getCounter(uint32_t channel)
 {
-  uint64_t value = 0;
-  switch (channel)
-  {
-    case 0:
-      timer_get_counter_value(TIMER_GROUP_0, TIMER_0, &value);
-      return static_cast<uint16_t>(value & 0xFFFF);
-    case 2:
-      timer_get_counter_value(TIMER_GROUP_0, TIMER_1, &value);
-      return static_cast<uint16_t>(value & 0xFFFF);
-  default:
+  if(channel != 0)
     return 0;
-  }
+  uint64_t value = 0;
+  timer_get_counter_value(TIMER_GROUP_0, TIMER_0, &value);
+  return static_cast<uint16_t>(value & 0xFFFF);
 }
 
-static void setReload(uint32_t channel, uint16_t value)
+static void setCounter(uint32_t channel, uint16_t value)
 {
-  switch (channel)
-  {
-    case 0:
-      timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, static_cast<uint64_t>(value));
-      return;
-    case 2:
-      timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, static_cast<uint64_t>(value));
-      return;
-  default:
+  // ESP_LOGI(TAG, "setReload %i, %04X", channel, value);
+  timer_idx_t i;
+  if(channel != 0)
     return;
-  }
+  const uint64_t reload = (value == 0) ? 0x10000ULL : static_cast<uint64_t>(value);
+  timer_set_counter_value(TIMER_GROUP_0, i, reload);
 }
 
 static void writeCounter(uint32_t address, uint8_t value)
 {
-  ESP_LOGI(TAG, "%02X: %02X", static_cast<unsigned int>(address), static_cast<unsigned int>(value));
+  // ESP_LOGI(TAG, "%02X: %02X", static_cast<unsigned int>(address), static_cast<unsigned int>(value));
   const uint32_t channel = address & 0x03;
 
   const bool lobyte =
@@ -173,15 +153,15 @@ static void writeCounter(uint32_t address, uint8_t value)
   if (i8253[channel].accessmode == PIT_MODE_TOGGLE)
     i8253[channel].MSB = !i8253[channel].MSB;
 
-  if (channel == 0x02)
-  {
+  setCounter(channel, i8253[channel].update);
+
+  if(channel == 2)
     updateFrequency(i8253[2].update);
-  }
 }
 
 static void writeControl(uint32_t address, uint8_t value)
 {
-  ESP_LOGI(TAG, "%02X: %02X", static_cast<unsigned int>(address), static_cast<unsigned int>(value));
+  // ESP_LOGI(TAG, "%02X: %02X", static_cast<unsigned int>(address), static_cast<unsigned int>(value));
   const uint32_t channel = value >> 6;
   const uint8_t accessmode = (value >> 4) & 3;
   const uint8_t mode = (value >> 1) & 7;
@@ -222,7 +202,11 @@ static uint8_t readControl(uint32_t address)
   return 0;
 }
 
-static bool IRAM_ATTR timerIsrHandler(void * p)
+static void IRAM_ATTR timerIsrHandler(void * p)
 {
+  timer_spinlock_take(TIMER_GROUP_0);
   doirq(0);
+  timer_group_clr_intr_status_in_isr(TIMER_GROUP_0, TIMER_0);
+  timer_group_enable_alarm_in_isr(TIMER_GROUP_0, TIMER_0);
+  timer_spinlock_give(TIMER_GROUP_0);
 }

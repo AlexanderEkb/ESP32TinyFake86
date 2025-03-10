@@ -30,9 +30,7 @@
 
 extern KeyboardDriver *keyboard;
 
-struct structpic i8259;
-
-uint8_t keyboardwaitack;
+volatile structpic i8259;
 
 static uint8_t read_20h(uint32_t address);
 static uint8_t read_21h(uint32_t address);
@@ -71,7 +69,6 @@ static void write_20h(uint32_t address, uint8_t value)
   }
   if (value & 0x20)
   { // EOI command
-    keyboardwaitack = 0;
     for (uint32_t i = 0; i < 8; i++)
       if ((i8259.isr >> i) & 1)
       {
@@ -101,18 +98,10 @@ uint8_t nextintr() {
 	return(0); //this won't be reached, but without it the compiler gives a warning
 }
 
-#ifdef use_lib_fast_doirq
-
-#else
- void doirq(unsigned char irqnum)
- {
+void doirq(unsigned char irqnum)
+{
   i8259.irr |= (1 << irqnum);
-  if (irqnum == 1)
-  {
-    keyboardwaitack = 1;
-  }  
- } 
-#endif 
+} 
 
 void init8259() {
 	 memset((void *)&i8259, 0, sizeof(i8259));
