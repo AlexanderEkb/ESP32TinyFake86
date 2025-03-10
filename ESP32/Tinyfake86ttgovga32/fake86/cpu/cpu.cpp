@@ -83,7 +83,6 @@ static unsigned char tempcf, pf, af, zf, sf, tf, ifl, df, of, mode, reg, rm;
 static unsigned short int oper1, oper2, res16, disp16, temp16, dummy, stacksize, frametemp;
 static unsigned char oper1b, oper2b, res8, disp8, temp8, nestlev, addrbyte;
 static unsigned int temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32, ea;
-uint64_t totalexec;
 
 union _bytewordregs_ regs;
 static IOPortSpace & ports = IOPortSpace::getInstance();
@@ -635,7 +634,6 @@ void intcall86(unsigned char intnum)
 }
 
 extern uint8_t	nextintr();
-extern void	i8253Exec();
 
 static uint32_t loopcount;
 static uint16_t firstip;
@@ -650,9 +648,6 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 
 	for (loopcount = 0; loopcount < execloops; loopcount++)
 	{
-    // TODO:  Get rid of totalexec
-    if ((totalexec & 3) == 0)
-      i8253Exec();
     if (trap_toggle)
       intcall86 (1);
     trap_toggle=  (tf)?1:0;
@@ -709,8 +704,6 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 								break;
 						}
 				}
-
-			totalexec++;
 
       typedef void (* opcode_t)(void);
       #ifdef CPU_V20

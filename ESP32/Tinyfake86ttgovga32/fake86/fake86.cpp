@@ -115,6 +115,9 @@ void CreateRAM()
 
 void setup()
 {
+  // To prevent any unwanted squeaks, initialize sound first.
+  Covox_t::getInstance().init();
+  
   disableCore0WDT();
   delay(100);
   disableCore1WDT();
@@ -132,7 +135,6 @@ void setup()
 
   reset86();
   ESP_LOGI(TAG, "OK!");
-  Covox_t::getInstance().init();
   inithardware();
 
 #ifndef use_lib_singlecore
