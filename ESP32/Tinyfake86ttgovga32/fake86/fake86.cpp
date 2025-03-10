@@ -146,6 +146,7 @@ void setup()
 
   diskInit();
 
+  start8253();
   ESP_LOGI(TAG, "END SETUP %d", ESP.getFreeHeap());
 }
 

@@ -942,7 +942,6 @@ void opcode0x6C()
     putreg16(regcx, getreg16(regcx) - 1);
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -976,7 +975,6 @@ void opcode0x6D()
     putreg16(regcx, getreg16(regcx) - 1);
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1011,7 +1009,6 @@ void opcode0x6E()
     putreg16(regcx, getreg16(regcx) - 1);
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1045,7 +1042,6 @@ void opcode0x6F()
     putreg16(regcx, getreg16(regcx) - 1);
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1541,7 +1537,6 @@ void opcode0xA4()
     putreg16(regcx, getreg16(regcx) - 1);
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1568,7 +1563,6 @@ void opcode0xA5()
     putreg16(regcx, getreg16(regcx) - 1);
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1613,7 +1607,6 @@ void opcode0xA6()
     return;
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1659,7 +1652,6 @@ void opcode0xA7()
     return;
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1707,7 +1699,6 @@ void opcode0xAA()
     putreg16(regcx, getreg16(regcx) - 1);
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1739,7 +1730,6 @@ void opcode0xAB()
     putreg16(regcx, getreg16(regcx) - 1);
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1771,7 +1761,6 @@ void opcode0xAC()
     putreg16(regcx, getreg16(regcx) - 1);
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1804,7 +1793,6 @@ void opcode0xAD()
     putreg16(regcx, getreg16(regcx) - 1);
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1847,7 +1835,6 @@ void opcode0xAE()
     return;
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {
@@ -1890,7 +1877,6 @@ void opcode0xAF()
     return;
   }
 
-  totalexec++;
   loopcount++;
   if (!reptype)
   {

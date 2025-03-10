@@ -21,5 +21,6 @@
  #define _I8253_H
 
 void init8253(void);
+void start8253(void);
 
 #endif
