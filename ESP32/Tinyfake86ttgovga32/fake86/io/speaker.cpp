@@ -1,40 +1,105 @@
+/**
+ * @file speaker.cpp
+ * @author your name (you@domain.com)
+ * @brief 
+ * @version 0.1
+ * @date 2025-03-11
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ * How it was implemented in the glorious IBM PC:
+ * ==============================================
+ *                 PIT, Ch#2
+ *              ╭─────────────╮
+ * 1.193 MHz ──>┤Clk          │
+ * CPU_bus ───<>┤Cnt       Out├>────┐         ╭─────╮               
+ * PB1 ────────>┤Gate         │     └─────────┤ &   │
+ *              ╰─────────────╯               │     ├───── Audio
+ *                                  ┌─────────┤     │
+ * PB0 ─────────────────────────────┘         ╰─────╯
+ * 
+ * How it is implemented here:
+ * ===========================
+ * 
+ *                     TG0_T1 - to make conter readable
+ *                  ╭────────────────────╮
+ * 1.193 MHz ──────>┤Clk                 │
+ * PB1 ──────┬─────>┤Gate             Out├>─X 
+ * CPU_bus ────┬──<>┤Counter reg (R/W)   │ 
+ *           │ │    ╰────────────────────╯ 
+ *           │ │       'Ticker' - to play sound and not overloading this we-eak CPU
+ *           │ │    ╭────────────────╮
+ *           │ └───>┤Cnt (R/O)       │
+ *           └─────>┤Gate         Out├>─┐ 
+ * Some clock ─────>┤Clk             │  │
+ *                  ╰────────────────╯  │
+ *                                      │         ╭─────╮           
+ *                                      └─────────┤ &   │
+ *                                                │     ├───── Audio
+ *                                      ┌─────────┤     │
+ *           PB0 ───────────────────────┘         ╰─────╯
+ */
+
 #include "io/speaker.h"
-#include "config/hardware.h"
-#include "cpu/ports.h"
-#include "esp32-hal-gpio.h"
-#include "covox.h"
 
-static uint32_t period = 0;
-bool speakerDrivenByTimer = true;
+bool Speaker_t::PB0 = false;
+bool Speaker_t::PB1 = false;
+bool Speaker_t::Ch2 = false;
+bool Speaker_t::muted = false;
+uint32_t Speaker_t::period = 0;
 
-volatile bool speakerMute = false;
-
-void my_callback_speaker_func()
+void __attribute__((optimize("-Ofast"))) IRAM_ATTR Speaker_t::onTimer()
 {
   static uint32_t counter = 0;
-  static bool speaker;
 
-  if(speakerDrivenByTimer)
+  if (++counter >= period)
   {
-    counter++;
-    if (counter >= period)
-    {
-      counter = 0;
-      speaker ^= true;
-      if (!speakerMute)
-      {
-        Covox_t::getInstance().driveSpeaker(speaker);
-      }
+    counter = 0;
+    if(PB0)
+      Ch2 ^= true;
+    if(!muted)
+      Covox_t::getInstance().driveSpeaker(Ch2 && PB1);
     }
+}
+
+void __attribute__((optimize("-Ofast"))) IRAM_ATTR Speaker_t::gateCh2(bool state)
+{
+  if(PB0 != state)
+  {
+    PB0 = state;
+    if(!state)
+      Ch2 = true;
   }
 }
 
-void updateFrequency(uint16_t data)
+void __attribute__((optimize("-Ofast"))) IRAM_ATTR Speaker_t::driveDirectly(bool state)
+{
+  PB1 = state;
+  if(!muted)
+    Covox_t::getInstance().driveSpeaker(Ch2 && PB1);
+}
+
+void Speaker_t::mute()
+{
+  muted = true;
+  Covox_t::getInstance().driveSpeaker(false);
+}
+
+void Speaker_t::unmute()
+{
+  muted = false;
+}
+
+void __attribute__((optimize("-Ofast"))) IRAM_ATTR Speaker_t::updateFrequency(uint16_t data)
 {
   uint32_t freq = (data != 0) ? (1193180 / data) : 0;
   if (freq != 0)
     period = (SAMPLE_RATE / freq) >> 1;
   else
-    period = 0;
+    period = 0;    
+}
 
+void __attribute__((optimize("-Ofast"))) IRAM_ATTR my_callback_speaker_func()
+{
+  Speaker_t::onTimer();
 }

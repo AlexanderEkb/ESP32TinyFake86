@@ -74,7 +74,7 @@ IOPort port_041h = IOPort(0x041, 0xFF, readCounter, writeCounter);
 IOPort port_042h = IOPort(0x042, 0xFF, readCounter, writeCounter);
 IOPort port_043h = IOPort(0x043, 0xFF, readControl, writeControl);
 
-void init8253()
+void i8253_init()
 {
   periph_module_enable(PERIPH_TIMG0_MODULE);
   initializeHWTimer(TIMER_GROUP_0, TIMER_0, ch0isr);
@@ -85,6 +85,19 @@ void init8253()
     i8253[channel].accessmode = 0x00;
     i8253[channel].MSB = false;
     i8253[channel].active = false;
+  }
+}
+
+void i8253_gateCh2(bool state)
+{
+  if(state)
+  {
+    setCounter(2, i8253[2].update);
+    timer_start(TIMER_GROUP_0, TIMER_1);
+  }
+  else
+  {
+    timer_pause(TIMER_GROUP_0, TIMER_1);
   }
 }
 
@@ -173,7 +186,7 @@ static void writeCounter(uint32_t address, uint8_t value)
   setCounter(channel, i8253[channel].update);
 
   if(channel == 2)
-    updateFrequency(i8253[2].update);
+    Speaker_t::updateFrequency(i8253[2].update);
 }
 
 static void writeControl(uint32_t address, uint8_t value)

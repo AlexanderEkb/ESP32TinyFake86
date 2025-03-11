@@ -83,7 +83,7 @@ void inithardware()
 {
   ESP_LOGI(TAG, "Initializing emulated hardware:");
   ESP_LOGI(TAG, "  - Intel 8253 timer: ");
-  init8253();
+  i8253_init();
   ESP_LOGI(TAG, "OK");
   ESP_LOGI(TAG, "  - Intel 8259 interrupt controller: ");
   init8259();
@@ -142,7 +142,7 @@ void setup()
 #endif
 
 #ifndef use_lib_speaker_cpu
-  float auxTimer = (float)1.0 / (float)SAMPLE_RATE;
+  float auxTimer = (float)1.0 / (float)Speaker_t::SAMPLE_RATE;
   gb_ticker_callback.attach(auxTimer, my_callback_speaker_func);
 #endif
 

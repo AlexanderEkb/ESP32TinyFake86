@@ -18,8 +18,8 @@
 */
 
 #ifndef _I8253_H
- #define _I8253_H
+#define _I8253_H
 
-void init8253(void);
-
+void i8253_init(void);
+void i8253_gateCh2(bool state);
 #endif

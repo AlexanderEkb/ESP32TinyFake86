@@ -2,14 +2,28 @@
 #define SPEAKER_H
 
 #include <stdint.h>
+#include <esp_attr.h>
+#include "covox.h"
 
-#ifdef use_lib_speaker_cpu
-#define SAMPLE_RATE 10000
-#else
-#define SAMPLE_RATE 16000
-#endif
+class Speaker_t
+{
+  public:
+    static const uint32_t SAMPLE_RATE = 16000;
+    static void __attribute__((optimize("-Ofast"))) IRAM_ATTR onTimer();
+    static void __attribute__((optimize("-Ofast"))) IRAM_ATTR gateCh2(bool state);
+    static void __attribute__((optimize("-Ofast"))) IRAM_ATTR driveDirectly(bool state);
+    static void __attribute__((optimize("-Ofast"))) IRAM_ATTR updateFrequency(uint16_t data);
+    static void mute();
+    static void unmute();
+  private:
+    static bool PB0;
+    static bool PB1;
+    static bool Ch2;
+    static bool muted;
+    static uint32_t 
+    period;
+};
 
-void my_callback_speaker_func();
-void updateFrequency(uint16_t data);
+void __attribute__((optimize("-Ofast"))) IRAM_ATTR my_callback_speaker_func();
 
 #endif /* SPEAKER_H */

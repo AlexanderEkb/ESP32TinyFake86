@@ -1,6 +1,7 @@
 #include "i8255.h"
+#include "i8253.h"
 #include "cpu/ports.h"
-#include "io/covox.h"
+#include "io/speaker.h"
 
 // static const uint8_t SW1 = 0b10010010;
 //                           ┌──────── ⌠ Total diskette
@@ -16,8 +17,6 @@
 //                           ││││││││
 static const uint8_t SW1 = 0b01101101;
 static const uint32_t PB2_HIGH_SWITCHES = 0x08;
-
-extern bool speakerDrivenByTimer;
 
 static uint8_t onPort0x60Read(uint32_t addrress);
 static uint8_t onPort0x62Read(uint32_t addrress);
@@ -63,16 +62,13 @@ void onPort0x61Write(uint32_t address, uint8_t val)
 {
   (void)address;
 
-  static const uint8_t GATE_TIM_CH2_TO_SPEAKER = 0x01;
-  static const uint8_t ENABLE_SPEAKER = 0x02;
+  static const uint8_t GATE_CH2 = 0x01;
+  static const uint8_t DRIVE_SPEAKER = 0x02;
 
-  static const uint8_t TIMER_DRIVEN = (GATE_TIM_CH2_TO_SPEAKER | ENABLE_SPEAKER);
-  speakerDrivenByTimer = ((val & TIMER_DRIVEN) == TIMER_DRIVEN);
-  if (!speakerDrivenByTimer)
-  {
-    uint8_t level = (val & ENABLE_SPEAKER) ? HIGH : LOW;
-    Covox_t::getInstance().driveSpeaker(level);
-  }
+  const bool gate = (val & GATE_CH2) != 0;
+  i8253_gateCh2(gate);
+  Speaker_t::gateCh2(gate);
+  Speaker_t::driveDirectly((val & DRIVE_SPEAKER) != 0);
 }
 
 static uint8_t onPort0x62Read(uint32_t addrress)

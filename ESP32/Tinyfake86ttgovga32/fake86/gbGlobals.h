@@ -18,10 +18,6 @@ static const size_t      RAM_SIZE  = 640 * 1024;
 
 extern unsigned char gb_reset;
  
-
-
- extern volatile bool speakerMute;
-
  extern unsigned char gb_delay_tick_cpu_milis;
  extern unsigned char gb_vga_poll_milis;
  extern unsigned char gb_keyboard_poll_milis;
