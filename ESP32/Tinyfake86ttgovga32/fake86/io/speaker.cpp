@@ -9,14 +9,6 @@ bool speakerDrivenByTimer = true;
 
 volatile bool speakerMute = false;
 
-static void calculatePeriod(int freq)
-{
-  if (freq != 0)
-    period = (SAMPLE_RATE / freq) >> 1;
-  else
-    period = 0;
-}
-
 void my_callback_speaker_func()
 {
   static uint32_t counter = 0;
@@ -39,6 +31,10 @@ void my_callback_speaker_func()
 
 void updateFrequency(uint16_t data)
 {
-  uint32_t aData = (data != 0) ? (1193180 / data) : 0;
-  calculatePeriod(aData);
+  uint32_t freq = (data != 0) ? (1193180 / data) : 0;
+  if (freq != 0)
+    period = (SAMPLE_RATE / freq) >> 1;
+  else
+    period = 0;
+
 }
