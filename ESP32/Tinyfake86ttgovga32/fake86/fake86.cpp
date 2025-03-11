@@ -5,9 +5,6 @@
 //  Single core and dual core
 
 #include <Arduino.h>
-#ifndef use_lib_speaker_cpu
-#include <Ticker.h>
-#endif
 #include "config/gbConfig.h"
 #include "cpu/cpu.h"
 #include "driver/timer.h"
@@ -38,10 +35,6 @@
 // Video Task Core BEGIN
 void videoTask(void *unused);
 TaskHandle_t videoTaskHandle;
-#endif
-
-#ifndef use_lib_speaker_cpu
-Ticker gb_ticker_callback;
 #endif
 
 unsigned char gb_delay_tick_cpu_milis = use_lib_delay_tick_cpu_milis;
@@ -139,11 +132,6 @@ void setup()
 
 #ifndef use_lib_singlecore
   xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
-#endif
-
-#ifndef use_lib_speaker_cpu
-  float auxTimer = (float)1.0 / (float)SAMPLE_RATE;
-  gb_ticker_callback.attach(auxTimer, my_callback_speaker_func);
 #endif
 
   diskInit();

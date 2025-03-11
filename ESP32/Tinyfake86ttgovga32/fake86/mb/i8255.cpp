@@ -1,6 +1,7 @@
 #include "i8255.h"
+#include "i8253.h"
 #include "cpu/ports.h"
-#include "io/covox.h"
+#include "io/speaker.h"
 
 // static const uint8_t SW1 = 0b10010010;
 //                           ┌──────── ⌠ Total diskette
@@ -16,8 +17,6 @@
 //                           ││││││││
 static const uint8_t SW1 = 0b01101101;
 static const uint32_t PB2_HIGH_SWITCHES = 0x08;
-
-extern bool speakerDrivenByTimer;
 
 static uint8_t onPort0x60Read(uint32_t addrress);
 static uint8_t onPort0x62Read(uint32_t addrress);
@@ -64,17 +63,28 @@ void onPort0x61Write(uint32_t address, uint8_t val)
   (void)address;
 
   static const uint8_t GATE_TIM_CH2_TO_SPEAKER = 0x01;
-  static const uint8_t ENABLE_SPEAKER = 0x02;
+  static const uint8_t SPEAKER_DIRECT_DRIVE = 0x02;
 
-  static const uint8_t TIMER_DRIVEN = (GATE_TIM_CH2_TO_SPEAKER | ENABLE_SPEAKER);
-  speakerDrivenByTimer = ((val & TIMER_DRIVEN) == TIMER_DRIVEN);
-  if (!speakerDrivenByTimer)
-  {
-    uint8_t level = (val & ENABLE_SPEAKER) ? HIGH : LOW;
-    Covox_t::getInstance().driveSpeaker(level);
-  }
+  const bool gate = ((val & GATE_TIM_CH2_TO_SPEAKER) != 0);
+  gateCh2(gate);
+  Speaker_t::driveDirectly((val & SPEAKER_DIRECT_DRIVE) != 0);
 }
 
+/**
+ * @brief Port 62h reader
+ * 
+ * @param addrress Addess of the port to be read. Ignored.
+ * @return uint8_t See diagram
+ * 
+ * 062H  PPI port C.
+ *      ╓7┬6┬5┬4┬3┬2┬1┬0╖
+ *      ║ │ │ │0│equipmt║
+ *      ╙╥┴╥┴╥┴─┴─┴─┴─┴─╜ bit
+ *       ║ ║ ║   ╚═════╩═► 0-3: DIP switch values.     See Equipment List
+ *       ║ ║ ╚═══════════►   5: 1=Timer 2 channel out
+ *       ║ ╚═════════════►   6: 1=I/O channel check
+ *       ╚═══════════════►   7: 1=RAM parity check error occurred.
+ */
 static uint8_t onPort0x62Read(uint32_t addrress)
 {
   (void)addrress;

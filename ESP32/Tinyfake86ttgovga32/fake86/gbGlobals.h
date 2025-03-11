@@ -20,10 +20,8 @@ extern unsigned char gb_reset;
  
 
 
- extern volatile bool speakerMute;
-
- extern unsigned char gb_delay_tick_cpu_milis;
- extern unsigned char gb_vga_poll_milis;
- extern unsigned char gb_keyboard_poll_milis;
- extern unsigned char gb_timers_poll_milis;
+extern unsigned char gb_delay_tick_cpu_milis;
+extern unsigned char gb_vga_poll_milis;
+extern unsigned char gb_keyboard_poll_milis;
+extern unsigned char gb_timers_poll_milis;
 #endif

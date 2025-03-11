@@ -3,13 +3,19 @@
 
 #include <stdint.h>
 
-#ifdef use_lib_speaker_cpu
-#define SAMPLE_RATE 10000
-#else
-#define SAMPLE_RATE 16000
-#endif
-
-void my_callback_speaker_func();
-void updateFrequency(uint16_t data);
+class Speaker_t
+{
+  public:
+    static Speaker_t & getInstance() {return instance;};
+    static void driveByTimer(bool state);
+    static void driveDirectly(bool state);
+    static void mute();
+    static void unmute();
+  private:
+    static bool PB1;
+    static bool Ch2;
+    static bool muted;
+    static Speaker_t instance;
+};
 
 #endif /* SPEAKER_H */

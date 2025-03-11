@@ -91,8 +91,6 @@ uint8_t *getramloc(uint32_t addr);
 
 void ExternalSetCF(unsigned char valor);
 
-void my_callback_speaker_func(void);
-
 uint16_t _dbgGetRegister(_dbgReg_t reg);
 void _dbgSetRegister(_dbgReg_t reg, uint16_t val);
 #endif

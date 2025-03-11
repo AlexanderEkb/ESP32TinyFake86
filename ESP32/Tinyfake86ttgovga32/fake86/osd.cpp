@@ -7,6 +7,7 @@
 #include "keyboard/keyboard.h"
 #include "keyboard/keys.h"
 #include "io/disk.h"
+#include "io/speaker.h"
 #include "video/CompositeColorOutput.h"
 #include "video/render.h"
 #include "video/gb_sdl_font8x8.h"
@@ -382,7 +383,7 @@ void do_tinyOSD()
   svcPrintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
   svcPrintText("Extensions by Ochlamonster", 12, 12, 0xF9, HEADER_BACKGROUND);
   svcPrintText(__DATE__, 8, 200, 0xF9, SCREEN_BACKGROUND);
-  speakerMute = true;
+  Speaker_t::mute();
 
   aSelNum = ShowTinyMenu("MAIN MENU", gb_main_menu, max_gb_main_menu, 10, 10);
   switch (aSelNum)
@@ -409,7 +410,7 @@ void do_tinyOSD()
     break;
   }
 
-  speakerMute = false;
+  Speaker_t::unmute();
   keyboard->Reset();
   osdLeave();
 }

@@ -4,37 +4,30 @@
 #include "esp32-hal-gpio.h"
 #include "covox.h"
 
-static uint32_t period = 0;
-bool speakerDrivenByTimer = true;
+Speaker_t Speaker_t::instance;
+bool Speaker_t::PB1 = false;
+bool Speaker_t::Ch2 = false;
+bool Speaker_t::muted = false;
 
-volatile bool speakerMute = false;
-
-void my_callback_speaker_func()
+void Speaker_t::driveByTimer(bool state)
 {
-  static uint32_t counter = 0;
-  static bool speaker;
-
-  if(speakerDrivenByTimer)
-  {
-    counter++;
-    if (counter >= period)
-    {
-      counter = 0;
-      speaker ^= true;
-      if (!speakerMute)
-      {
-        Covox_t::getInstance().driveSpeaker(speaker);
-      }
-    }
-  }
+  Ch2 = state;
+  Covox_t::getInstance().driveSpeaker(Ch2 && PB1);
 }
 
-void updateFrequency(uint16_t data)
+void Speaker_t::driveDirectly(bool state)
 {
-  uint32_t freq = (data != 0) ? (1193180 / data) : 0;
-  if (freq != 0)
-    period = (SAMPLE_RATE / freq) >> 1;
-  else
-    period = 0;
+  PB1 = state;
+  Covox_t::getInstance().driveSpeaker(Ch2 && PB1);
+}
 
+void Speaker_t::mute()
+{
+  muted = true;
+  Covox_t::getInstance().driveSpeaker(false);
+}
+
+void Speaker_t::unmute()
+{
+  muted = false;
 }

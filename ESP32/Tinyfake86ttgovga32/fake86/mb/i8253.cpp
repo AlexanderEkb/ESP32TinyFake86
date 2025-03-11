@@ -88,6 +88,20 @@ void init8253()
   }
 }
 
+void gateCh2(bool state)
+{
+  if(state)
+  {
+    setCounter(TIMER_1, i8253[2].update);
+    timer_start(TIMER_GROUP_0, TIMER_1);
+  }
+  else
+  {
+    timer_pause(TIMER_GROUP_0, TIMER_1);
+    Speaker_t::driveByTimer(true);
+  }
+}
+
 static void initializeHWTimer(timer_group_t group, timer_idx_t idx, void (*isr)(void *))
 {
   static const uint32_t i8253_NOMINAL_CLOCK_HZ = 1193180;
@@ -138,8 +152,9 @@ static void setCounter(uint32_t channel, uint16_t value)
       break;
     case 2:
       idx = TIMER_1;
-      if(counter < 0x20ULL)
-        counter = 0x20ULL;
+      counter >>= 1;
+      if(counter < 0x10ULL)
+        counter = 0x10ULL;
       break;
     default:
       return;
@@ -172,8 +187,8 @@ static void writeCounter(uint32_t address, uint8_t value)
 
   setCounter(channel, i8253[channel].update);
 
-  if(channel == 2)
-    updateFrequency(i8253[2].update);
+  // if(channel == 2)
+  //   updateFrequency(i8253[2].update);
 }
 
 static void writeControl(uint32_t address, uint8_t value)
@@ -230,7 +245,11 @@ static void IRAM_ATTR ch0isr(void * p)
 
 static void IRAM_ATTR ch2isr(void * p)
 {
+  static bool spk = false;
+
   timer_spinlock_take(TIMER_GROUP_0);
+  spk = !spk;
+  Speaker_t::driveByTimer(spk);
   timer_group_clr_intr_status_in_isr(TIMER_GROUP_0, TIMER_1);
   timer_group_enable_alarm_in_isr(TIMER_GROUP_0, TIMER_1);
   timer_spinlock_give(TIMER_GROUP_0);
