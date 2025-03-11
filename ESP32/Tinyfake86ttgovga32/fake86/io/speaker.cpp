@@ -9,6 +9,16 @@ bool Speaker_t::PB1 = false;
 bool Speaker_t::Ch2 = false;
 bool Speaker_t::muted = false;
 
+/*                 PIT
+             ╭─────────────╮
+1.193 MHz ───┤Clk          │
+             │             │
+             │          Out├─────┐         ╭─────╮               
+      PB1 ───┤Gate         │     └─────────┤ &   │
+             ╰─────────────╯               │     ├───── Audio
+                                 ┌─────────┤     │
+      PB0 ───────────────────────┘         ╰─────╯
+*/
 void Speaker_t::driveByTimer(bool state)
 {
   Ch2 = state;

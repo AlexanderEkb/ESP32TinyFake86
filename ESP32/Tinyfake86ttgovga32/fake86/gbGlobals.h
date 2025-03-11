@@ -17,7 +17,6 @@ extern unsigned char gb_video_cga[16384];
 static const size_t      RAM_SIZE  = 640 * 1024;
 
 extern unsigned char gb_reset;
- 
 
 
 extern unsigned char gb_delay_tick_cpu_milis;
