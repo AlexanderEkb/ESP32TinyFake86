@@ -40,6 +40,25 @@ static uint8_t onPort0x60Read(uint32_t addrress)
   return PA;
 }
 
+/**
+ * @brief 
+ * 
+ * @param address 
+ * @param val 
+ * 
+ *       ╓7┬6┬5┬4┬3┬2┬1┬0╖
+ *       ║ │ │ │ │ │0│ │ ║
+ *       ╙╥┴╥┴╥┴╥┴╥┴─┴╥┴╥╜ bit mask
+ *        ║ ║ ║ ║ ║   ║ ╚═► 0: 01H gate timer channel 2 to speaker
+ *        ║ ║ ║ ║ ║   ╚═══► 1: 02H pulse speaker 1=out, 0=in
+ *        ║ ║ ║ ║ ║            (see Speaker Control for examples)
+ *        ║ ║ ║ ║ ╚═══════► 3: 04H 1=read high switches;
+ *        ║ ║ ║ ║                  0=read low ones (see 62H)
+ *        ║ ║ ║ ╚═════════► 4: 10H 0=enable RAM parity checking; 1=disable
+ *        ║ ║ ╚═══════════► 5: 20H 0=enable I/O channel check
+ *        ║ ╚═════════════► 6: 40H 0=hold keyboard clock low
+ *        ╚═══════════════► 7: 80H 0=enable keyboard; 1=disable keyboard
+ */
 void onPort0x61Write(uint32_t address, uint8_t val)
 {
   (void)address;

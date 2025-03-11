@@ -59,10 +59,8 @@ struct i8253_s i8253[CHANNEL_COUNT];
 extern uint64_t hostfreq, curtick;
 
 static void initializeHWTimer(timer_group_t group, timer_idx_t idx, void (*isr)(void *));
-static void IRAM_ATTR timerIsrHandler(void * p);
-
-static void out8253(uint32_t portnum, uint8_t value);
-static uint8_t in8253(uint32_t portnum);
+static void IRAM_ATTR ch0isr(void * p);
+static void IRAM_ATTR ch2isr(void * p);
 
 static uint16_t getCounter(uint32_t channel);
 static void setCounter(uint32_t channel, uint16_t value);
@@ -79,7 +77,8 @@ IOPort port_043h = IOPort(0x043, 0xFF, readControl, writeControl);
 void init8253()
 {
   periph_module_enable(PERIPH_TIMG0_MODULE);
-  initializeHWTimer(TIMER_GROUP_0, TIMER_0, timerIsrHandler);
+  initializeHWTimer(TIMER_GROUP_0, TIMER_0, ch0isr);
+  initializeHWTimer(TIMER_GROUP_0, TIMER_1, ch2isr);
   for(uint32_t channel=0; channel<3; channel++)
   {
     i8253[channel].update = 0x0000;
@@ -103,31 +102,49 @@ static void initializeHWTimer(timer_group_t group, timer_idx_t idx, void (*isr)(
   timer_init(group, idx, &config);
   timer_set_counter_value(group, idx, 0xFFFF);
   timer_set_alarm_value(group, idx, 0x0000);
-  if(isr != nullptr)
-  {
-    timer_enable_intr(group, idx);
-    timer_isr_register(group, idx, isr, nullptr, ESP_INTR_FLAG_IRAM, nullptr);
-  }
+  timer_enable_intr(group, idx);
+  timer_isr_register(group, idx, isr, nullptr, ESP_INTR_FLAG_IRAM, nullptr);
   timer_start(group, idx);
 }
 
 static uint16_t getCounter(uint32_t channel)
 {
-  if(channel != 0)
-    return 0;
+  timer_idx_t idx;
+  switch(channel)
+  {
+    case 0:
+      idx = TIMER_0;
+      break;
+    case 2:
+      idx = TIMER_1;
+      break;
+    default:
+      return 0;
+  }
   uint64_t value = 0;
-  timer_get_counter_value(TIMER_GROUP_0, TIMER_0, &value);
+  timer_get_counter_value(TIMER_GROUP_0, idx, &value);
   return static_cast<uint16_t>(value & 0xFFFF);
 }
 
 static void setCounter(uint32_t channel, uint16_t value)
 {
   // ESP_LOGI(TAG, "setReload %i, %04X", channel, value);
-  timer_idx_t i;
-  if(channel != 0)
-    return;
-  const uint64_t reload = (value == 0) ? 0x10000ULL : static_cast<uint64_t>(value);
-  timer_set_counter_value(TIMER_GROUP_0, i, reload);
+  timer_idx_t idx;
+  uint64_t counter = (value == 0) ? 0x10000ULL : static_cast<uint64_t>(value);
+  switch(channel)
+  {
+    case 0:
+      idx = TIMER_0;
+      break;
+    case 2:
+      idx = TIMER_1;
+      if(counter < 0x20ULL)
+        counter = 0x20ULL;
+      break;
+    default:
+      return;
+  }
+  timer_set_counter_value(TIMER_GROUP_0, idx, counter);
 }
 
 static void writeCounter(uint32_t address, uint8_t value)
@@ -202,11 +219,19 @@ static uint8_t readControl(uint32_t address)
   return 0;
 }
 
-static void IRAM_ATTR timerIsrHandler(void * p)
+static void IRAM_ATTR ch0isr(void * p)
 {
   timer_spinlock_take(TIMER_GROUP_0);
   doirq(0);
   timer_group_clr_intr_status_in_isr(TIMER_GROUP_0, TIMER_0);
   timer_group_enable_alarm_in_isr(TIMER_GROUP_0, TIMER_0);
+  timer_spinlock_give(TIMER_GROUP_0);
+}
+
+static void IRAM_ATTR ch2isr(void * p)
+{
+  timer_spinlock_take(TIMER_GROUP_0);
+  timer_group_clr_intr_status_in_isr(TIMER_GROUP_0, TIMER_1);
+  timer_group_enable_alarm_in_isr(TIMER_GROUP_0, TIMER_1);
   timer_spinlock_give(TIMER_GROUP_0);
 }
