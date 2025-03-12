@@ -31,7 +31,6 @@
 
 #include "cpu.h"
 #include "config/config.h"
-#include "config/gbConfig.h"
 #include "config/hardware.h"
 #include "dataFlash/bios/biospcxt.h"
 #include "dataFlash/rom/rombasic.h"

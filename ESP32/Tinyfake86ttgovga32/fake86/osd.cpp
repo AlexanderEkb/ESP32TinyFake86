@@ -1,5 +1,4 @@
 #include "osd.h"
-#include "config/gbConfig.h"
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
 #include "fake86.h"
@@ -206,38 +205,18 @@ void ShowTinyCPUDelayMenu()
 {
  unsigned char aSelNum;
  aSelNum = ShowTinyMenu("> Delay CPU ms",gb_delay_cpu_menu,max_gb_delay_cpu_menu, 14, 202);
- if (aSelNum == 255)
-  return;
- gb_delay_tick_cpu_milis = aSelNum;  
 }
 
 void ShowTinyTimerDelayMenu()
 {
  unsigned char aSelNum;
  aSelNum = ShowTinyMenu("> Timers poll",gb_timers_poll_menu,max_gb_timers_poll_menu, 14, 202);
- switch (aSelNum)
- {
-  case 0: gb_timers_poll_milis= 216; break;
-  case 1: gb_timers_poll_milis= 108; break;
-  case 2: gb_timers_poll_milis= 54; break;
-  case 3: gb_timers_poll_milis= 27; break;
-  case 4: gb_timers_poll_milis= 13; break;
-  case 5: gb_timers_poll_milis= 6; break;
-  case 6: gb_timers_poll_milis= 1; break;
- }
 }
 
 void ShowTinyVGApollMenu()
 {
  unsigned char aSelNum;
  aSelNum = ShowTinyMenu("> VGA poll ms",gb_vga_poll_menu,max_gb_vga_poll_menu, 14, 202);
- switch (aSelNum)
- {
-  case 0: gb_vga_poll_milis= 20; break;
-  case 1: gb_vga_poll_milis=30; break;
-  case 2: gb_vga_poll_milis=40; break;
-  case 3: gb_vga_poll_milis=50; break;
- }
 }
 
 //Menu velocidad emulador

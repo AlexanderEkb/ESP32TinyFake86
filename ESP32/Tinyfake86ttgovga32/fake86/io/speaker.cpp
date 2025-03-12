@@ -1,12 +1,4 @@
-/**
- * @file speaker.cpp
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2025-03-11
- * 
- * @copyright Copyright (c) 2025
- * 
+/*
  * How it was implemented in the glorious IBM PC:
  * ==============================================
  *                 PIT, Ch#2
@@ -41,6 +33,7 @@
  */
 
 #include "io/speaker.h"
+#include "io/audio.h"
 
 bool Speaker_t::PB0 = false;
 bool Speaker_t::PB1 = false;
@@ -58,7 +51,7 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR Speaker_t::onTimer()
     if(PB0)
       Ch2 ^= true;
     if(!muted)
-      Covox_t::getInstance().driveSpeaker(Ch2 && PB1);
+      Audio::driveSpeaker(Ch2 && PB1);
     }
 }
 
@@ -76,13 +69,13 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR Speaker_t::driveDirectly(bool
 {
   PB1 = state;
   if(!muted)
-    Covox_t::getInstance().driveSpeaker(Ch2 && PB1);
+    Audio::driveSpeaker(Ch2 && PB1);
 }
 
 void Speaker_t::mute()
 {
   muted = true;
-  Covox_t::getInstance().driveSpeaker(false);
+  Audio::driveSpeaker(false);
 }
 
 void Speaker_t::unmute()

@@ -19,7 +19,6 @@
 #ifndef _I8259_H
  #define _I8259_H
 
-#include "config/gbConfig.h"
 #include "gbGlobals.h"
 
 struct structpic {

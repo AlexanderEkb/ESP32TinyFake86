@@ -16,7 +16,7 @@
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // disk.c: disk emulation routines for Fake86. works at the BIOS interrupt 13h level.
 
-#include "config/gbConfig.h"
+#include "config/config.h"
 #include "cpu/cpu.h"
 #include "gbGlobals.h"
 #include "io/disk.h"

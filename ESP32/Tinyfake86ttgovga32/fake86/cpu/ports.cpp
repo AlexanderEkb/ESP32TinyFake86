@@ -20,9 +20,7 @@
 
 #include "cpu/ports.h"
 #include "cpu/cpu.h"
-#include "config/gbConfig.h"
 #include "gbGlobals.h"
-#include "io/speaker.h"
 #include <Arduino.h>
 #include <stdio.h>
 

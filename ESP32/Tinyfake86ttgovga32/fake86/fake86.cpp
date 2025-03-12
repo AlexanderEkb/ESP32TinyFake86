@@ -1,26 +1,20 @@
 // ~~Port Fake86 to TTGO VGA32 by ackerman~~
-// Port Fake86 to ESP32-WROVER by Ochlamonster ;)
-
-//  MODE320x200
-//  Single core and dual core
+//   Port Fake86 to ESP32-WROVER by Ochlamonster ;)
 
 #include <Arduino.h>
-#ifndef use_lib_speaker_cpu
 #include <Ticker.h>
-#endif
-#include "config/gbConfig.h"
+#include "config/config.h"
 #include "cpu/cpu.h"
 #include "driver/timer.h"
 #include "fake86.h"
 #include "gbGlobals.h"
 #include "io/disk.h"
-// #include "gb_sdl_font8x8.h"
 #include "config/hardware.h"
 #include "cpu/ports.h"
 #include "keyboard/keyboard_simplifiedXT.h"
 #include "keyboard/keyboard_AT.h"
 #include "keyboard/keys.h"
-#include "io/covox.h"
+#include "io/audio.h"
 #include "io/speaker.h"
 #include "mb/i8237.h"
 #include "mb/i8253.h"
@@ -30,30 +24,17 @@
 #include "stats.h"
 #include "video/render.h"
 
-///////////////////////////////////////////////////////////////////////////////////////// Local macros
-
 #define TAG "FAKE86"
 
-#ifndef use_lib_singlecore
-// Video Task Core BEGIN
-void videoTask(void *unused);
 TaskHandle_t videoTaskHandle;
-#endif
 
-#ifndef use_lib_speaker_cpu
 Ticker gb_ticker_callback;
-#endif
-
-unsigned char gb_delay_tick_cpu_milis = use_lib_delay_tick_cpu_milis;
-unsigned char gb_vga_poll_milis = use_lib_vga_poll_milis;
-unsigned char gb_keyboard_poll_milis = use_lib_keyboard_poll_milis;
-unsigned char gb_timers_poll_milis = use_lib_timers_poll_milis;
 
 unsigned char gb_reset = 0;
 #if (KEYBOARD_DRIVER == 0)
 KeyboardDriver *keyboard = new KeyboardDriverSimplifiedXT(); // stm32keyboard();
 #elif (KEYBOARD_DRIVER == 1)
-KeyboardDriver *keyboard = new KeyboardDriverAT(); // stm32keyboard();
+KeyboardDriver *keyboard = new KeyboardDriverAT(); // Regular PS/2 keyboard;
 #endif
 Stats stats;
 
@@ -64,14 +45,11 @@ unsigned char gb_force_load_com = 0;
 
 unsigned char cf;
 
-// static void ClearRAM();
-static void execCPU(uint32_t count);
+//////////////////////////////////////////////////////////////////////////// Local function prototypes
 static void execKeyboard();
 static void execVideo();
 static void execMisc();
-
-//////////////////////////////////////////////////////////////////////////// Local function prototypes
-void setup(void);
+void videoTask(void *unused);
 
 ///////////////////////////////////////////////////////////////////////// External function prototypes
 extern void VideoThreadPoll(void);
@@ -116,7 +94,7 @@ void CreateRAM()
 void setup()
 {
   // To prevent any unwanted squeaks, initialize sound first.
-  Covox_t::getInstance().init();
+  Audio::init();
   
   disableCore0WDT();
   delay(100);
@@ -174,12 +152,12 @@ unsigned int tiene_que_tardar = 0;
 void loop()
 {
   stats.startIteration();
-  execCPU(10000);
+  exec86(10000);
   stats.countCPUTime();
 
   static uint32_t before;
   const uint32_t now = millis();
-  if ((now - before) > gb_keyboard_poll_milis)
+  if ((now - before) > KEYBOARD_POLL_ms)
   {
     before = now;
     execKeyboard();
@@ -190,30 +168,6 @@ void loop()
 #endif
   stats.exec();
   }
-
-void execCPU(uint32_t const count)
-{
-#ifdef use_lib_singlecore
-  static bool gb_cpunoexe = false;
-  static uint32_t gb_cpunoexe_timer_ini;
-  static uint32_t tiene_que_tardar = 0;
-
-  if (!gb_cpunoexe)
-  {
-    exec86(10000);
-    gb_cpunoexe = 1;
-    gb_cpunoexe_timer_ini = millis();
-    tiene_que_tardar = gb_delay_tick_cpu_milis;
-  }
-  else if ((millis() - gb_cpunoexe_timer_ini) >= tiene_que_tardar)
-  {
-    gb_cpunoexe = 0;
-  }
-
-#else
-    exec86(count); // Tarda 22 milis usar 2 cores
-#endif
-}
 
 void execKeyboard()
 {

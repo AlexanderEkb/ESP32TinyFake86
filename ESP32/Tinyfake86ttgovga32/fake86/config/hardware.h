@@ -1,8 +1,6 @@
 #ifndef _HARDWARE_H
 #define _HARDWARE_H
 
-#include "gbConfig.h"
-
 #define RG_STORAGE_DRIVER 2
 /**
  @brief Keyboard driver used in the system.

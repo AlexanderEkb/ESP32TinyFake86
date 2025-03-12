@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <esp_attr.h>
-#include "covox.h"
 
 class Speaker_t
 {

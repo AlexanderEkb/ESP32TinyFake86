@@ -1,7 +1,6 @@
 #ifndef _GB_GLOBALS_H
  #define _GB_GLOBALS_H
  #include <stdint.h>
- #include "config/gbConfig.h"
  #include <stdio.h>
  #include "Arduino.h"
  #include "keyboard/keyboard.h" 
@@ -18,8 +17,4 @@ static const size_t      RAM_SIZE  = 640 * 1024;
 
 extern unsigned char gb_reset;
  
- extern unsigned char gb_delay_tick_cpu_milis;
- extern unsigned char gb_vga_poll_milis;
- extern unsigned char gb_keyboard_poll_milis;
- extern unsigned char gb_timers_poll_milis;
 #endif

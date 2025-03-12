@@ -53,7 +53,6 @@
  * bit 0: display enable. VRAM may be accesed with no afraid of "snow" effect.
  * 
 */
-#include "config/gbConfig.h"
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
 #include "video/render.h"

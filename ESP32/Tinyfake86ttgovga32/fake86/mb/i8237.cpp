@@ -21,7 +21,6 @@
    the Sound Blaster Pro emulation functions rely on this! */
 
 #include "config/config.h"
-#include "config/gbConfig.h"
 #include <stdint.h>
 #include <stdio.h>
 #include "gbGlobals.h"

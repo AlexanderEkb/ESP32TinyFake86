@@ -25,7 +25,6 @@
 #include "keyboard/keyboard.h"
 #include "mb/i8259.h"
 #include "cpu/ports.h"
-#include "config/gbConfig.h"
 #include "gbGlobals.h"
 
 extern KeyboardDriver *keyboard;

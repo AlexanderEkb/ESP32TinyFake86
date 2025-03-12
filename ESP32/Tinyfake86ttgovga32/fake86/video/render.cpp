@@ -19,7 +19,6 @@
 //   going to add hardware accelerated scaling soon.
 
 #include "video/render.h"
-#include "config/gbConfig.h"
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
 #include "fake86.h"

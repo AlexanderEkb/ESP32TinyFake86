@@ -5,6 +5,9 @@
 //otherwise, it acts like a true 8086/8088
 #define CPU_V20
 
+#define KEYBOARD_POLL_ms (20)
+#define DEFAULT_HDD_IMAGE "/sd/PC/HDDs/hdd0.img"
+
 //#define STATS_ON
 #endif
 
