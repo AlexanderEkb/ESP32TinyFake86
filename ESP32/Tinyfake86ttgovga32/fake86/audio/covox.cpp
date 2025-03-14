@@ -1,5 +1,5 @@
 #include "cpu/ports.h"
-#include "io/audio.h"
+#include "audio/audio.h"
 
 static void write(uint32_t address, uint8_t value);
 IOPort port_378h = IOPort(0x378, 0x00, nullptr, write);

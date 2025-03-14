@@ -23,8 +23,7 @@
 #include "config/config.h"
 #include <stdint.h>
 #include <stdio.h>
-#include "gbGlobals.h"
-#include "mb/i8237.h"
+#include "chipset/i8237.h"
 #include "cpu/ports.h"
 #include <string.h>
 

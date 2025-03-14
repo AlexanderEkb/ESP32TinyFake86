@@ -68,7 +68,7 @@ union _bytewordregs_ {
 	uint8_t byteregs[8];
 };
 
-void intcall86 (uint8_t intnum);
+extern uint16_t segregs[4];
 
 void SetRegCS(unsigned short int a);
 void SetRegIP(unsigned short int a);
@@ -81,15 +81,13 @@ void SetRegBP(unsigned short int a);
 void SetRegSI(unsigned short int a);
 void SetRegDI(unsigned short int a);
 
-void SetCF(unsigned short int a);
-
 unsigned char read86 (unsigned int addr32);
 void write86 (unsigned int addr32, unsigned char value);
 void reset86(void);
 void exec86 (uint32_t count);
 uint8_t *getramloc(uint32_t addr);
 
-void ExternalSetCF(unsigned char valor);
+void setCF(bool val);
 
 void my_callback_speaker_func(void);
 

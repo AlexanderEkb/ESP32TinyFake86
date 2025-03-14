@@ -1,7 +1,7 @@
+#include "audio/speaker.h"
 #include "i8255.h"
 #include "i8253.h"
 #include "cpu/ports.h"
-#include "io/speaker.h"
 
 // static const uint8_t SW1 = 0b10010010;
 //                           ┌──────── ⌠ Total diskette

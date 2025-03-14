@@ -20,7 +20,6 @@
 
 #include "cpu/ports.h"
 #include "cpu/cpu.h"
-#include "gbGlobals.h"
 #include <Arduino.h>
 #include <stdio.h>
 

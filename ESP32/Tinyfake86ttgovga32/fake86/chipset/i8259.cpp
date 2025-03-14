@@ -23,9 +23,8 @@
 #include <stdint.h>
 #include <string.h>
 #include "keyboard/keyboard.h"
-#include "mb/i8259.h"
+#include "chipset/i8259.h"
 #include "cpu/ports.h"
-#include "gbGlobals.h"
 
 extern KeyboardDriver *keyboard;
 

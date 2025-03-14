@@ -1,6 +1,6 @@
 #include "keyboard_AT.h"
 #include "config/hardware.h"
-#include "mb/i8259.h"
+#include "chipset/i8259.h"
 #include "keyboard/keys.h"
 #include <Arduino.h>
 #include <esp32-hal-gpio.h>

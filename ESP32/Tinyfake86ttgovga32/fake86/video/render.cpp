@@ -18,16 +18,17 @@
 //   it is a bit messy. i plan to rework much of this in the future. i am also
 //   going to add hardware accelerated scaling soon.
 
-#include "video/render.h"
+#include <stdio.h>
+#include <string.h>
+#include <esp_attr.h>
+#include <esp_log.h>
+
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
 #include "fake86.h"
-#include "gbGlobals.h"
 #include "video/CompositeColorOutput.h"
 #include "video/gb_sdl_font8x8.h"
-#include <stdio.h>
-#include <string.h>
-#include <esp_log.h>
+#include "video/render.h"
 
 #define TAG "render"
 #define EFFECTIVE_HEIGHT (200)
@@ -152,6 +153,8 @@ class cursor_t {
 
 cursor_t cursor;
 static uint32_t scanlineBuffer[CompositeColorOutput::XRES * 2];
+
+extern unsigned char gb_video_cga[16384];
 
 typedef struct render_t
 {

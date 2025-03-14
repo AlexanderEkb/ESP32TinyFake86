@@ -18,7 +18,6 @@
 
 #include "config/config.h"
 #include "cpu/cpu.h"
-#include "gbGlobals.h"
 #include "io/disk.h"
 #include "io/sdcard.h"
 #include <esp_heap_caps.h>
@@ -52,7 +51,7 @@ void setResult(uint8_t _result)
 {
   lastResult = _result;
   regs.byteregs[regah] = _result;
-  ExternalSetCF((_result == 0)?0:1);
+  setCF(_result);
 }
 
 void diskInit()
@@ -146,7 +145,7 @@ void diskhandler()
       setResult(RESULT_OK);
       break;
     case 8: //get drive parameters
-      cf = 0;
+      setCF(false);
       getDriveParameters(translatedDrive);
       setResult(RESULT_OK);
       break;

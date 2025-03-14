@@ -32,12 +32,11 @@
 #include "cpu.h"
 #include "config/config.h"
 #include "config/hardware.h"
-#include "dataFlash/bios/biospcxt.h"
-#include "dataFlash/rom/rombasic.h"
+#include "ROM/biospcxt.h"
+#include "ROM/rombasic.h"
 #include "io/disk.h"
-#include "gbGlobals.h"
-#include "mb/i8253.h"
-#include "mb/i8259.h"
+#include "chipset/i8253.h"
+#include "chipset/i8259.h"
 #include "cpu/ports.h"
 #include <Arduino.h>
 #include <stdint.h>
@@ -59,6 +58,8 @@
 #define segbase(x) ((uint32_t)x << 4)
 
 extern uint8_t * ram;
+extern unsigned char gb_video_cga[16384];
+
 extern struct structpic i8259;
 uint64_t curtimer, lasttimer, timerfreq;
 
@@ -78,7 +79,7 @@ static const uint8_t parity[0x100] = {
 
 static unsigned char opcode, segoverride, reptype;
 static unsigned short int savecs, saveip, ip, useseg, oldsp;
-static unsigned char tempcf, pf, af, zf, sf, tf, ifl, df, of, mode, reg, rm;
+static unsigned char tempcf, cf, pf, af, zf, sf, tf, ifl, df, of, mode, reg, rm;
 static unsigned short int oper1, oper2, res16, disp16, temp16, dummy, stacksize, frametemp;
 static unsigned char oper1b, oper2b, res8, disp8, temp8, nestlev, addrbyte;
 static unsigned int temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32, ea;
@@ -86,14 +87,12 @@ static unsigned int temp1, temp2, temp3, temp4, temp5, temp32, tempaddr32, ea;
 union _bytewordregs_ regs;
 static IOPortSpace & ports = IOPortSpace::getInstance();
 
-extern uint8_t readVGA (uint32_t addr32);
-
-void ExternalSetCF(unsigned char valor)
+void setCF(bool val)
 {
- cf= valor;
+ cf= val ? 1 : 0;
 }
 
-void intcall86 (unsigned char intnum);
+static void intcall86 (unsigned char intnum);
 
 void SetRegCS(unsigned short int a){ segregs[regcs]= a; }
 void SetRegDS(unsigned short int a){ segregs[regds]= a; }
@@ -105,9 +104,6 @@ void SetRegSP(unsigned short int a){ regs.wordregs[regsp]= a; }
 void SetRegBP(unsigned short int a){ regs.wordregs[regbp]= a; }
 void SetRegSI(unsigned short int a){ regs.wordregs[regsi]= a; }
 void SetRegDI(unsigned short int a){ regs.wordregs[regdi]= a; }
-
-void SetCF(unsigned short int a){ cf= a; }
-
 
 unsigned char gb_check_memory_before;
 
@@ -131,7 +127,7 @@ unsigned char gb_check_memory_before;
   of = (temp16 >> 11) & 1;
  }
 
-//********************************************************
+ //********************************************************
 void write86 (unsigned int addr32, unsigned char value)
 {
  //Primero CGA
@@ -590,8 +586,9 @@ void reset86() {
 
 extern void diskhandler();
 
-void intcall86(unsigned char intnum)
+static void intcall86(unsigned char intnum)
 {
+  uint8_t bootdrive;
   switch (intnum)
   {
   /************************************/

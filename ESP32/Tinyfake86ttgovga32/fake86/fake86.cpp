@@ -3,22 +3,21 @@
 
 #include <Arduino.h>
 #include <Ticker.h>
+#include "audio/audio.h"
+#include "audio/speaker.h"
 #include "config/config.h"
 #include "cpu/cpu.h"
 #include "driver/timer.h"
 #include "fake86.h"
-#include "gbGlobals.h"
 #include "io/disk.h"
 #include "config/hardware.h"
 #include "cpu/ports.h"
 #include "keyboard/keyboard_simplifiedXT.h"
 #include "keyboard/keyboard_AT.h"
 #include "keyboard/keys.h"
-#include "io/audio.h"
-#include "io/speaker.h"
-#include "mb/i8237.h"
-#include "mb/i8253.h"
-#include "mb/i8259.h"
+#include "chipset/i8237.h"
+#include "chipset/i8253.h"
+#include "chipset/i8259.h"
 #include "osd.h"
 #include "soc/timer_group_struct.h"
 #include "stats.h"
@@ -40,10 +39,6 @@ Stats stats;
 
 uint8_t     * ram;
 unsigned char gb_video_cga[16384];
-unsigned char bootdrive = 0;
-unsigned char gb_force_load_com = 0;
-
-unsigned char cf;
 
 //////////////////////////////////////////////////////////////////////////// Local function prototypes
 static void execKeyboard();

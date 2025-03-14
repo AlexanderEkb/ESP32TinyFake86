@@ -19,8 +19,6 @@
 #ifndef _I8259_H
  #define _I8259_H
 
-#include "gbGlobals.h"
-
 struct structpic {
 	uint8_t imr; //mask register
 	uint8_t irr; //request register

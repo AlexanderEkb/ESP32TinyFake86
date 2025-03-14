@@ -23,13 +23,12 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "mb/i8253.h"
-#include "mb/i8259.h"
-#include "gbGlobals.h"
+#include "audio/speaker.h"
+#include "chipset/i8253.h"
+#include "chipset/i8259.h"
 #include "cpu/ports.h"
 #include <Arduino.h>
 #include <string.h>
-#include "io/speaker.h"
 
 #include <driver/periph_ctrl.h>
 #include <driver/timer.h>

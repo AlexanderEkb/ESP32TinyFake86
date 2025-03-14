@@ -32,8 +32,8 @@
  *           PB0 ───────────────────────┘         ╰─────╯
  */
 
-#include "io/speaker.h"
-#include "io/audio.h"
+#include "audio/speaker.h"
+#include "audio/audio.h"
 
 bool Speaker_t::PB0 = false;
 bool Speaker_t::PB1 = false;

@@ -4,7 +4,7 @@
          ×─┤3.3V              GND├╢            │           ×─┤Vbat              3V3├─×       │ STM32: 9
           ─┤EN                 23├─            │            ─┤C13               GND├╢        │ Power: >2
           ─┤36 (i)(VP)         22├─            │            ─┤C14               5V0├─×       │
-          ─┤39 (i)(VN)      (TX)1├─            │            ─┤C15                B9├─ COL9c    │
+          ─┤39 (i)(VN)      (TX)1├─            │            ─┤C15                B9├─ COL9   │
           ─┤34 (i)          (RX)3├─            │       ROW0 ─┤A0                 B8├─ COL8   │
           ─┤35 (i)             21├─            │       ROW1 ─┤A1                 B7├─ COL7   │
  KEYB_RDY ─┤32                GND├╢            │       ROW2 ─┤A2                 B6├─ COL6   │
