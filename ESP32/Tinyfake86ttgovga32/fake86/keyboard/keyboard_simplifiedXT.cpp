@@ -1,4 +1,4 @@
-#include "config/hardware.h"
+#include "config/config.h"
 
 #if (KEYBOARD_DRIVER == 0)
 

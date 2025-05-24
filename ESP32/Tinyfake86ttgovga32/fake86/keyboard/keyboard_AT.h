@@ -1,7 +1,7 @@
 #ifndef __KEYBOARD_KEYBOARD_AT__
 #define __KEYBOARD_KEYBOARD_AT__
 
-#include "config/hardware.h"
+#include "config/config.h"
 
 #if (KEYBOARD_DRIVER == 1)
 

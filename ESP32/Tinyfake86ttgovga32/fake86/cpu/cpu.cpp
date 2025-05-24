@@ -31,7 +31,6 @@
 
 #include "cpu.h"
 #include "config/config.h"
-#include "config/hardware.h"
 #include "ROM/biospcxt.h"
 #include "ROM/rombasic.h"
 #include "io/disk.h"

@@ -1,7 +1,7 @@
 #ifndef __KEYBOARD_KEYBOARD_SIMPLIFIED_XT__
 #define __KEYBOARD_KEYBOARD_SIMPLIFIED_XT__
 
-#include "config/hardware.h"
+#include "config/config.h"
 
 #if (KEYBOARD_DRIVER == 0)
 

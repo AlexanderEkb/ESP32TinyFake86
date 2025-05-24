@@ -2,7 +2,6 @@
 #include "audio/speaker.h"
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
-#include "fake86.h"
 #include "keyboard/keyboard.h"
 #include "keyboard/keys.h"
 #include "io/disk.h"

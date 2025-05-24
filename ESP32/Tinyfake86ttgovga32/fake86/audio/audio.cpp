@@ -1,5 +1,5 @@
 #include "audio.h"
-#include "config/hardware.h"
+#include "config/config.h"
 #include "driver/ledc.h"
 
 #define COVOX_TIMER LEDC_TIMER_0
@@ -24,7 +24,7 @@ void Audio::init()
 
   // Prepare and then apply the LEDC PWM channel configuration
   ledc_channel_config_t ledc_channel = {
-      .gpio_num = COVOX_OUTPUT_IO,
+      .gpio_num = AUDIO_OUTPUT_IO,
       .speed_mode = COVOX_MODE,
       .channel = COVOX_CHANNEL,
       .intr_type = LEDC_INTR_DISABLE,

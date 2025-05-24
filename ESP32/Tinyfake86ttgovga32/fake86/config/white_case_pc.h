@@ -1,13 +1,21 @@
-#ifndef _HARDWARE_H
-#define _HARDWARE_H
+#ifndef __CONFIG_WHITE_CASE_PC__
+#define __CONFIG_WHITE_CASE_PC__
 
+/**
+ * @brief SD-Card driver used in the system
+ * 1 is for simple SPI driver
+ * 2 is for SDIO driver
+ * See below for differences in pinout for these two cases.
+ */
 #define RG_STORAGE_DRIVER 2
+
 /**
  @brief Keyboard driver used in the system.
  0 is for simplified XT driver (custom keyboard, uses a kind of receive-only SPI bus).
  1 is for AT keyboard (fully-functional PS/2 one).
 */
 #define KEYBOARD_DRIVER 1
+
 #if (KEYBOARD_DRIVER == 0)
 #define KEYBOARD_DATA 35
 #define KEYBOARD_CLK  34 
@@ -17,8 +25,13 @@
 #else
 #error Choose any correct keyboard driver!
 #endif
+
+/**
+ * @brief Composide video output pin. Must be either 25 or 26, these pins are
+ *        connected to internal DAC.
+ */
 #define VIDEO_PIN     25
-// #define KEYBOARD_RDY  32
+
 #if RG_STORAGE_DRIVER == 1
 #define RG_STORAGE_HOST             HSPI_HOST           // Used by SDSPI and SDMMC
 #define SDSPI_MISO    GPIO_NUM_2
@@ -34,6 +47,7 @@
 #define SDIO_CLK      14
 #define SDIO_CMD      15
 #endif
+
 #define DISK_LED      13
 
 #define RED_H         22         
@@ -45,6 +59,7 @@
 #define HSYNC         23
 #define VSYNC         15
 
-/// [COVOX]
-#define COVOX_OUTPUT_IO (33)
-#endif
+//=======================================================================[AUDIO]
+#define AUDIO_OUTPUT_IO (33)
+
+#endif /* __CONFIG_WHITE_CASE_PC__ */

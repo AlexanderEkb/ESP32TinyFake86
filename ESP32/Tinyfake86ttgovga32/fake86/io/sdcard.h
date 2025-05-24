@@ -2,7 +2,7 @@
 #define SDCARD_H
 
 #include "Arduino.h"
-#include "config/hardware.h"
+#include "config/config.h"
 #include <dirent.h>
 #include <driver/sdmmc_host.h>
 #include <driver/sdspi_host.h>
@@ -68,7 +68,7 @@ class SdCard {
         };
         err = spi_bus_initialize(RG_STORAGE_HOST, &bus_cfg, SPI_DMA_CH_AUTO);
         if (err != ESP_OK) // check but do not abort, let esp_vfs_fat_sdspi_mount decide
-            ESP_LOGE("SD", "SPI bus init failed (0x%x)\n", err);
+            ESP_LOGE("SD", "SPI bus init failed (0x%x)", err);
 
         // sdspi_slot_config_t slot_config = SDSPI_SLOT_CONFIG_DEFAULT();
         // slot_config.gpio_miso = SDSPI_MISO;
@@ -83,7 +83,7 @@ class SdCard {
 
         err = esp_vfs_fat_sdspi_mount(RG_STORAGE_ROOT, &host_config, &slot_config, &mount_config, NULL);
         if (err == ESP_ERR_TIMEOUT || err == ESP_ERR_INVALID_RESPONSE || err == ESP_ERR_INVALID_CRC) {
-            ESP_LOGW("SD", "SD Card mounting failed (0x%x), retrying at lower speed...\n", err);
+            ESP_LOGW("SD", "SD Card mounting failed (0x%x), retrying at lower speed...", err);
             host_config.max_freq_khz = SDMMC_FREQ_PROBING;
             err = esp_vfs_fat_sdspi_mount(RG_STORAGE_ROOT, &host_config, &slot_config, &mount_config, NULL);
         }
@@ -111,7 +111,7 @@ class SdCard {
 
         esp_err_t err = esp_vfs_fat_sdmmc_mount(RG_STORAGE_ROOT, &host_config, &slot_config, &mount_config, NULL);
         if (err == ESP_ERR_TIMEOUT || err == ESP_ERR_INVALID_RESPONSE || err == ESP_ERR_INVALID_CRC) {
-            ESP_LOGW("SD", "SD Card mounting failed (0x%x), retrying at lower speed...\n", err);
+            ESP_LOGW("SD", "SD Card mounting failed (0x%x), retrying at lower speed...", err);
             host_config.max_freq_khz = SDMMC_FREQ_PROBING;
             err = esp_vfs_fat_sdmmc_mount(RG_STORAGE_ROOT, &host_config, &slot_config, &mount_config, NULL);
         }
@@ -137,7 +137,7 @@ class SdCard {
         if (!error_code) {
           OnMountSuccess();
         } else
-            ESP_LOGE("SD", "Storage mounting failed. driver=%d, err=0x%x\n", RG_STORAGE_DRIVER, error_code);
+            ESP_LOGE("SD", "Storage mounting failed. driver=%d, err=0x%x", RG_STORAGE_DRIVER, error_code);
 
         disk_mounted = !error_code;
         return disk_mounted;
@@ -172,9 +172,9 @@ class SdCard {
 #endif
 
         if (!error_code)
-            ESP_LOGI("SD", "Storage unmounted.\n");
+            ESP_LOGI("SD", "Storage unmounted.");
         else
-            ESP_LOGE("SD", "Storage unmounting failed. err=0x%x\n", error_code);
+            ESP_LOGE("SD", "Storage unmounting failed. err=0x%x", error_code);
 
         disk_mounted = false;
     }
@@ -192,7 +192,7 @@ class SdCard {
 
     scandir_t *scandir()
     {
-        ESP_LOGI("SD", "Scanning...\r\n");
+        ESP_LOGI("SD", "Scanning...");
         DIR *dir = opendir(RG_STORAGE_FLOPPIES);
         if (!dir)
             return NULL;
@@ -232,7 +232,7 @@ class SdCard {
               void *temp = realloc(imgList, (capacity + 1) * sizeof(scandir_t));
               if (!temp)
               {
-                ESP_LOGW("SD", "Not enough memory to finish scan!\n");
+                ESP_LOGW("SD", "Not enough memory to finish scan!");
                 break;
               }
               imgList = (scandir_t *)temp;
@@ -242,14 +242,14 @@ class SdCard {
             strncpy(result->name, basename, sizeof(result->name) - 1);
         }
         memset(&imgList[count], 0, sizeof(scandir_t));
-        ESP_LOGI("SD", "%i entries found.\r\n", count);
+        ESP_LOGI("SD", "%i entries found.", count);
         closedir(dir);
         return imgList;
     }
 
     void OnMountSuccess()
     {
-      ESP_LOGI("SD", "Storage mounted at %s. driver=%d\n", RG_STORAGE_ROOT, RG_STORAGE_DRIVER);
+      ESP_LOGI("SD", "Storage mounted at %s. driver=%d", RG_STORAGE_ROOT, RG_STORAGE_DRIVER);
       scandir();
     }
 };

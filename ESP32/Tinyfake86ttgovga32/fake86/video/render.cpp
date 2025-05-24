@@ -25,7 +25,6 @@
 
 #include "cpu/cpu.h"
 #include "cpu/ports.h"
-#include "fake86.h"
 #include "video/CompositeColorOutput.h"
 #include "video/gb_sdl_font8x8.h"
 #include "video/render.h"

@@ -8,9 +8,7 @@
 #include "config/config.h"
 #include "cpu/cpu.h"
 #include "driver/timer.h"
-#include "fake86.h"
 #include "io/disk.h"
-#include "config/hardware.h"
 #include "cpu/ports.h"
 #include "keyboard/keyboard_simplifiedXT.h"
 #include "keyboard/keyboard_AT.h"
@@ -18,6 +16,7 @@
 #include "chipset/i8237.h"
 #include "chipset/i8253.h"
 #include "chipset/i8259.h"
+#include "io/extensions.h"
 #include "osd.h"
 #include "soc/timer_group_struct.h"
 #include "stats.h"
@@ -55,15 +54,12 @@ uint32_t speed = 0;
 void inithardware()
 {
   ESP_LOGI(TAG, "Initializing emulated hardware:");
-  ESP_LOGI(TAG, "  - Intel 8253 timer: ");
   i8253_init();
-  ESP_LOGI(TAG, "OK");
-  ESP_LOGI(TAG, "  - Intel 8259 interrupt controller: ");
+  ESP_LOGI(TAG, "- Intel 8253 timer: OK");
   init8259();
-  ESP_LOGI(TAG, "OK");
-  ESP_LOGI(TAG, "  - Intel 8237 DMA controller: ");
+  ESP_LOGI(TAG, "- Intel 8259 interrupt controller: OK");
   init8237();
-  ESP_LOGI(TAG, "OK");
+  ESP_LOGI(TAG, "- Intel 8237 DMA controller: OK");
 }
 
 void DoSoftReset()
@@ -120,12 +116,10 @@ void setup()
 #endif
 
   diskInit();
-
+  Extensions_t::init();
   ESP_LOGI(TAG, "END SETUP %d", ESP.getFreeHeap());
 }
 
-#ifndef use_lib_singlecore
-//******************************
 void videoTask(void *unused)
 {
   (void)unused;
@@ -136,7 +130,6 @@ void videoTask(void *unused)
   }
   vTaskDelete(NULL);
 }
-#endif
 
 unsigned char gb_cpunoexe = 0;
 unsigned int gb_cpunoexe_timer_ini;
