@@ -33,11 +33,8 @@ class IOPort
 
     virtual void out(uint8_t data)
     {
-      if(writer == nullptr)
-      {
         value = data;
-      }
-      else
+      if(writer != nullptr)
       {
         writer(address, data);
       }

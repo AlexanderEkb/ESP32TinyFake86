@@ -28,7 +28,7 @@
 #define KEYBOARD_DATA   26
 
 /**
- * @brief PS/2 mouse CLK pin
+ * @brief Keyboard CLK pin
  */
 #define KEYBOARD_CLK    27
 
@@ -38,7 +38,7 @@
 #define PS2_MOUSE_DATA   18
 
 /**
- * @brief Keyboard CLK pin
+ * @brief  PS/2 mouse CLK pin
  */
 #define PS2_MOUSE_CLK    19
 
