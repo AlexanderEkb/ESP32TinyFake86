@@ -66,3 +66,14 @@ Keyboard conn:
  R B9  -
  S -
 
+   R₂ T
+ ┌─█──▀──█─┐
+ O  ◦   ◦  │
+ └─▄──▄──█─┘
+   S  R₁  
+
+  T R₁ R₂ S
+  │ │  │  └─ black ─
+  │ │  └──── green ─ DATA P18
+  │ └─────── white ─ CLK P19
+  └────────── red ──

@@ -17,6 +17,7 @@
 #include "chipset/i8237.h"
 #include "chipset/i8253.h"
 #include "chipset/i8259.h"
+#include "chipset/i8250.h"
 #include "io/extensions.h"
 #include "extras/osd.h"
 #include "soc/timer_group_struct.h"
@@ -35,6 +36,7 @@ KeyboardDriver *keyboard = new KeyboardDriverSimplifiedXT(); // stm32keyboard();
 #elif (KEYBOARD_DRIVER == 1)
 KeyboardDriver *keyboard = new KeyboardDriverAT(); // Regular PS/2 keyboard;
 #endif
+I8250_t com1 = I8250_t(0x3F8, 4);
 Stats stats;
 
 uint8_t     * ram;

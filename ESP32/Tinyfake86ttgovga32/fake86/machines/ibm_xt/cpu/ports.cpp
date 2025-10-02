@@ -37,4 +37,3 @@ IOPort::IOPort(uint32_t address, uint8_t defaultValue, portReader_t reader, port
 
   IOPortSpace::getInstance().insert(this);
 };
-

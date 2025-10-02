@@ -30,11 +30,28 @@ class IOPort
     portReader_t reader;
     portWriter_t writer;
     uint8_t value;
-  };
 
-  class IOPortSpace
-  {
-    public:
+    virtual void out(uint8_t data)
+    {
+      if(writer == nullptr)
+      {
+        value = data;
+      }
+      else
+      {
+        writer(address, data);
+      }
+    }
+
+    virtual uint8_t in()
+    {
+      return (reader == nullptr) ? value : reader(address);
+    }
+};
+
+class IOPortSpace
+{
+  public:
     static IOPortSpace &getInstance()
     {
       return instance;
@@ -94,7 +111,7 @@ class IOPort
 
     void scan()
     {
-      ESP_LOGI("PORTS", "IO port handled in this implementation...\n");
+      ESP_LOGI("PORTS", "IO ports are handled in this implementation...\n");
       _scan(root);
       ESP_LOGI("PORTS", "Scan finished.\n");
     }
@@ -108,14 +125,9 @@ class IOPort
         // LOG("Error reading port %xh\n", addr);
         // LOG("(00) Err\n");
         return 0xFF;
-      } else if(port->reader == nullptr) {
+      } else
         // LOG("(%02xh)\n", port->value);
-        return port->value;
-      } else {
-        uint8_t result = port->reader(addr);;
-        // LOG("(%02xh)\n", result);
-        return result;
-      }
+        return port->in();
     }
 
     void write(uint32_t address, uint8_t value)
@@ -129,10 +141,7 @@ class IOPort
         // LOG("Err\n");
         return;
       }
-      port->value = value;
-      if (port->writer != nullptr)
-        port->writer(addr, value);
-        // LOG("\n");
+      port->out(value);
     }
 
     uint16_t read16(uint32_t address)
@@ -171,13 +180,13 @@ class IOPort
 
     void _scan(IOPort *startPoint)
     {
-    if(startPoint != nullptr)
-    {
-      ESP_LOGI("PORTS", "Port %03xh\n", startPoint->address);
-      _scan(startPoint->right);
-      _scan(startPoint->left);
+      if(startPoint != nullptr)
+      {
+        ESP_LOGI("PORTS", "Port %03xh\n", startPoint->address);
+        _scan(startPoint->right);
+        _scan(startPoint->left);
+      }
     }
-  }
 };
 
 #endif

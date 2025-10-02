@@ -21,15 +21,26 @@
  * 0 is for NTSC composite display on internal DAC
  */
 #define VIDEO_DRIVER 0
+
 /**
  * @brief Keyboard DATA pin
  */
 #define KEYBOARD_DATA   26
 
 /**
- * @brief Keyboard CLK pin
+ * @brief PS/2 mouse CLK pin
  */
 #define KEYBOARD_CLK    27
+
+/**
+ * @brief PS/2 mouse DATA pin
+ */
+#define PS2_MOUSE_DATA   18
+
+/**
+ * @brief Keyboard CLK pin
+ */
+#define PS2_MOUSE_CLK    19
 
 //=====================================================================[SD-Card]
 #define RG_STORAGE_HOST SDMMC_HOST_SLOT_1
