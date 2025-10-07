@@ -58,6 +58,7 @@ typedef struct DISK_ADDR
 class Drive_t
 {
   public:
+      // TODO: Move this to the host domain
       static SdCard sdCard;
       Drive_t();
       uint8_t read(DISK_ADDR &src, uint8_t *dst);

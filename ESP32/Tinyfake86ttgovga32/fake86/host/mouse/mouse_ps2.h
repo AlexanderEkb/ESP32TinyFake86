@@ -33,7 +33,7 @@ class MousePs2_t : public Mouse_t
     static uint32_t sendBit(uint8_t b);
     static void IRAM_ATTR onMouseExti();
     static void mouseInitTask(void * p);
-    static void mouseDbgTask(void * p);
+    static void mouseTask(void * p);
 };
 
 #endif /* __MOUSE_PS2_H__ */

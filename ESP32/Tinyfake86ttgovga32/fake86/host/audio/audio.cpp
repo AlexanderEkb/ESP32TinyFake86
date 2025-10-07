@@ -1,3 +1,4 @@
+#include <esp32-hal-log.h>
 #include "audio.h"
 #include "../config/config.h"
 #include "driver/ledc.h"
@@ -11,6 +12,8 @@
 
 uint32_t Audio::covox;
 uint32_t Audio::speaker;
+
+#define TAG "AUDIO"
 
 void Audio::init()
 {
@@ -32,6 +35,7 @@ void Audio::init()
       .duty = 1,
       .hpoint = 0};
   ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+  ESP_LOGI(TAG, "Init ok");
 }
 
 void Audio::playSample(uint8_t sample)

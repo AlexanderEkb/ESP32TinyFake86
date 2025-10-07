@@ -27,6 +27,7 @@
 #include "video/render.h"
 
 #define TAG "FAKE86"
+#define HOST "HOST"
 
 TaskHandle_t videoTaskHandle;
 
@@ -85,7 +86,7 @@ void CreateRAM()
   const uint32_t coreID = xPortGetCoreID();
   const uint32_t ramAddr = SOC_EXTRAM_DATA_LOW + (coreID == 1 ? 2 * 1024 * 1024 : 0);
   ram = reinterpret_cast<uint8_t *>(ramAddr);
-  ESP_LOGI(TAG, "RAM initialized: core #%i, addr:0x%08X", coreID, ramAddr);
+  ESP_LOGI(HOST, "RAM initialized: core #%i, addr:0x%08X", coreID, ramAddr);
 }
 
 void setup()
@@ -98,19 +99,19 @@ void setup()
   disableCore1WDT();
 
   if (esp_spiram_init() != ESP_OK)
-    ESP_LOGE(TAG, "This app requires a board with PSRAM!");
+    ESP_LOGE(HOST, "This app requires a board with PSRAM!");
 
   esp_spiram_init_cache();
 
   CreateRAM();
   
   renderInit();
-  ESP_LOGI(TAG, "VGA %d", ESP.getFreeHeap());
+  ESP_LOGI(HOST, "VGA %d", ESP.getFreeHeap());
   keyboard->Init();
   mouse->init();
+  ESP_LOGI(HOST, "OK!");
 
   reset86();
-  ESP_LOGI(TAG, "OK!");
   inithardware();
 
 #ifndef use_lib_singlecore

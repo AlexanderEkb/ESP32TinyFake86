@@ -25,72 +25,75 @@ MousePs2_t::~MousePs2_t()
 
 void MousePs2_t::init()
 {
-  // ESP_ERROR_CHECK(esp_intr_alloc(ETS_GPIO_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_INTRDISABLED,
-  //   onMouseExti, 0, &_isr_handle));
-
   uint8_t byte;
-  uint32_t rst;
+  uint32_t rstRespCount;
+  uint32_t attemptCount = 0;
+  static uint32_t const MAX_ATTEMPTS = 3;
+
+  static uint32_t const RST_RESP_LENGTH = 3;
+  static uint8_t const RST_RESP[RST_RESP_LENGTH] = {0xFA, 0xAA, 0x00};
+
   while(state != RUNNING)
   {
     if(state == UNKNOWN)
     {
-      rst = 0;
-      reset();        
-    } else {
-      if(xQueueReceive(q, &byte, 1000) != pdPASS)
+      if(++attemptCount >= MAX_ATTEMPTS)
       {
-        ESP_LOGE(TAG, "timeout");
-        state = UNKNOWN;
-      } else {
-        ESP_LOGI(TAG, "recv 0x%02X", byte);
-        switch(state)
-        {
-          case RESET:
-            if((rst == 0) && (byte == 0xFA))
-              rst = 1;
-            else if((rst == 1) && (byte == 0xAA))
-            {
-              rst = 2;
-            } else if ((rst == 2)) {
-              setMode();
-            }
-            else {
-              ESP_LOGE(TAG, "rst=%lu byte=0x%02X", rst, byte);
-              rst = 0;
-              reset();
-            }
-            break;
-          case SET_MODE:
-            if(byte == 0xFA)
-              enable();
-            else
-            {
-              rst = 0;
-              reset();
-            }
-            break;
-          case STARTUP:
-            if(byte == 0xFA)
-            {
-              state = RUNNING;
-              ESP_LOGI(TAG, "PS/2 mouse interface init ok");
-            } else
-            {
-              rst = 0;
-              reset();
-            }
-            break;
-        }
+        ESP_LOGE(TAG, "Mouse not found");
+        return;
       }
+      rstRespCount = 0;
+      reset();     
+      continue;   
+    }
+
+    if(xQueueReceive(q, &byte, 1000) != pdPASS)
+    {
+      // ESP_LOGE(TAG, "timeout");
+      state = UNKNOWN;
+      continue;
+    }
+
+    // ESP_LOGI(TAG, "recv 0x%02X", byte);
+    switch(state)
+    {
+      case RESET:
+        if(byte != RST_RESP[rstRespCount++])
+        {
+          rstRespCount = 0;
+          reset();
+        }
+        else if(rstRespCount == RST_RESP_LENGTH)
+          setMode();
+        break;
+      case SET_MODE:
+        if(byte == 0xFA)
+          enable();
+        else
+        {
+          rstRespCount = 0;
+          reset();
+        }
+        break;
+      case STARTUP:
+        if(byte == 0xFA)
+        {
+          state = RUNNING;
+          ESP_LOGI(TAG, "PS/2 mouse interface init ok");
+        } else
+        {
+          rstRespCount = 0;
+          reset();
+        }
+        break;
     }
   }
 
   xTaskHandle stub;
-  if(xTaskCreate(mouseDbgTask, "mouseDbg", 2048, nullptr, tskIDLE_PRIORITY, &stub) != pdPASS)
+  if(xTaskCreate(mouseTask, "mouse", 2048, reinterpret_cast<void * const>(this), tskIDLE_PRIORITY, &stub) != pdPASS)
   {
     ESP_LOGE(TAG, "Unable to initialize mouse!");
   }
-  // while(true) portYIELD();
 }
 
 bool MousePs2_t::poll(MouseEvent_t * e)
@@ -135,30 +138,30 @@ void MousePs2_t::reset()
   state = RESET;
   delay(100);
   uint32_t r = sendByte(0xFF);
-  if(r == RESULT_OK)
-    ESP_LOGI(TAG, "rst ok");
-  else
-    ESP_LOGE(TAG, "rst failed");
+  // if(r == RESULT_OK)
+  //   ESP_LOGI(TAG, "rst ok");
+  // else
+  //   ESP_LOGE(TAG, "rst failed");
 }
 
 void MousePs2_t::setMode()
 {
   state = SET_MODE;
   uint32_t r = sendByte(0xEA);
-  if(r == RESULT_OK)
-    ESP_LOGI(TAG, "mod ok");
-  else
-    ESP_LOGE(TAG, "mod failed");
+  // if(r == RESULT_OK)
+  //   ESP_LOGI(TAG, "mod ok");
+  // else
+  //   ESP_LOGE(TAG, "mod failed");
 }
 
 void MousePs2_t::enable()
 {
-  uint32_t r = sendByte(0xF4);
-  if(r == RESULT_OK)
-    ESP_LOGI(TAG, "ena ok");
-  else
-    ESP_LOGE(TAG, "ena failed");
   state = STARTUP;
+  uint32_t r = sendByte(0xF4);
+  // if(r == RESULT_OK)
+  //   ESP_LOGI(TAG, "ena ok");
+  // else
+  //   ESP_LOGE(TAG, "ena failed");
 }
 
 uint32_t MousePs2_t::sendByte(uint8_t d)
@@ -227,12 +230,32 @@ uint32_t MousePs2_t::sendBit(uint8_t b)
   return RESULT_OK;
 }
 
-void MousePs2_t::mouseDbgTask(void * p)
+void MousePs2_t::mouseTask(void * p)
 {
   uint8_t byte;
+  static uint32_t const PKT_LENGTH = 3;
+  uint8_t bytes[PKT_LENGTH];
+  uint32_t ptr = 0;
+  static uint8_t const BTN_MASK = 0x07;
   while(true)
   {
     xQueueReceive(q, &byte, portMAX_DELAY);
-    ESP_LOGI(TAG, "recv 0x%02X", byte);
+    bytes[ptr++] = byte;
+    if(ptr >= PKT_LENGTH)
+    {
+      ptr = 0;
+      MousePs2_t * instance = reinterpret_cast<MousePs2_t * const>(p);
+      if(instance->sink != nullptr)
+      {
+        MouseEvent_t e;
+        static uint8_t const X_SIGN_BIT = 0x10;
+        e.dx = (bytes[0] & X_SIGN_BIT) ? -bytes[1] : bytes[1];
+        static uint8_t const Y_SIGN_BIT = 0x20;
+        e.dy = (bytes[0] & Y_SIGN_BIT) ? -bytes[2] : bytes[2];
+        e.btn = (bytes[0] & BTN_MASK);
+        xQueueSend(instance->sink, &e, 0);
+      }
+    }
+    // ESP_LOGI(TAG, "recv 0x%02X", byte);
   }
 }
