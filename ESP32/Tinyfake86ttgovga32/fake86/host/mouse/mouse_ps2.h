@@ -26,14 +26,12 @@ class MousePs2_t : public Mouse_t
     } State_t;
     static State_t state;
     static QueueHandle_t q;
-    static QueueHandle_t foo;
-    static xTaskHandle mainTask;
     static void reset();
     static void setMode();
     static void enable();
     static uint32_t sendByte(uint8_t d);
     static uint32_t sendBit(uint8_t b);
-    static void onMouseExti();
+    static void IRAM_ATTR onMouseExti();
     static void mouseInitTask(void * p);
     static void mouseDbgTask(void * p);
 };

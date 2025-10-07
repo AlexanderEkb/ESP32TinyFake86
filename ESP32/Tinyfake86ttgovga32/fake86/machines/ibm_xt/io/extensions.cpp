@@ -20,35 +20,35 @@ Scan_t Extensions_t::scan = {{0}, 0, 0};
 
 void Extensions_t::init()
 {
-  esp_log_level_set(TAG, ESP_LOG_VERBOSE);
-  i2c_config_t conf = {};
-  conf.mode = I2C_MODE_MASTER;
-  conf.sda_io_num = 18;
-  conf.scl_io_num = 19;
-  conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-  conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-  conf.master.clk_speed = 400000;
-  conf.clk_flags = 0;
+  // esp_log_level_set(TAG, ESP_LOG_VERBOSE);
+  // i2c_config_t conf = {};
+  // conf.mode = I2C_MODE_MASTER;
+  // conf.sda_io_num = 18;
+  // conf.scl_io_num = 19;
+  // conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+  // conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+  // conf.master.clk_speed = 400000;
+  // conf.clk_flags = 0;
 
-  i2c_param_config(I2C_NUM_0, &conf);
-  i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, ESP_INTR_FLAG_IRAM);
-  const uint32_t coreID = xPortGetCoreID();
-  const uint32_t TARGET_CORE = SOC_CPU_CORES_NUM - coreID - 1;
-  xTaskHandle foo;
-  xTaskCreatePinnedToCore(task, "EXT", 3072, nullptr, tskIDLE_PRIORITY, &foo, TARGET_CORE);
-  assert(foo);
+  // i2c_param_config(I2C_NUM_0, &conf);
+  // i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, ESP_INTR_FLAG_IRAM);
+  // const uint32_t coreID = xPortGetCoreID();
+  // const uint32_t TARGET_CORE = SOC_CPU_CORES_NUM - coreID - 1;
+  // xTaskHandle foo;
+  // xTaskCreatePinnedToCore(task, "EXT", 3072, nullptr, tskIDLE_PRIORITY, &foo, TARGET_CORE);
+  // assert(foo);
 }
 
 void Extensions_t::doScan()
 {
-  if(scan.count < Scan_t::MAX_DEV_COUNT)
-  {
-    scan.nextAbsent();
-    if(ping(scan.addr))
-    {
-      onDeviceAttached(scan.addr);
-    }
-  }
+  // if(scan.count < Scan_t::MAX_DEV_COUNT)
+  // {
+  //   scan.nextAbsent();
+  //   if(ping(scan.addr))
+  //   {
+  //     onDeviceAttached(scan.addr);
+  //   }
+  // }
 }
 
 void Extensions_t::onDeviceAttached(uint8_t addr)
