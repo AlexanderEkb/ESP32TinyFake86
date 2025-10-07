@@ -73,7 +73,7 @@ Keyboard conn:
    S  R₁  
 
   T R₁ R₂ S
-  │ │  │  └─ black ─
-  │ │  └──── green ─ DATA P18
-  │ └─────── white ─ CLK P19
-  └────────── red ──
+  │ │  │  └─ black ─ GND ── green ──
+  │ │  └──── green ─ DAT ── orange ─ PD18
+  │ └─────── white ─ CLK ── white ── PD19
+  └────────── red ── Vcc ─── blue ──

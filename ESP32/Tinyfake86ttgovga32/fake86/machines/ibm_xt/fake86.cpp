@@ -8,6 +8,8 @@
 #include "../../host/keyboard/keyboard_simplifiedXT.h"
 #include "../../host/keyboard/keyboard_AT.h"
 #include "../../host/keyboard/keys.h"
+#include "../../host/mouse/mouse.h"
+#include "../../host/mouse/mouse_ps2.h"
 #include "sound/speaker.h"
 #include "machine_config.h"
 #include "cpu/cpu.h"
@@ -36,6 +38,7 @@ KeyboardDriver *keyboard = new KeyboardDriverSimplifiedXT(); // stm32keyboard();
 #elif (KEYBOARD_DRIVER == 1)
 KeyboardDriver *keyboard = new KeyboardDriverAT(); // Regular PS/2 keyboard;
 #endif
+Mouse_t * mouse = new MousePs2_t();
 I8250_t com1 = I8250_t(0x3F8, 4);
 Stats stats;
 
@@ -104,6 +107,7 @@ void setup()
   renderInit();
   ESP_LOGI(TAG, "VGA %d", ESP.getFreeHeap());
   keyboard->Init();
+  mouse->init();
 
   reset86();
   ESP_LOGI(TAG, "OK!");
