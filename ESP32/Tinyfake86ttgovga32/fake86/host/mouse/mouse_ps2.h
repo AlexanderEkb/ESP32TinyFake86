@@ -15,7 +15,6 @@ class MousePs2_t : public Mouse_t
     MousePs2_t();
     virtual ~MousePs2_t() override;
     virtual void init() override;
-    virtual bool poll(MouseEvent_t * e) override;
   private:
     typedef enum {
       UNKNOWN,
@@ -32,7 +31,7 @@ class MousePs2_t : public Mouse_t
     static uint32_t sendByte(uint8_t d);
     static uint32_t sendBit(uint8_t b);
     static void IRAM_ATTR onMouseExti();
-    static void mouseInitTask(void * p);
+    // static void mouseInitTask(void * p);
     static void mouseTask(void * p);
 };
 

@@ -5,12 +5,19 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
-typedef struct MouseEvent_t
+static uint8_t const MOUSE_BUTTON_L = 0x01;
+static uint8_t const MOUSE_BUTTON_R = 0x02;
+static uint8_t const MOUSE_BUTTON_M = 0x04;
+static uint8_t const BTN_MASK = (
+  MOUSE_BUTTON_L |
+  MOUSE_BUTTON_M |
+  MOUSE_BUTTON_R);
+
+class MouseImplementation_t
 {
-  int32_t dx;
-  int32_t dy;
-  int32_t btn;
-} MouseEvent_t;
+  public:
+    virtual void onMouseEvent(int32_t dx, int32_t dy, uint8_t btn) = 0;
+};
 
 class Mouse_t
 {
@@ -21,13 +28,12 @@ class Mouse_t
     }
     virtual ~Mouse_t() {};
     virtual void init() = 0;
-    virtual void bind(xQueueHandle q)
+    virtual void bind(MouseImplementation_t * q)
     {
       sink = q;
     }
-    virtual bool poll(MouseEvent_t * e) = 0;
   protected:
-    xQueueHandle sink;
+    MouseImplementation_t * sink;
 };
 
 #endif /* __MOUSE_H__ */

@@ -14,7 +14,7 @@ MousePs2_t::State_t MousePs2_t::state;
 
 MousePs2_t::MousePs2_t()
 {
-  q = xQueueCreate(16, 1);
+  q = xQueueCreate(128, 1);
   state = UNKNOWN;
 }
 
@@ -94,11 +94,6 @@ void MousePs2_t::init()
   {
     ESP_LOGE(TAG, "Unable to initialize mouse!");
   }
-}
-
-bool MousePs2_t::poll(MouseEvent_t * e)
-{
-  return false;
 }
 
 void IRAM_ATTR MousePs2_t::onMouseExti()
@@ -232,14 +227,22 @@ uint32_t MousePs2_t::sendBit(uint8_t b)
 
 void MousePs2_t::mouseTask(void * p)
 {
-  uint8_t byte;
+  int8_t byte;
   static uint32_t const PKT_LENGTH = 3;
-  uint8_t bytes[PKT_LENGTH];
+  int8_t bytes[PKT_LENGTH];
   uint32_t ptr = 0;
-  static uint8_t const BTN_MASK = 0x07;
+
+  static uint32_t lastRX;
+  static uint32_t const TIMEOUT_ms = 10;
   while(true)
   {
     xQueueReceive(q, &byte, portMAX_DELAY);
+    // ESP_LOGI(TAG, "recv 0x%02X", byte);
+
+    uint32_t const now = millis();
+    if(now > lastRX + TIMEOUT_ms)
+      ptr = 0;
+    lastRX = now;
     bytes[ptr++] = byte;
     if(ptr >= PKT_LENGTH)
     {
@@ -247,15 +250,17 @@ void MousePs2_t::mouseTask(void * p)
       MousePs2_t * instance = reinterpret_cast<MousePs2_t * const>(p);
       if(instance->sink != nullptr)
       {
-        MouseEvent_t e;
-        static uint8_t const X_SIGN_BIT = 0x10;
-        e.dx = (bytes[0] & X_SIGN_BIT) ? -bytes[1] : bytes[1];
-        static uint8_t const Y_SIGN_BIT = 0x20;
-        e.dy = (bytes[0] & Y_SIGN_BIT) ? -bytes[2] : bytes[2];
-        e.btn = (bytes[0] & BTN_MASK);
-        xQueueSend(instance->sink, &e, 0);
+        uint8_t const ZERO_BITS = 0xC0;
+        uint8_t const ONE_BIT = 0x08;
+        if(((bytes[0] & ZERO_BITS) == 0) && ((bytes[0] & ONE_BIT) == ONE_BIT))
+        {
+          // ESP_LOGI(TAG, "0x%02X", static_cast<uint8_t>(bytes[0]));
+          int32_t const dx = bytes[1];
+          int32_t const dy = bytes[2];
+          uint8_t const btn = (bytes[0] & BTN_MASK);
+          instance->sink->onMouseEvent(dx, dy, btn);
+        }
       }
     }
-    // ESP_LOGI(TAG, "recv 0x%02X", byte);
   }
 }

@@ -21,6 +21,7 @@
 #include "chipset/i8259.h"
 #include "chipset/i8250.h"
 #include "io/extensions.h"
+#include "serial_mouse/serial_mouse.h"
 #include "extras/osd.h"
 #include "soc/timer_group_struct.h"
 #include "extras/stats.h"
@@ -40,7 +41,8 @@ KeyboardDriver *keyboard = new KeyboardDriverSimplifiedXT(); // stm32keyboard();
 KeyboardDriver *keyboard = new KeyboardDriverAT(); // Regular PS/2 keyboard;
 #endif
 Mouse_t * mouse = new MousePs2_t();
-I8250_t com1 = I8250_t(0x3F8, 4);
+I8250_t * com1 = new I8250_t(0x3F8, 4);
+SerialMouse_t * serMouse = new SerialMouse_t(com1);
 Stats stats;
 
 uint8_t     * ram;
