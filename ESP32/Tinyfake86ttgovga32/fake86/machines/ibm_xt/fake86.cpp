@@ -30,7 +30,7 @@ Ticker gb_ticker_callback;
 
 unsigned char gb_reset = 0;
 I8250_t * com1 = new I8250_t(0x3F8, 4);
-SerialMouse_t * serMouse = new SerialMouse_t(com1);
+SerialMouse_t * serMouse;
 Stats stats;
 
 uint8_t     * ram;
@@ -53,35 +53,12 @@ uint32_t speed = 0;
 void setup()
 {
   ESP_LOGI(TAG, "Ok, let's rock!");
-  // Host::init();
-#if (KEYBOARD_DRIVER == 0)
-keyboard = new KeyboardDriverSimplifiedXT(); // stm32keyboard();
-#elif (KEYBOARD_DRIVER == 1)
-  Host::keyboard = new KeyboardDriverAT(); // Regular PS/2 keyboard;
-#endif
-  Host::mouse = new MousePs2_t();
-
-  ESP_LOGI(TAG, "Host init");
-  disableCore0WDT();
-  delay(100);
-  disableCore1WDT();
-
-  if (esp_spiram_init() != ESP_OK)
-    ESP_LOGE(TAG, "This app requires a board with PSRAM!");
-
-  esp_spiram_init_cache();
-
-
-  Host::audio->init();
-  Host::keyboard->init();
-  Host::mouse->init();
-  Host::video->init();
-
-  ESP_LOGI(TAG, "Host init ok %d", ESP.getFreeHeap());
+  Host::init();
 
   createRAM();
   renderInit();
   inithardware();
+  serMouse = new SerialMouse_t(com1);
 #ifndef use_lib_singlecore
   xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
 #endif

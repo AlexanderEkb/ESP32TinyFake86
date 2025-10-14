@@ -28,7 +28,6 @@
 
 class Host {
   public:
-    Host();
     static Audio_t * audio;
     static Video_t * video;
     static Keyboard_t * keyboard;
