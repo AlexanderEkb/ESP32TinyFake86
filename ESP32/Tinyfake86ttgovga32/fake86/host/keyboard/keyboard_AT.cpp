@@ -18,7 +18,7 @@ KeyboardDriverAT::KeyboardDriverAT() {
   q = xQueueCreate(16, 1);
 }
 
-void KeyboardDriverAT::Init()
+void KeyboardDriverAT::init()
 {
   pinMode(KEYBOARD_DATA, INPUT_PULLUP);
   pinMode(KEYBOARD_CLK, INPUT_PULLUP);

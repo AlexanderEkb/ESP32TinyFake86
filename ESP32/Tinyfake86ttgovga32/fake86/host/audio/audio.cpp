@@ -10,12 +10,12 @@
 #define COVOX_FREQUENCY_HZ (80000)
 
 
-uint32_t Audio::covox;
-uint32_t Audio::speaker;
+uint32_t Audio_t::covox;
+uint32_t Audio_t::speaker;
 
 #define TAG "AUDIO"
 
-void Audio::init()
+void Audio_t::init()
 {
   ledc_timer_config_t ledc_timer = {
       .speed_mode = COVOX_MODE,
@@ -38,20 +38,20 @@ void Audio::init()
   ESP_LOGI(TAG, "Init ok");
 }
 
-void Audio::playSample(uint8_t sample)
+void Audio_t::playSample(uint8_t sample)
 {
   covox = sample;
   updatePWM();
 }
 
-void Audio::updatePWM()
+void Audio_t::updatePWM()
 {
   ESP_ERROR_CHECK(ledc_set_duty(COVOX_MODE, COVOX_CHANNEL, speaker | covox));
   ESP_ERROR_CHECK(ledc_update_duty(COVOX_MODE, COVOX_CHANNEL));
 }
 
-void Audio::driveSpeaker(bool val)
+void Audio_t::driveSpeaker(bool val)
 {
-  Audio::speaker = val?0x0100:0x0000;
+  Audio_t::speaker = val?0x0100:0x0000;
   updatePWM();
 }

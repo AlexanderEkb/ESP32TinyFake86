@@ -9,12 +9,12 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
-class KeyboardDriverAT : public KeyboardDriver
+class KeyboardDriverAT : public Keyboard_t
 {
   public:
     static const uint32_t KEY_COUNT = 53;
     KeyboardDriverAT();
-    virtual void Init() override;
+    virtual void init() override;
     virtual void Reset() override;
     uint8_t Poll();
   private:

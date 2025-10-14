@@ -26,8 +26,6 @@
 #include "../../../host/keyboard/keyboard.h"
 #include "../cpu/ports.h"
 
-extern KeyboardDriver *keyboard;
-
 volatile structpic i8259;
 
 static uint8_t read_20h(uint32_t address);

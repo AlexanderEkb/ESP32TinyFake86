@@ -2,47 +2,50 @@
 #include "service.h"
 #include "../extras/osd.h"
 #include "../video/gb_sdl_font8x8.h"
-#include "../video/render.h"
-#include "../../../host/video/composite_ntsc/CompositeColorOutput.h"
+#include "../../../host/host.h"
 
-extern char **bufferNTSC;
 static uint8_t const *const font = getFont();
 
 void svcBar(int orgX, int orgY, int height, int width, uint8_t color)
 {
   for (int y = 0; y < height; y++)
   {
-    int scanline = orgY + y;
+    uint8_t * scanline = Host::video->scanline(orgY + y);
     for (int x = 0; x < width; x++)
     {
       int col = orgX + x;
-      bufferNTSC[scanline][col] = color;
+      scanline [col] = color;
     }
   }
 }
 
 void svcClearScreen(uint8_t color)
 {
+  const uint32_t width = Host::video->width();
   const uint32_t BORDER_WIDTH = 8;
-  const uint32_t FIELD_WIDTH = CompositeColorOutput::XRES - 2 * BORDER_WIDTH;
-  const uint32_t RIGHT_POS = CompositeColorOutput::XRES - BORDER_WIDTH;
+  const uint32_t FIELD_WIDTH = width - 2 * BORDER_WIDTH;
+  const uint32_t RIGHT_POS = width; - BORDER_WIDTH;
   for (int y = 0; y < OSD_VERTICAL_OFFSET; y++)
   {
-    for (uint32_t x = 0; x < CompositeColorOutput::XRES; x++)
+    uint8_t * topLine = Host::video->scanline(y);
+    uint8_t * botLine = Host::video->scanline(y + EFFECTIVE_HEIGHT + OSD_VERTICAL_OFFSET);
+    for (uint32_t x = 0; x < width; x++)
     {
-      bufferNTSC[y][x] = DEFAULT_BORDER;
-      bufferNTSC[y + EFFECTIVE_HEIGHT + OSD_VERTICAL_OFFSET][x] = DEFAULT_BORDER;
+      topLine[x] = DEFAULT_BORDER;
+      botLine[x] = DEFAULT_BORDER;
     }
   }
   for (int y = 0; y < EFFECTIVE_HEIGHT; y++)
   {
+    uint8_t * scanline = Host::video->scanline(y + OSD_VERTICAL_OFFSET);
     for (int x = 0; x < BORDER_WIDTH; x++)
     {
-      bufferNTSC[y + OSD_VERTICAL_OFFSET][x] = DEFAULT_BORDER;
-      bufferNTSC[y + OSD_VERTICAL_OFFSET][x + RIGHT_POS] = DEFAULT_BORDER;
+      scanline[x] = DEFAULT_BORDER;
+      scanline[x + RIGHT_POS] = DEFAULT_BORDER;
+
     }
     for (int x = 0; x < FIELD_WIDTH; x++)
-      bufferNTSC[y + OSD_VERTICAL_OFFSET][x + BORDER_WIDTH] = color;
+      scanline[x + BORDER_WIDTH] = color;
   }
 }
 
@@ -52,13 +55,13 @@ void svcPrintChar(char character, int col, int row, unsigned char color, unsigne
   unsigned char pixel;
   for (uint32_t y = 0; y < 8; y++)
   {
-    const uint32_t line = row + y + _off;
+    uint8_t * scanline = Host::video->scanline(row + y + _off);
     uint8_t aux = font[origin + y];
     for (uint32_t x = 0; x < 8; x++)
     {
       pixel = ((aux >> x) & 0x01);
       const uint32_t column = col + (8 - x);
-      bufferNTSC[line][column] = (pixel == 1) ? color : backcolor;
+      scanline[column] = (pixel == 1) ? color : backcolor;
     }
   }
 }
@@ -66,8 +69,6 @@ void svcPrintChar(char character, int col, int row, unsigned char color, unsigne
 //*************************************************************************************
 void svcPrintText(const char *cad, int x, int y, unsigned char color, unsigned char backcolor, int32_t _off)
 {
-  // SDL_Surface *surface,
-  //  gb_sdl_font_6x8
   int auxLen = strlen(cad);
   if (auxLen > 50)
     auxLen = 50;
@@ -85,6 +86,7 @@ void svcPrintTextColored(const char *cad, int x, int y, unsigned char color, uns
   char const * ptr = cad;
   uint8_t parameter;
   bool ESC = false;
+  uint32_t const width = Host::video->width();
   while (*ptr != '\0')
   {
     unsigned char c = *ptr;
@@ -143,7 +145,7 @@ void svcPrintTextColored(const char *cad, int x, int y, unsigned char color, uns
     {
       svcPrintChar(c, x, y, fg, bg, _off);
       x += getFontWidth();;
-      if(CompositeColorOutput::XRES - x < getFontWidth())
+      if((width - x) < getFontWidth())
         return;
     }
   }
@@ -157,12 +159,12 @@ void svcPrintCharPetite(char character, int col, int row, unsigned char color, u
   for (uint32_t x = 0; x < SERVICE_FONT_WIDTH; x++)
   {
     const uint32_t column = col + x;
-    uint8_t line = serviceFont[origin + x];
+    uint8_t scanline = serviceFont[origin + x];
     for (uint32_t y = 0; y < SERVICE_FONT_HEIGHT; y++)
     {
-      uint8_t pixel = ((line >> y) & 0x01);
-      const uint32_t line = row + y;
-      bufferNTSC[line][column] = (pixel == 1) ? color : backcolor;
+      uint8_t pixel = ((scanline >> y) & 0x01);
+      uint8_t * scanline = Host::video->scanline(row + y);
+      scanline[column] = (pixel == 1) ? color : backcolor;
     }
   }
 }

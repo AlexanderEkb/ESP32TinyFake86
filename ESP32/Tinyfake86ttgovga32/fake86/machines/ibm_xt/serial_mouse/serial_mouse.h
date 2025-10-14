@@ -2,7 +2,7 @@
 #define __SERIAL_MOUSE_H__
 
 #include "../chipset/i8250.h"
-#include "../../../host/mouse/mouse.h"
+#include "../../../host/host.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 

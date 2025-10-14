@@ -1,6 +1,6 @@
 #include "debugger.h"
 #include "../cpu/cpu.h"
-#include "../../../host/keyboard/keyboard.h"
+#include "../../../host/host.h"
 #include "../../../host/keyboard/keys.h"
 #include "../service/service.h"
 
@@ -24,9 +24,8 @@ void debugger_t::execute()
   isRunning = true;
   while (isRunning)
   {
-    extern KeyboardDriver *keyboard;
     uint8_t scancode = 0;
-    while (!(scancode = keyboard->Poll()));
+    while (!(scancode = Host::keyboard->Poll()));
     if(onKey(scancode))
     {
       screen.repaint();

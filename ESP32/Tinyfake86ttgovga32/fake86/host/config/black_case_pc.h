@@ -17,6 +17,12 @@
 #define KEYBOARD_DRIVER 1
 
 /**
+ @brief Mouse driver used in the system.
+ 0 is for PS/2 one.
+*/
+#define MOUSE_DRIVER 0
+
+/**
  * @brief Video driver used in the system/
  * 0 is for NTSC composite display on internal DAC
  */

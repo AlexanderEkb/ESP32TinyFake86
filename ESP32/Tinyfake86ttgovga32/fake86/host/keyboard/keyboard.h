@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 
-class KeyboardDriver {
+class Keyboard_t {
   public:
-    virtual void Init() = 0;
+    virtual void init() = 0;
     virtual void Reset() = 0;
     virtual uint8_t Poll() = 0;
 };

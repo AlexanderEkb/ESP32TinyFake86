@@ -7,5 +7,5 @@ IOPort port_378h = IOPort(0x378, 0x00, nullptr, write);
 static void write(uint32_t address, uint8_t value)
 {
   (void)address;
-  Audio::playSample(value);
+  Audio_t::playSample(value);
 }

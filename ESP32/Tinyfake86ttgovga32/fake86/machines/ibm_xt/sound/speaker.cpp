@@ -51,7 +51,7 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR Speaker_t::onTimer()
     if(PB0)
       Ch2 ^= true;
     if(!muted)
-      Audio::driveSpeaker(Ch2 && PB1);
+      Audio_t::driveSpeaker(Ch2 && PB1);
     }
 }
 
@@ -69,13 +69,13 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR Speaker_t::driveDirectly(bool
 {
   PB1 = state;
   if(!muted)
-    Audio::driveSpeaker(Ch2 && PB1);
+    Audio_t::driveSpeaker(Ch2 && PB1);
 }
 
 void Speaker_t::mute()
 {
   muted = true;
-  Audio::driveSpeaker(false);
+  Audio_t::driveSpeaker(false);
 }
 
 void Speaker_t::unmute()

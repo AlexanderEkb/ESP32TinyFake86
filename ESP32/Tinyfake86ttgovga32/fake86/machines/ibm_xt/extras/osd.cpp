@@ -2,20 +2,17 @@
 #include <string.h>
 #include "stats.h"
 #include "osd.h"
-#include "../../../host/keyboard/keyboard.h"
+#include "../../../host/host.h"
 #include "../../../host/keyboard/keys.h"
 #include "../sound/speaker.h"
 #include "../cpu/cpu.h"
 #include "../cpu/ports.h"
 #include "../io/disk.h"
-#include "../../../host/video/composite_ntsc/CompositeColorOutput.h"
-#include "../video/render.h"
+#include "../video/render_cga.h"
 #include "../video/gb_sdl_font8x8.h"
 #include "../service/service.h"
 #include "../debugger/debugger.h"
 
-extern char **bufferNTSC;
-extern CompositeColorOutput composite;
 extern uint8_t ** graphPalettes;
 
 #define max_gb_delay_cpu_menu 50
@@ -125,8 +122,7 @@ uint8_t ShowTinyMenu(const char *cadTitle, const char **ptrValue, unsigned char 
 
   while (!bExit)
   {
-    extern KeyboardDriver *keyboard;
-    uint8_t scancode = keyboard->Poll();
+    uint8_t scancode = Host::keyboard->Poll();
     switch (scancode)
     {
     case (KEY_CURSOR_LEFT):
@@ -244,21 +240,20 @@ void ShowTinyVideoMenu()
       bool bExit = false;
       while (!bExit)
       {
-        extern KeyboardDriver *keyboard;
-        uint8_t scancode = keyboard->Poll();
+        uint8_t scancode = Host::keyboard->Poll();
         switch(scancode)
         {
           case KEY_ESC:
             bExit = true;
             break;
           case KEY_1:
-            composite.setBlitter(0);
+            Host::video->miscCmd(SET_BLITTER, 0);
             break;
           case KEY_2:
-            composite.setBlitter(1);
+            Host::video->miscCmd(SET_BLITTER, 1);
             break;
           case KEY_3:
-            composite.setBlitter(2);
+            Host::video->miscCmd(SET_BLITTER, 2);
             break;
         }
       }
@@ -274,7 +269,7 @@ void ShowTinyVideoMenu()
       {
         char buffer[40];
         svcDrawTableLoRes(paletteIndex);
-        composite.setPhase(phase);
+        Host::video->miscCmd(SET_PHASE, phase);
         uint8_t * palette = svcGetPalette(paletteIndex);
         for(uint32_t c=1; c<4;c++)
         {
@@ -285,21 +280,20 @@ void ShowTinyVideoMenu()
         svcPrintText(buffer, 24, 120, 15, 0);
         sprintf(buffer, "phase: %i", phase);
         svcPrintText(buffer, 24, 128, 15, 0);
-        extern KeyboardDriver *keyboard;
-        uint8_t scancode = keyboard->Poll();
+        uint8_t scancode = Host::keyboard->Poll();
         switch (scancode)
         {
         case KEY_ESC:
           bExit = true;
           break;
         case KEY_1:
-          composite.setBlitter(0);
+          Host::video->miscCmd(SET_BLITTER, 0);
           break;
         case KEY_2:
-          composite.setBlitter(1);
+          Host::video->miscCmd(SET_BLITTER, 1);
           break;
         case KEY_3:
-          composite.setBlitter(2);
+          Host::video->miscCmd(SET_BLITTER, 2);
           break;
         case KEY_F1:
           selection = 0;
@@ -350,11 +344,10 @@ void ShowTinyVideoMenu()
 void do_tinyOSD()
 {
   unsigned char aSelNum;
-  extern KeyboardDriver *keyboard;
-  uint8_t scancode = keyboard->Poll();
-  composite.saveSettings();
-  composite.setBlitter(1);
-  composite.setColorburstEnabled(true);
+  uint8_t scancode = Host::keyboard->Poll();
+  Host::video->miscCmd(PUSH_SETTINGS, 0);
+  Host::video->miscCmd(SET_BLITTER, 1);
+  Host::video->miscCmd(SET_COLOR, 1);
   svcClearScreen(SCREEN_BACKGROUND);
   svcBar(8, OSD_VERTICAL_OFFSET, 21, 320, HEADER_BACKGROUND);
   svcPrintText("Port Fake86 by Ackerman", 12, 2, 0xC8, HEADER_BACKGROUND);
@@ -389,16 +382,15 @@ void do_tinyOSD()
   }
 
   Speaker_t::unmute();
-  keyboard->Reset();
+  Host::keyboard->Reset();
   osdLeave();
 }
 
 static void osdLeave()
 {
-  composite.restoreSettings();
+  Host::video->miscCmd(POP_SETTINGS, 0);
   renderUpdateBorder();
-  extern KeyboardDriver *keyboard;
-  keyboard->Reset();
+  Host::keyboard->Reset();
 }
 
 void svcDrawTableLoRes(uint32_t p)

@@ -25,9 +25,9 @@
 
 #include "../cpu/cpu.h"
 #include "../cpu/ports.h"
-#include "../../../host/video/composite_ntsc/CompositeColorOutput.h"
+#include "../../../host/host.h"
 #include "gb_sdl_font8x8.h"
-#include "render.h"
+#include "render_cga.h"
 
 #define TAG "render"
 #define EFFECTIVE_HEIGHT (200)
@@ -151,7 +151,6 @@ class cursor_t {
 };
 
 cursor_t cursor;
-static uint32_t scanlineBuffer[CompositeColorOutput::XRES * 2];
 
 extern unsigned char gb_video_cga[16384];
 
@@ -188,10 +187,6 @@ typedef struct render_t
 static uint32_t colorburstOverride;
 static render_t render;
 static render_t pendingRender;
-
-CompositeColorOutput composite;
-
-char **bufferNTSC;
 
 uint32_t cursor_t::row;
 uint32_t cursor_t::col;
@@ -278,19 +273,8 @@ void renderInit()
 
   memcpy(&pendingRender, &render, sizeof(render_t));
 
-  bufferNTSC = (char **)malloc(CompositeColorOutput::YRES * sizeof(char *));
-  assert(bufferNTSC);
-  for (int y = 0; y < CompositeColorOutput::YRES; y++)
-  {
-    bufferNTSC[y] = (char *)malloc(CompositeColorOutput::XRES * 2);
-    assert(bufferNTSC[y]);
-    memset(bufferNTSC[y], 0x00, CompositeColorOutput::XRES * 2);
-  }
-
   void IRAM_ATTR blitter_0(uint8_t * src, uint16_t * dst);
   void IRAM_ATTR blitter_1(uint8_t * src, uint16_t * dst);
-  ESP_LOGI(TAG, "composite.init()");
-  composite.init(&bufferNTSC);
 }
 
 void draw();
@@ -311,7 +295,7 @@ static __always_inline void OnDumpDone()
     memcpy(&render, &pendingRender, sizeof(render_t));
 
     bool colorEnabled = (colorburstOverride == COLORBURST_NO_CHANGE) ? (render.hasColor != COLORBURST_DISABLE) : (colorburstOverride != COLORBURST_DISABLE);
-    composite.setColorburstEnabled(colorEnabled);
+    Host::video->miscCmd(SET_COLOR, colorEnabled);
     switch (render.vmode)
     {
     case TEXT_LO:
@@ -378,7 +362,7 @@ static void dump320x200()
   unsigned short int cont = 0;
   for (uint32_t y = 0; y < 100; y++)
   {
-    uint32_t yDest = (y << 1);
+    // uint32_t yDest = (y << 1);
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
@@ -397,14 +381,15 @@ static void dump320x200()
       line[offset++] = palette[bPixel3];
       cont++;
     }
-    uint32_t *dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
+    // uint32_t *dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
+    uint32_t *dest = (uint32_t *)Host::video->scanline(y + VERTICAL_OFFSET);
     memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
 
   cont = 0x2000;
   for (uint32_t y = 0; y < 100; y++)
   {
-    uint32_t yDest = (y << 1) + 1;
+    // uint32_t yDest = (y << 1) + 1;
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
@@ -423,7 +408,8 @@ static void dump320x200()
       line[offset++] = palette[bPixel3];
       cont++;
     }
-    uint32_t *dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
+    // uint32_t *dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
+    uint32_t *dest = (uint32_t *)Host::video->scanline(y + VERTICAL_OFFSET);
     memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
   OnDumpDone();
@@ -435,14 +421,14 @@ static void dump640x200()
   static uint32_t *dest;
   static const uint32_t INITIAL_OFFSET = 0;
   unsigned short int srcAddr;
-  unsigned int yDest;
+  // unsigned int yDest;
   unsigned int x;
   unsigned int a32;
 
   srcAddr = 0x0000;
   for (uint32_t y = 0; y < 100; y++)
   {
-    yDest = (y << 1);
+    // yDest = (y << 1);
     uint32_t offset = INITIAL_OFFSET;
     for (x = 0; x < 80; x++)
     {
@@ -475,14 +461,15 @@ static void dump640x200()
 
       srcAddr++;
     }
-    dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
+    // dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
+    dest = (uint32_t *)Host::video->scanline(y + VERTICAL_OFFSET);
     memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
 
   srcAddr = 0x2000;
   for (uint32_t y = 0; y < 100; y++)
   {
-    yDest = (y << 1) + 1;
+    // yDest = (y << 1) + 1;
     uint32_t offset = INITIAL_OFFSET;
     for (x = 0; x < 80; x++)
     {
@@ -515,7 +502,8 @@ static void dump640x200()
 
       srcAddr++;
     }
-    dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
+    // dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
+    dest = (uint32_t *)Host::video->scanline(y + VERTICAL_OFFSET);
     memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
   OnDumpDone();
@@ -532,9 +520,11 @@ static void printChar_c(char code, uint32_t x, uint32_t y, uint8_t color, uint8_
     unsigned char src = ((row >= 6) && (blink)) ? 0xFF : font[nBaseOffset + row];
     const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
     uint32_t vgaCol = x + render.horizontalPosition;
+    uint8_t * line = Host::video->scanline(vgaLine);
     for (int col = 0; col < render.textCharHeight; col++)
     {
-      bufferNTSC[vgaLine][vgaCol] = palette[((src & 0x80) != 0) ? color : backcolor];
+      // bufferNTSC[vgaLine][vgaCol] = palette[((src & 0x80) != 0) ? color : backcolor];
+      line[vgaCol] = palette[((src & 0x80) != 0) ? color : backcolor];
       vgaCol++;
       src <<= 1;
     }
@@ -555,9 +545,11 @@ static void printChar(char code, uint32_t x, uint32_t y, uint8_t color, uint8_t 
       unsigned char src = font[nBaseOffset + row];
       const uint32_t vgaLine = y + row + VERTICAL_OFFSET;
       uint32_t vgaCol = x + render.horizontalPosition;
+      uint8_t * line = Host::video->scanline(vgaLine);
       for (int col = 0; col < 8; col++)
       {
-        bufferNTSC[vgaLine][vgaCol] = palette[((src & 0x80) != 0) ? color : backcolor];
+        // bufferNTSC[vgaLine][vgaCol] = palette[((src & 0x80) != 0) ? color : backcolor];
+        line[vgaCol] = palette[((src & 0x80) != 0) ? color : backcolor];
         src <<= 1;
         vgaCol++;
       }
@@ -612,6 +604,7 @@ void renderSetCursorAddrLSB(uint8_t addr)
 
 void renderUpdateSettings(uint8_t settings, uint8_t colors)
 {
+  uint32_t const width = Host::video->width();
   // LOG("renderUpdateSettings(%02X, %02X)\n", settings, colors);
   uint8_t _mode                     = (settings & 0x03) | ((settings >> 2) & 0x04);
   const bool colorSuppressed        = (settings & 0x04);
@@ -622,13 +615,13 @@ void renderUpdateSettings(uint8_t settings, uint8_t colors)
   pendingRender.blitter             = modes[_mode].blitter;
 
   const uint32_t pixelsPerLine      = (modes[_mode].blitter == BLITTER_HIRES) ? 640 : 320;
-  const uint32_t effectiveWidth     = CompositeColorOutput::XRES * ((modes[_mode].blitter == BLITTER_HIRES) ? 2 : 1);
+  const uint32_t effectiveWidth     = width * ((modes[_mode].blitter == BLITTER_HIRES) ? 2 : 1);
   pendingRender.pixelsPerLine       = pixelsPerLine;
   pendingRender.horizontalPosition  = ((effectiveWidth - pixelsPerLine) >> 1) + modes[_mode].hOffset;
   pendingRender.rightBorderPosition = pendingRender.horizontalPosition + pixelsPerLine;
   pendingRender.rightBorderWidth    = effectiveWidth - pendingRender.rightBorderPosition;
 
-  composite.setBlitter(modes[_mode].blitter);
+  Host::video->miscCmd(SET_BLITTER, modes[_mode].blitter);
 
   // Colors
   static const uint8_t COLOR_MASK = 0x0F;
@@ -660,22 +653,26 @@ void renderUpdateBorder()
       barColor = render.hasColor ? paletteLoRes[render.specialColor] : paletteBW[render.specialColor];
   }
 
+  uint32_t const width = Host::video->width();
   for (int y = 0; y < barHeight; y++)
   {
-    for (int x = 0; x < CompositeColorOutput::XRES << 1; x++)
-      bufferNTSC[y][x] = barColor;
-    for (int x = 0; x < CompositeColorOutput::XRES << 1; x++)
-      bufferNTSC[y + VERTICAL_OFFSET + EFFECTIVE_HEIGHT][x] = barColor;
+    uint8_t * topLine = Host::video->scanline(y);
+    uint8_t * botLine = Host::video->scanline(y);
+    for (int x = 0; x < width << 1; x++)
+      // bufferNTSC[y][x] = barColor;
+      topLine[x] = barColor;
+    for (int x = 0; x < width << 1; x++)
+      // bufferNTSC[y + VERTICAL_OFFSET + EFFECTIVE_HEIGHT][x] = barColor;
+      botLine[x] = barColor;
   }
   for (int y = 0; y < EFFECTIVE_HEIGHT; y++)
   {
+    uint8_t * line = Host::video->scanline(y + VERTICAL_OFFSET);
     for (int x = 0; x < render.horizontalPosition; x++)
-    {
-      bufferNTSC[y + VERTICAL_OFFSET][x] = barColor;
-    }
+      // bufferNTSC[y + VERTICAL_OFFSET][x] = barColor;
+      line[x] = barColor;
     for (int x = 0; x < render.rightBorderWidth; x++)
-    {
-      bufferNTSC[y + VERTICAL_OFFSET][x + render.rightBorderPosition] = barColor;
-    }
+      // bufferNTSC[y + VERTICAL_OFFSET][x + render.rightBorderPosition] = barColor;
+      line[x + render.rightBorderPosition] = barColor;
   }
 }

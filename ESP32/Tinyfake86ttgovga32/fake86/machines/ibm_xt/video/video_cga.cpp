@@ -56,7 +56,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "render.h"
+#include "render_cga.h"
 #include "../cpu/cpu.h"
 #include "../cpu/ports.h"
 

@@ -2,11 +2,9 @@
 #include "esp32-hal-log.h"
 #define TAG "MSMOUSE"
 
-extern Mouse_t * mouse;
-
 SerialMouse_t::SerialMouse_t(I8250_t * port)
 {
-  mouse->bind(this);
+  Host::mouse->bind(this);
   this->port = port;
   port->bind(this);
   RTS = 0;

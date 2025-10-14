@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-class Audio
+class Audio_t
 {
   public:
     static void init();
