@@ -329,7 +329,7 @@ static void dump80x25()
       aChar = gb_video_cga[src];
       src++;
       aColor = gb_video_cga[src] & 0x0F;
-      aBgColor = ((gb_video_cga[src] >> 4) & 0x07);
+      aBgColor = ((gb_video_cga[src] >> 4) & 0x0F);
       printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
       src++;
     }
@@ -362,7 +362,6 @@ static void dump320x200()
   unsigned short int cont = 0;
   for (uint32_t y = 0; y < 100; y++)
   {
-    // uint32_t yDest = (y << 1);
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
@@ -381,15 +380,14 @@ static void dump320x200()
       line[offset++] = palette[bPixel3];
       cont++;
     }
-    // uint32_t *dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    uint32_t *dest = (uint32_t *)Host::video->scanline(y + VERTICAL_OFFSET);
+    uint32_t yDest = (y << 1);
+    uint32_t *dest = (uint32_t *)Host::video->scanline(yDest + VERTICAL_OFFSET);
     memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
 
   cont = 0x2000;
   for (uint32_t y = 0; y < 100; y++)
   {
-    // uint32_t yDest = (y << 1) + 1;
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
@@ -408,8 +406,8 @@ static void dump320x200()
       line[offset++] = palette[bPixel3];
       cont++;
     }
-    // uint32_t *dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    uint32_t *dest = (uint32_t *)Host::video->scanline(y + VERTICAL_OFFSET);
+    uint32_t yDest = (y << 1) + 1;
+    uint32_t *dest = (uint32_t *)Host::video->scanline(yDest + VERTICAL_OFFSET);
     memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
   OnDumpDone();
@@ -428,7 +426,6 @@ static void dump640x200()
   srcAddr = 0x0000;
   for (uint32_t y = 0; y < 100; y++)
   {
-    // yDest = (y << 1);
     uint32_t offset = INITIAL_OFFSET;
     for (x = 0; x < 80; x++)
     {
@@ -461,15 +458,15 @@ static void dump640x200()
 
       srcAddr++;
     }
+    uint32_t yDest = (y << 1);
     // dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    dest = (uint32_t *)Host::video->scanline(y + VERTICAL_OFFSET);
+    dest = (uint32_t *)Host::video->scanline(yDest + VERTICAL_OFFSET);
     memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
 
   srcAddr = 0x2000;
   for (uint32_t y = 0; y < 100; y++)
   {
-    // yDest = (y << 1) + 1;
     uint32_t offset = INITIAL_OFFSET;
     for (x = 0; x < 80; x++)
     {
@@ -503,7 +500,8 @@ static void dump640x200()
       srcAddr++;
     }
     // dest = (uint32_t *)bufferNTSC[yDest + VERTICAL_OFFSET];
-    dest = (uint32_t *)Host::video->scanline(y + VERTICAL_OFFSET);
+    uint32_t yDest = (y << 1) + 1;
+    dest = (uint32_t *)Host::video->scanline(yDest + VERTICAL_OFFSET);
     memcpy((void *)dest + render.horizontalPosition, line, render.pixelsPerLine);
   }
   OnDumpDone();

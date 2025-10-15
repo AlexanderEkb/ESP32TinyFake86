@@ -141,7 +141,7 @@ void loop()
   execVideo();
 #endif
   stats.exec();
-  }
+}
 
 void execKeyboard()
 {

@@ -101,15 +101,13 @@ void IRAM_ATTR MousePs2_t::onMouseExti()
   static uint32_t shifter = 0;
   static uint8_t bitcount = 0;
   static uint32_t prev_ms = 0;
-  uint32_t now_us;
-  uint8_t n, val;
 
   int clock = digitalRead(PS2_MOUSE_CLK);
-  if (clock == 1)
+  if (clock != 0)
     return;
 
-  val = digitalRead(PS2_MOUSE_DATA);
-  now_us = micros();
+  uint8_t val = digitalRead(PS2_MOUSE_DATA);
+  uint32_t const now_us = micros();
   if (now_us - prev_ms > 120) {
     bitcount = 0;
     shifter = 0;
@@ -125,6 +123,7 @@ void IRAM_ATTR MousePs2_t::onMouseExti()
     portBASE_TYPE bar;
     const uint8_t scancode = static_cast<uint8_t>((shifter >> 1) & 0xFF);
     xQueueSendFromISR(q, &scancode, &bar);
+    portYIELD_FROM_ISR(bar);
   }
 }
 
@@ -133,30 +132,18 @@ void MousePs2_t::reset()
   state = RESET;
   delay(100);
   uint32_t r = sendByte(0xFF);
-  // if(r == RESULT_OK)
-  //   ESP_LOGI(TAG, "rst ok");
-  // else
-  //   ESP_LOGE(TAG, "rst failed");
 }
 
 void MousePs2_t::setMode()
 {
   state = SET_MODE;
   uint32_t r = sendByte(0xEA);
-  // if(r == RESULT_OK)
-  //   ESP_LOGI(TAG, "mod ok");
-  // else
-  //   ESP_LOGE(TAG, "mod failed");
 }
 
 void MousePs2_t::enable()
 {
   state = STARTUP;
   uint32_t r = sendByte(0xF4);
-  // if(r == RESULT_OK)
-  //   ESP_LOGI(TAG, "ena ok");
-  // else
-  //   ESP_LOGE(TAG, "ena failed");
 }
 
 uint32_t MousePs2_t::sendByte(uint8_t d)
@@ -200,7 +187,6 @@ uint32_t MousePs2_t::sendByte(uint8_t d)
   pinMode(PS2_MOUSE_DATA, INPUT_PULLUP);
   pinMode(PS2_MOUSE_CLK, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(PS2_MOUSE_CLK), onMouseExti, FALLING);
-  // esp_intr_enable(_isr_handle);        // start interruprs!
 
   return RESULT_OK;
 }
