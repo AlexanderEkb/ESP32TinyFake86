@@ -24,7 +24,7 @@ void svcClearScreen(uint8_t color)
   const uint32_t width = Host::video->width();
   const uint32_t BORDER_WIDTH = 8;
   const uint32_t FIELD_WIDTH = width - 2 * BORDER_WIDTH;
-  const uint32_t RIGHT_POS = width; - BORDER_WIDTH;
+  const uint32_t RIGHT_POS = width - BORDER_WIDTH;
   for (int y = 0; y < OSD_VERTICAL_OFFSET; y++)
   {
     uint8_t * topLine = Host::video->scanline(y);

@@ -655,13 +655,12 @@ void renderUpdateBorder()
   for (int y = 0; y < barHeight; y++)
   {
     uint8_t * topLine = Host::video->scanline(y);
-    uint8_t * botLine = Host::video->scanline(y);
+    uint8_t * botLine = Host::video->scanline(y + VERTICAL_OFFSET + EFFECTIVE_HEIGHT);
     for (int x = 0; x < width << 1; x++)
-      // bufferNTSC[y][x] = barColor;
+    {
       topLine[x] = barColor;
-    for (int x = 0; x < width << 1; x++)
-      // bufferNTSC[y + VERTICAL_OFFSET + EFFECTIVE_HEIGHT][x] = barColor;
       botLine[x] = barColor;
+    }
   }
   for (int y = 0; y < EFFECTIVE_HEIGHT; y++)
   {
