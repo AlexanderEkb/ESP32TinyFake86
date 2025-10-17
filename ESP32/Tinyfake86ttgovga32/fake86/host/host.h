@@ -19,7 +19,7 @@
 #error "Choose any supported mouse driver!"
 #endif
 
-#if (VIDEO_DRIVER == 0)
+#if (HOST_VIDEO_DRIVER == 0)
 #include "video/compositeNtsc/compositeNtsc.h"
 #else
 #error "Choose any supported video driver!"

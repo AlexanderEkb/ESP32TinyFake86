@@ -12,7 +12,7 @@ class Video_t
     virtual void miscCmd(uint32_t cmd, uint32_t param) = 0;
 };
 
-#if (VIDEO_DRIVER == 0)
+#if (HOST_VIDEO_DRIVER == 0)
 #else
 #error "Please choose any supported video driver."
 #endif

@@ -2,7 +2,9 @@
 #define _RENDER_H
 
 #include <stdint.h>
+#include "../../machine_config.h"
 
+#if (IBM_XT_VIDEO_DRIVER == 0)
 static const uint32_t COLORBURST_NO_CHANGE = 0x00;
 static const uint32_t COLORBURST_ENABLE = 0x01;
 static const uint32_t COLORBURST_DISABLE = 0x02;
@@ -39,4 +41,5 @@ void renderSetCursorEnd(uint8_t line);
 void renderSetCursorAddrMSB(uint8_t addr);
 void renderSetCursorAddrLSB(uint8_t addr);
 
-#endif
+#endif /* IBM_XT_VIDEO_DRIVER */
+#endif /* _RENDER_H */

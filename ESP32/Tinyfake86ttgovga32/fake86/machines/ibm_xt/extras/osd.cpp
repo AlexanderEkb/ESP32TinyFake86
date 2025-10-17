@@ -8,28 +8,21 @@
 #include "../cpu/cpu.h"
 #include "../cpu/ports.h"
 #include "../io/disk.h"
-#include "../video/render_cga.h"
+#include "../video/CGA/render_cga.h"
+#include "../video/TGA/tga_render.h"
 #include "../video/gb_sdl_font8x8.h"
 #include "../service/service.h"
 #include "../debugger/debugger.h"
 
+#if (IBM_XT_VIDEO_DRIVER == 0)
 extern uint8_t ** graphPalettes;
+#endif
 
-#define max_gb_delay_cpu_menu 50
-const char * gb_delay_cpu_menu[max_gb_delay_cpu_menu]={ 
- "0 (fast)","1","2","3","4","5","6","7","8","9",
- "10","11","12","13","14","15","16","17","18","19",
- "20","21","22","23","24","25","26","27","28","29",
- "30","31","32","33","34","35","36","37","38","39",
- "40","41","42","43","44","45","46","47","48","49"
-};
-
-#define max_gb_main_menu 6
+#define max_gb_main_menu 5
 const char *gb_main_menu[max_gb_main_menu] = {
     "Drive A:",
     "Drive B:",
     "Reset",
-    "Speed",
     "Video",
     "Debug"};
 
@@ -45,32 +38,6 @@ const char * colorMenu[COLOR_MENU_ITEM_COUNT]={
  "As set by SW",
  "Enable",
  "Disable"
-};
-
-#define max_gb_speed_menu 2
-const char * gb_speed_menu[max_gb_speed_menu]={
- "CPU delay",
- "Timer poll",
-};
-
-
-#define max_gb_vga_poll_menu 4
-const char * gb_vga_poll_menu[max_gb_vga_poll_menu]={
- "20",
- "30",
- "40",
- "50"
-};
-
-#define max_gb_timers_poll_menu 7
-const char * gb_timers_poll_menu[max_gb_timers_poll_menu]={
- "216 (4.62)",
- "108 (9.2)",
- "54 (18.5)",
- "27 (37.03)",
- "13 (76.92)",
- "6  (166.66)",
- "1  (fast)"
 };
 
 static uint8_t const * const font = getFont();
@@ -159,7 +126,11 @@ static void showColorMenu()
   uint32_t selection = ShowTinyMenu("Color", colorMenu, COLOR_MENU_ITEM_COUNT, 13, 170);
  if(selection <= COLORBURST_DISABLE)
  {
+#if (IBM_XT_VIDEO_DRIVER == 0)
     renderSetColorburstOverride(selection);
+#elif (IBM_XT_VIDEO_DRIVER == 1)    
+  tgaRender::setColorburstOverride(selection);
+#endif
     ESP_LOGI("RENDER", "renderSetColorburstOverride(%i)\n", selection);
  }
 }
@@ -192,37 +163,6 @@ void ShowTinyDSKMenu(uint32_t drive)
       imgIndex[drive] = selection;
     }
   }
-}
-
-
-void ShowTinyCPUDelayMenu()
-{
- unsigned char aSelNum;
- aSelNum = ShowTinyMenu("> Delay CPU ms",gb_delay_cpu_menu,max_gb_delay_cpu_menu, 14, 202);
-}
-
-void ShowTinyTimerDelayMenu()
-{
- unsigned char aSelNum;
- aSelNum = ShowTinyMenu("> Timers poll",gb_timers_poll_menu,max_gb_timers_poll_menu, 14, 202);
-}
-
-void ShowTinyVGApollMenu()
-{
- unsigned char aSelNum;
- aSelNum = ShowTinyMenu("> VGA poll ms",gb_vga_poll_menu,max_gb_vga_poll_menu, 14, 202);
-}
-
-//Menu velocidad emulador
-void ShowTinySpeedMenu()
-{
- unsigned char aSelNum;
- aSelNum = ShowTinyMenu("> Speed",gb_speed_menu,max_gb_speed_menu, 14, 90);
- switch (aSelNum)
- {
-  case 0: ShowTinyCPUDelayMenu(); break;
-  case 1: ShowTinyTimerDelayMenu(); break;
- } 
 }
 
 void ShowTinyVideoMenu()
@@ -369,12 +309,9 @@ void do_tinyOSD()
     ESP.restart();
     break;
   case 3:
-    ShowTinySpeedMenu();
-    break;
-  case 4:
     ShowTinyVideoMenu();
     break;
-  case 5:
+  case 4:
     debugger_t::getInstance().execute();
     break;
   default:
@@ -389,13 +326,21 @@ void do_tinyOSD()
 static void osdLeave()
 {
   Host::video->miscCmd(POP_SETTINGS, 0);
+#if (IBM_XT_VIDEO_DRIVER == 0)  
   renderUpdateBorder();
+#elif (IBM_XT_VIDEO_DRIVER == 1)  
+  tgaRender::updateBorder();
+#endif
   Host::keyboard->Reset();
 }
 
 void svcDrawTableLoRes(uint32_t p)
 {
+#if (IBM_XT_VIDEO_DRIVER == 0)
   uint8_t *palette = graphPalettes[p];
+#elif (IBM_XT_VIDEO_DRIVER == 1)
+  uint8_t *palette = (uint8_t *)tgaRender::graphPaletteColor(p);
+#endif
 
   static const uint32_t BAR_WIDTH = 20;
   for (uint32_t bg = 0; bg < 4; bg++)
@@ -415,7 +360,11 @@ void svcDrawTableLoRes(uint32_t p)
 
 uint8_t *svcGetPalette(uint32_t p)
 {
+#if (IBM_XT_VIDEO_DRIVER == 0)
   return graphPalettes[p];
+#elif (IBM_XT_VIDEO_DRIVER == 1)
+  return (uint8_t *)tgaRender::graphPaletteColor(p);
+#endif
 }
 
 void svcShowColorTable()

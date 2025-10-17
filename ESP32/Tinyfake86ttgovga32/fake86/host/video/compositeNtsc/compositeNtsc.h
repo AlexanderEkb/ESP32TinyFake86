@@ -1,6 +1,6 @@
 #include "../../config/config.h"
 
-#if (VIDEO_DRIVER == 0)
+#if (HOST_VIDEO_DRIVER == 0)
 
 #ifndef __VIDEO_COMPOSITE_NTSC_H__
 #define __VIDEO_COMPOSITE_NTSC_H__
@@ -38,4 +38,4 @@ class VideoCompositeNtsc_t : public Video_t
 
 #endif /* __VIDEO_COMPOSITE_NTSC_H__ */
 
-#endif /* VIDEO_DRIVER */
+#endif /* HOST_VIDEO_DRIVER */

@@ -1,6 +1,6 @@
 #include "../../config/config.h"
 
-#if (VIDEO_DRIVER == 0)
+#if (HOST_VIDEO_DRIVER == 0)
 #include <string.h>
 #include "RawCompositeVideoBlitter.h"
 #include "compositeNtsc.h"
@@ -92,4 +92,4 @@ void VideoCompositeNtsc_t::setPhase(uint32_t phase)
   RawCompositeVideoBlitter::_phase = phase % 8;
 }
 
-#endif /* VIDEO_DRIVER */
+#endif /* HOST_VIDEO_DRIVER */

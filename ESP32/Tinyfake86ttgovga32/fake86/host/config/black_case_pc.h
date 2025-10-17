@@ -26,7 +26,7 @@
  * @brief Video driver used in the system/
  * 0 is for NTSC composite display on internal DAC
  */
-#define VIDEO_DRIVER 0
+#define HOST_VIDEO_DRIVER 0
 
 /**
  * @brief Keyboard DATA pin

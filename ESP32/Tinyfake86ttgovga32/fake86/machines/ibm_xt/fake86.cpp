@@ -20,7 +20,8 @@
 #include "extras/osd.h"
 #include "soc/timer_group_struct.h"
 #include "extras/stats.h"
-#include "video/render_cga.h"
+#include "video/CGA/render_cga.h"
+#include "video/TGA/tga_render.h"
 
 #define TAG "FAKE86"
 
@@ -34,7 +35,8 @@ SerialMouse_t * serMouse;
 Stats stats;
 
 uint8_t     * ram;
-unsigned char gb_video_cga[16384];
+
+uint8_t videoMemory[VIDEO_MEMORY_SIZE];
 
 //////////////////////////////////////////////////////////////////////////// Local function prototypes
 static void createRAM();
@@ -45,7 +47,7 @@ static void execMisc();
 void videoTask(void *unused);
 
 ///////////////////////////////////////////////////////////////////////// External function prototypes
-extern void VideoThreadPoll(void);
+// extern void VideoThreadPoll(void);
 extern void draw(void);
 
 uint32_t speed = 0;
@@ -56,7 +58,11 @@ void setup()
   Host::init();
 
   createRAM();
+  #if (IBM_XT_VIDEO_DRIVER == 0)
   renderInit();
+  #elif (IBM_XT_VIDEO_DRIVER == 1)
+  tgaRender::init();
+  #endif
   inithardware();
   serMouse = new SerialMouse_t(com1);
 #ifndef use_lib_singlecore
@@ -89,7 +95,7 @@ void DoSoftReset()
 {
   gb_reset = 0;
   // ClearRAM();
-  memset(gb_video_cga, 0, 16384);
+  memset(videoMemory, 0, 16384);
   Host::keyboard->Reset();
   reset86();
   inithardware();
@@ -111,7 +117,11 @@ void videoTask(void *unused)
   (void)unused;
   while (1)
   {
+#if (IBM_XT_VIDEO_DRIVER == 0)
     draw();
+#elif (IBM_XT_VIDEO_DRIVER == 1)
+    tgaRender::draw();
+#endif
     vTaskDelay(40 / portTICK_PERIOD_MS);
   }
   vTaskDelete(NULL);

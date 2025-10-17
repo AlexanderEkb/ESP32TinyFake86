@@ -26,7 +26,7 @@ void Host::init()
   mouse = new MousePs2_t();
 #endif
 
-#if (VIDEO_DRIVER == 0)
+#if (HOST_VIDEO_DRIVER == 0)
   video = new VideoCompositeNtsc_t();
 #endif
 

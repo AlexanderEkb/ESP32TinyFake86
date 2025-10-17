@@ -12,6 +12,19 @@
 #define CPU_V20
 
 /**
+ * @brief Emulated video card.
+ *        0 is for CGA
+ *        1 is for TGA
+ */
+#define IBM_XT_VIDEO_DRIVER (1)
+
+#if (IBM_XT_VIDEO_DRIVER == 0)
+#define VIDEO_MEMORY_SIZE (16384)
+#elif (IBM_XT_VIDEO_DRIVER == 1)
+#define VIDEO_MEMORY_SIZE (32768)
+#endif
+
+/**
  * @brief Period of polling the keyboard, milliseconds
  * 
  */

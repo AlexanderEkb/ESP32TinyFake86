@@ -53,14 +53,16 @@
  * bit 0: display enable. VRAM may be accesed with no afraid of "snow" effect.
  * 
 */
+
+#include "../../machine_config.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "render_cga.h"
-#include "../cpu/cpu.h"
-#include "../cpu/ports.h"
+#include "tga_render.h"
+#include "../../cpu/cpu.h"
+#include "../../cpu/ports.h"
 
-// #define LOG_WRITE_PORT(...) Serial.printf(__VA_ARGS__)
+#if (IBM_XT_VIDEO_DRIVER == 1)
 #define LOG_WRITE_PORT(...) (void)(__VA_ARGS__)
 
 #define PORT_3D8_BLINKING			(0x20)
@@ -96,14 +98,21 @@ static void     write3D5h(uint32_t portnum, uint8_t value);
 static void     write3D8h(uint32_t portnum, uint8_t value);
 static void     write3D9h(uint32_t portnum, uint8_t value);
 static uint8_t  read3DAh(uint32_t portnum);
+static void     write3DAh(uint32_t portnum, uint8_t value);
+static void     write3DDh(uint32_t portnum, uint8_t value);
+static void     write3DEh(uint32_t portnum, uint8_t value);
+static void     write3DFh(uint32_t portnum, uint8_t value);
 
 IOPort port_3D4h = IOPort(0x3D4, 0xFF, nullptr, write3D4h);
 IOPort port_3D5h = IOPort(0x3D5, 0xFF, read3D5h,  write3D5h);
 IOPort port_3D8h = IOPort(0x3D8, 0xFF, nullptr,   write3D8h);
 IOPort port_3D9h = IOPort(0x3D9, 0xFF, nullptr,   write3D9h);
-IOPort port_3DAh = IOPort(0x3DA, 0xFF, read3DAh,  nullptr);
+IOPort port_3DAh = IOPort(0x3DA, 0xFF, read3DAh,  write3DAh);
 IOPort port_3DBh = IOPort(0x3DB, 0xFF, readDummy, nullptr);
 IOPort port_3DCh = IOPort(0x3DC, 0xFF, readDummy, nullptr);
+IOPort port_3DDh = IOPort(0x3DE, 0xFF, nullptr, write3DDh);
+IOPort port_3DEh = IOPort(0x3DE, 0xFF, nullptr, write3DEh);
+IOPort port_3DFh = IOPort(0x3DE, 0xFF, nullptr, write3DFh);
 
 static const uint32_t MC6845_REG_TOTAL    = 18;
 static const uint32_t MC6845_REG_READABLE = 0x0D;
@@ -112,6 +121,13 @@ static uint8_t        port3D9h = 0;       // Some sort of local cache
 static uint8_t        port3DAh = 0;       // Some sort of local cache
 static uint8_t        mc6845RegSelector;  // 3D4h port writes modify this var
 static uint8_t        mc6845Registers[MC6845_REG_TOTAL];
+static uint8_t        tgaRegSelector = 0;
+static uint8_t        tgaPaletteMask = 0x0F;
+static uint8_t        tgaBorderColor = 0x00;
+static uint8_t        tgaModeControl = 0x00;
+static uint8_t        tgaPalette[tgaRender::TGA_COLOR_COUNT];
+static uint8_t        tgaExtRamPageReg = 0x00;
+static uint8_t        tgaCRT_CPUPageReg = 0x00;
 
 static void write3D4h (uint32_t portnum, uint8_t value)
 {
@@ -149,33 +165,29 @@ static void write3D5h (uint32_t portnum, uint8_t value)
     break;
   case MC6845_REG_MAX_ROWS:
     LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
-    renderSetCharHeight(value);
+    tgaRender::setCharHeight(value);
     break;
   case MC6845_REG_CURSOS_START:
     LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
-    renderSetCursorStart(value);
-    // cursor.updateStart(value);
+    tgaRender::setCursorStart(value);
     break;
   case MC6845_REG_CURSOR_END:
     LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
-    renderSetCursorEnd(value);
-    // cursor.updateEnd(value);
+    tgaRender::setCursorEnd(value);
     break;
   case MC6845_REG_START_ADDR_MSB:
     LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
-    renderSetStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
+    tgaRender::setStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
     break;
   case MC6845_REG_START_ADDR_LSB:
     LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
-    renderSetStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
+    tgaRender::setStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
     break;
   case MC6845_REG_CURSOR_ADDR_MSB:
-    renderSetCursorAddrMSB(value);
-    // cursor.updateMSB(value);
+    tgaRender::setCursorAddrMSB(value);
     break;
   case MC6845_REG_CURSOR_ADDR_LSB:
-    renderSetCursorAddrLSB(value);
-    // cursor.updateLSB(value);
+    tgaRender::setCursorAddrLSB(value);
     break;
   case MC6845_REG_LPEN_MSB:
     LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
@@ -197,6 +209,26 @@ uint8_t read3D5h (uint32_t portnum)
 	return result;
 }
 
+static void write3D8h(uint32_t portnum, uint8_t value)
+{
+  /*
+  0x0A - graph, lores
+  
+  */
+  (void)portnum;
+  LOG_WRITE_PORT("write3D8h(%02x)\n", value);
+  port3D8h = value;
+  tgaRender::updateSettings(port3D8h, port3D9h);
+}
+
+static void write3D9h(uint32_t portnum, uint8_t value)
+{
+  (void)portnum;
+  LOG_WRITE_PORT("write3D9h(%02x)\n", value);
+  port3D9h = value;
+  tgaRender::updateSettings(port3D8h, port3D9h);
+}
+
 static uint8_t read3DAh(uint32_t portnum)
 {
   (void)portnum;
@@ -209,31 +241,55 @@ static uint8_t read3DAh(uint32_t portnum)
     retrace |= 0x08;
   }
 
+  // TGA version, doesn't work with current BIOS:
+  // uint8_t const dispEn = port3D8h >> 3;
+  // return (retrace | dispEn);
+
+  // CGA version, works well:
   retrace |= (retraceCounter & 0x04) ? 0x01 : 0x00;
   return (port3DAh & 0xFE | retrace);
 }
 
-static void write3D8h(uint32_t portnum, uint8_t value)
+void write3DAh(uint32_t portnum, uint8_t value)
 {
-  /*
-  0x0A - graph, lores
-  
-  */
   (void)portnum;
-  LOG_WRITE_PORT("write3D8h(%02x)\n", value);
-  port3D8h = value;
-  renderUpdateSettings(port3D8h, port3D9h);
+  tgaRegSelector = value & 0x1F;
 }
 
-static void write3D9h(uint32_t portnum, uint8_t value)
+void write3DDh(uint32_t portnum, uint8_t value)
 {
   (void)portnum;
-  LOG_WRITE_PORT("write3D9h(%02x)\n", value);
-  port3D9h = value;
-  renderUpdateSettings(port3D8h, port3D9h);
+  tgaExtRamPageReg = value;
+}
+
+void write3DEh(uint32_t portnum, uint8_t value)
+{
+  (void)portnum;
+  switch(tgaRegSelector)
+  {
+    case 0x01:
+      tgaPaletteMask = value;
+      return;
+    case 0x02:
+      tgaBorderColor = value & 0xDF;
+      return;
+    case 0x03:
+      tgaModeControl = value & 0xFD;
+      return;
+    case 0x10 ... 0x1F:
+      tgaPalette[tgaRegSelector - 0x10] = value;
+  }
+}
+
+void write3DFh(uint32_t portnum, uint8_t value)
+{
+  (void)portnum;
+  tgaCRT_CPUPageReg = value;
 }
 
 static uint8_t readDummy(uint32_t portnum)
 {
   return 0;
 }
+
+#endif /* IBM_XT_VIDEO_DRIVER */

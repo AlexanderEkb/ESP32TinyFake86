@@ -57,7 +57,7 @@
 #define segbase(x) ((uint32_t)x << 4)
 
 extern uint8_t * ram;
-extern unsigned char gb_video_cga[16384];
+extern unsigned char videoMemory[];
 
 extern struct structpic i8259;
 uint64_t curtimer, lasttimer, timerfreq;
@@ -136,8 +136,8 @@ void write86 (unsigned int addr32, unsigned char value)
    case 0x0000 ... RAM_SIZE:
      ram[addr32]= value;
      return;
-   case 0xB8000 ... 0xBC000:
-     gb_video_cga[(addr32-0xB8000)]= value;
+   case 0xB8000 ... (0xB7FFF + VIDEO_MEMORY_SIZE):
+     videoMemory[(addr32-0xB8000)]= value;
      return;
  }
 
@@ -162,8 +162,8 @@ unsigned char read86 (unsigned int addr32)
   {
     case 0x00000 ... RAM_SIZE:
       return (ram[addr32]);
-    case 0xB8000 ... 0xBBFFF:
-      return gb_video_cga[(addr32-0xB8000)];
+    case 0xB8000 ... (0xB7FFF + VIDEO_MEMORY_SIZE):
+      return videoMemory[(addr32-0xB8000)];
     case 0xF6000 ... 0xFDFFF:
       return gb_rom_basic[(addr32-0xF6000)];
     case 0xFE000 ... 0xFFFFF:

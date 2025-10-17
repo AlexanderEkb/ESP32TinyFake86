@@ -23,12 +23,12 @@
 #include <esp_attr.h>
 #include <esp_log.h>
 
-#include "../cpu/cpu.h"
-#include "../cpu/ports.h"
-#include "../../../host/host.h"
-#include "gb_sdl_font8x8.h"
+#include "../../../../host/host.h"
+#include "../../machine_config.h"
+#include "../gb_sdl_font8x8.h"
 #include "render_cga.h"
 
+#if (IBM_XT_VIDEO_DRIVER == 0)
 #define TAG "render"
 #define EFFECTIVE_HEIGHT (200)
 
@@ -152,7 +152,7 @@ class cursor_t {
 
 cursor_t cursor;
 
-extern unsigned char gb_video_cga[16384];
+extern unsigned char videoMemory[16384];
 
 typedef struct render_t
 {
@@ -326,10 +326,10 @@ static void dump80x25()
   {
     for (uint32_t x = 0; x < 80; x++)
     {
-      aChar = gb_video_cga[src];
+      aChar = videoMemory[src];
       src++;
-      aColor = gb_video_cga[src] & 0x0F;
-      aBgColor = ((gb_video_cga[src] >> 4) & 0x0F);
+      aColor = videoMemory[src] & 0x0F;
+      aBgColor = ((videoMemory[src] >> 4) & 0x0F);
       printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
       src++;
     }
@@ -344,10 +344,10 @@ static void dump40x25()
   {
     for (uint32_t x = 0; x < 40; x++)
     {
-      uint8_t aChar = gb_video_cga[src];
+      uint8_t aChar = videoMemory[src];
       src++;
-      uint8_t aColor = gb_video_cga[src] & 0x0F;
-      uint8_t aBgColor = ((gb_video_cga[src] >> 4) & 0x07);
+      uint8_t aColor = videoMemory[src] & 0x0F;
+      uint8_t aBgColor = ((videoMemory[src] >> 4) & 0x07);
       printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
       src++;
     }
@@ -365,7 +365,7 @@ static void dump320x200()
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
-      uint8_t src = gb_video_cga[cont];
+      uint8_t src = videoMemory[cont];
       uint8_t bPixel3 = (src & 0x03);
       src >>= 2;
       uint8_t bPixel2 = (src & 0x03);
@@ -391,7 +391,7 @@ static void dump320x200()
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
-      uint8_t src = gb_video_cga[cont];
+      uint8_t src = videoMemory[cont];
       uint8_t bPixel3 = (src & 0x03);
       src >>= 2;
       uint8_t bPixel2 = (src & 0x03);
@@ -429,7 +429,7 @@ static void dump640x200()
     uint32_t offset = INITIAL_OFFSET;
     for (x = 0; x < 80; x++)
     {
-      unsigned char src = gb_video_cga[srcAddr];
+      unsigned char src = videoMemory[srcAddr];
       uint8_t a7 = (src & 0x01);
       src >>= 1;
       uint8_t a6 = (src & 0x01);
@@ -470,7 +470,7 @@ static void dump640x200()
     uint32_t offset = INITIAL_OFFSET;
     for (x = 0; x < 80; x++)
     {
-      unsigned char src = gb_video_cga[srcAddr];
+      unsigned char src = videoMemory[srcAddr];
       uint8_t a7 = (src & 0x01);
       src >>= 1;
       uint8_t a6 = (src & 0x01);
@@ -673,3 +673,5 @@ void renderUpdateBorder()
       line[x + render.rightBorderPosition] = barColor;
   }
 }
+
+#endif /* IBM_XT_VIDEO_DRIVER */
