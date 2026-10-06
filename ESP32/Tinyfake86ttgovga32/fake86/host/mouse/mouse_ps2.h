@@ -1,6 +1,10 @@
 #ifndef __MOUSE_PS2_H__
 #define __MOUSE_PS2_H__
 
+#include "../config/config.h"
+
+#if (MOUSE_DRIVER == 0)
+
 #include "mouse.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
@@ -35,4 +39,5 @@ class MousePs2_t : public Mouse_t
     static void mouseTask(void * p);
 };
 
+#endif /* MOUSE_DRIVER */
 #endif /* __MOUSE_PS2_H__ */

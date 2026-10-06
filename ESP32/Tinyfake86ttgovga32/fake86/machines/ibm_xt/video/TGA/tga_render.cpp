@@ -18,44 +18,53 @@
 //   it is a bit messy. i plan to rework much of this in the future. i am also
 //   going to add hardware accelerated scaling soon.
 
-/*
-MODE SELECTION SUMMARY
-                                        
-                 'H3D8  'H3D8   'H3DE REG3  'H3DE REG3  'H3DE REG3  'H3D8  'H3DD   'H3DF  'H3DF
-                 BIT 0   BIT 4     BIT 3       BIT 4       BIT 5    BIT 1  BIT 0   BIT 7  BIT 6
-MODE             HRESCK  HRESAD   C4COLHR      C16COL      NVDM      GRPH  EXTADR  ADRMl  ADRM0
-40X25 ALPHA         0       0         0           0         0         0       0       0     0
-80X25 ALPHA         1       0         0           0         0         0       0       0     0
-160X200 16 COL      0       0         0           1         0         1       0       0     1
-320X200 4 COL       0       0         0           0         0         1       0       0     1
-320X200 16 COL      1       0         0           1         0         1       0       1     1
-640X200 2 COL       0       1         0           0         0         1       0       0     1
-640X200 4 COL       1       1         1           0         0         1       0       1     1
+/* 
+ * ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+ * │                                                  MODE SELECTION SUMMARY                                            │
+ * ├───────────────────────┬───────┬─────────┬────────────┬─────────┬────────────┬┲━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┪
+ * │                       │ 'H3D8 │ 'H3D8   │ 'H3DE REG3 │  'H3D8  │ 'H3DE REG3 │┃ 'H3DE REG3 ┃ 'H3DD  ┃ 'H3DF ┃ 'H3DF ┃
+ * │     MODE              │ BIT 1 │  BIT 4  │    BIT 3   │  BIT 0  │    BIT 4   │┃    BIT 5   ┃ BIT 0  ┃ BIT 7 ┃ BIT 6 ┃
+ * │                       │  GRPH │  HRESAD │   C4COLHR  │  HRESCK │    C16COL  │┃    NVDM    ┃ EXTADR ┃ ADRMl ┃ ADRM0 ┃
+ * ├───────────────────────┼───────┼─────────┼────────────┼─────────┼────────────┼╊━━━━━━━━━━━━╋━━━━━━━━╋━━━━━━━╋━━━━━━━┫
+ * │40X25 ALPHA     (0, 1) │   0   │     0   │       0    │     0   │       0    │┃     0      ┃    0   ┃    0  ┃   0   ┃ 4?
+ * │80X25 ALPHA     (2, 3) │   0   │     0   │       0    │     1   │       0    │┃     0      ┃    0   ┃    0  ┃   0   ┃ 4?
+ * ├───────────────────────┼───────┼─────────┼────────────┼─────────┼────────────┼╊━━━━━━━━━━━━╋━━━━━━━━╋━━━━━━━╋━━━━━━━┫
+ * │320X200 4 COL   (4, 5) │   1   │     0   │       0    │     0   │       0    │┃     0      ┃    0   ┃    0  ┃   1   ┃ 4
+ * │160X200 16 COL  (8)    │   1   │     0   │       0    │     0   │       1    │┃     0      ┃    0   ┃    0  ┃   1   ┃ 2
+ * │320X200 16 COL  (9)    │   1   │     0   │       0    │     1   │       1    │┃     0      ┃    0   ┃    1  ┃   1   ┃ 2
+ * │640X200 2 COL   (6)    │   1   │     1   │       0    │     0   │       0    │┃     0      ┃    0   ┃    0  ┃   1   ┃ 8
+ * │640X200 4 COL   (A)    │   1   │     1   │       1    │     1   │       0    │┃     0      ┃    0   ┃    1  ┃   1   ┃ 4
+ * └───────────────────────┴───────┴─────────┴────────────┴─────────┴────────────┴┺━━━━━━━━━━━━┻━━━━━━━━┻━━━━━━━┻━━━━━━━┛
+ * 
+ * HRESAD:  640 dot graphics. A logical 1 selects 640x200 (2 or 4 color)
+ * GRPH:    Graphics selsct. Logical 0 is for alphanumeric modes 1 is for graphics.
+ * HRESCK:  High Resolution Dot Clock. This bit controls the operating speed of the
+ *          video system. A "0" selects the lower speed for 40 character text or
+ *          low resolution graphics modes. A "1" selects high speed for 80 character
+ *          text or high resolution graphics modes.
+ * NVDM:    Set to 1 for 640x200 secondary pixel organization
+ * C16COL:  Set to 1 for 16 color modes
+ * C4COLHR: Set to 1 for 4 color 640x200 mode
+ */
 
-
-
-
-
-
-'H3DF
-BIT 6
-ADRM0
-0011111
-21
-*/
 #include "../../machine_config.h"
 
 #if (IBM_XT_VIDEO_DRIVER == 1)
 
 #include <stdio.h>
 #include <string.h>
+#include <Esp.h>
 #include <esp_attr.h>
-#include <esp_log.h>
+#include <esp32-hal-log.h>
 #include "../gb_sdl_font8x8.h"
 #include "tga_render.h"
 
 #define TAG "render"
 #define EFFECTIVE_HEIGHT (200)
+
+uint8_t * tgaBuffer;
+uint8_t * tgaCrtPage;
+uint8_t * tgaCpuPage;
 
 uint8_t tgaRender::palette[16];
 uint32_t tgaRender::colorburstOverride;
@@ -137,6 +146,13 @@ void cursor_t::updatePosition()
 
 void tgaRender::init(void)
 {
+  // heap_caps_dump(uint32_t MALLOC_CAP_INTERNAL);
+  ESP_LOGI(TAG, "Heap state is %lu (%lu max)", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+  uint32_t const attr = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
+  tgaBuffer = reinterpret_cast<uint8_t *>(heap_caps_malloc(VIDEO_MEMORY_SIZE, attr));
+  tgaCpuPage = tgaBuffer;
+  tgaCrtPage = tgaBuffer;
+
   font = getFont();
   memcpy(palette, paletteHiRes, sizeof(palette));
 
@@ -176,37 +192,82 @@ void tgaRender::deinit(void)
 
 }
 
-void tgaRender::updateSettings(uint8_t settings, uint8_t colors)
+/* 
+ * ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+ * │                                                  MODE SELECTION SUMMARY                                            │
+ * ├───────────────────────┬───────┬─────────┬────────────┬─────────┬────────────┬┲━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┪
+ * │                       │ 'H3D8 │ 'H3D8   │ 'H3DE REG3 │  'H3D8  │ 'H3DE REG3 │┃ 'H3DE REG3 ┃ 'H3DD  ┃ 'H3DF ┃ 'H3DF ┃
+ * │     MODE              │ BIT 1 │  BIT 4  │    BIT 3   │  BIT 0  │    BIT 4   │┃    BIT 5   ┃ BIT 0  ┃ BIT 7 ┃ BIT 6 ┃
+ * │                       │  GRPH │  HRESAD │   C4COLHR  │  HRESCK │    C16COL  │┃    NVDM    ┃ EXTADR ┃ ADRMl ┃ ADRM0 ┃
+ * ├───────────────────────┼───────┼─────────┼────────────┼─────────┼────────────┼╊━━━━━━━━━━━━╋━━━━━━━━╋━━━━━━━╋━━━━━━━┫
+ * │40X25 ALPHA     (0, 1) │   0   │     0   │       0    │     0   │       0    │┃     0      ┃    0   ┃    0  ┃   0   ┃ 0x00 40X25 ALPHA     (0, 1)
+ * │80X25 ALPHA     (2, 3) │   0   │     0   │       0    │     1   │       0    │┃     0      ┃    0   ┃    0  ┃   0   ┃ 0x02 80X25 ALPHA     (2, 3)
+ * ├───────────────────────┼───────┼─────────┼────────────┼─────────┼────────────┼╊━━━━━━━━━━━━╋━━━━━━━━╋━━━━━━━╋━━━━━━━┫ 
+ * │320X200 4 COL   (4, 5) │   1   │     0   │       0    │     0   │       0    │┃     0      ┃    0   ┃    0  ┃   1   ┃ 0x10 320X200 4 COL   (4, 5)
+ * │160X200 16 COL  (8)    │   1   │     0   │       0    │     0   │       1    │┃     0      ┃    0   ┃    0  ┃   1   ┃ 0x11 160X200 16 COL  (8)   
+ * │320X200 16 COL  (9)    │   1   │     0   │       0    │     1   │       1    │┃     0      ┃    0   ┃    1  ┃   1   ┃ 0x13 320X200 16 COL  (9)   
+ * │640X200 2 COL   (6)    │   1   │     1   │       0    │     0   │       0    │┃     0      ┃    0   ┃    0  ┃   1   ┃ 0x18 640X200 2 COL   (6)   
+ * │640X200 4 COL   (A)    │   1   │     1   │       1    │     1   │       0    │┃     0      ┃    0   ┃    1  ┃   1   ┃ 0x1E 640X200 4 COL   (A)   
+ * └───────────────────────┴───────┴─────────┴────────────┴─────────┴────────────┴┺━━━━━━━━━━━━┻━━━━━━━━┻━━━━━━━┻━━━━━━━┛
+ * 
+ * HRESAD:  640 dot graphics. A logical 1 selects 640x200 (2 or 4 color)
+ * GRPH:    Graphics selsct. Logical 0 is for alphanumeric modes 1 is for graphics.
+ * HRESCK:  High Resolution Dot Clock. This bit controls the operating speed of the
+ *          video system. A "0" selects the lower speed for 40 character text or
+ *          low resolution graphics modes. A "1" selects high speed for 80 character
+ *          text or high resolution graphics modes.
+ * NVDM:    Set to 1 for 640x200 secondary pixel organization
+ * C16COL:  Set to 1 for 16 color modes
+ * C4COLHR: Set to 1 for 4 color 640x200 mode
+ */
+void tgaRender::updateSettings(uint8_t reg3D8h, uint8_t reg3D9h, uint8_t reg3DEh_3)
 {
   uint32_t const width = Host::video->width();
   // LOG("renderUpdateSettings(%02X, %02X)\n", settings, colors);
-  uint8_t _mode                     = (settings & 0x03) | ((settings >> 2) & 0x04);
-  const bool colorSuppressed        = (settings & 0x04);
+  // uint8_t _mode                     = (reg3D8 & 0x03) | ((reg3D8 >> 2) & 0x04);
+  uint8_t mode = 0;
+  if (reg3DEh_3 & 0x10) mode |= 0x01;
+  if (reg3D8h   & 0x01) mode |= 0x02;
+  if (reg3DEh_3 & 0x08) mode |= 0x04;
+  if (reg3D8h   & 0x10) mode |= 0x08;
+  if (reg3D8h   & 0x02) mode |= 0x10;
+  ESP_LOGI(TAG, "mode=%lu", mode);
+  const bool colorSuppressed        = (reg3D8h & 0x04);
   pendingRender.hasColor            = colorSuppressed ? COLORBURST_DISABLE : COLORBURST_ENABLE;
-  pendingRender.dumper              = modes[_mode].dumper;
-  pendingRender.textColCount        = modes[_mode].textColCount;
-  pendingRender.hOffset             = modes[_mode].hOffset;
-  pendingRender.blitter             = modes[_mode].blitter;
+  pendingRender.dumper              = modes[mode].dumper;
+  pendingRender.textColCount        = modes[mode].textColCount;
+  pendingRender.hOffset             = modes[mode].hOffset;
+  pendingRender.blitter             = modes[mode].blitter;
 
-  const uint32_t pixelsPerLine      = (modes[_mode].blitter == BLITTER_HIRES) ? 640 : 320;
-  const uint32_t effectiveWidth     = width * ((modes[_mode].blitter == BLITTER_HIRES) ? 2 : 1);
+  const uint32_t pixelsPerLine      = (modes[mode].blitter == BLITTER_HIRES) ? 640 : 320;
+  const uint32_t effectiveWidth     = width * ((modes[mode].blitter == BLITTER_HIRES) ? 2 : 1);
   pendingRender.pixelsPerLine       = pixelsPerLine;
-  pendingRender.horizontalPosition  = ((effectiveWidth - pixelsPerLine) >> 1) + modes[_mode].hOffset;
+  pendingRender.horizontalPosition  = ((effectiveWidth - pixelsPerLine) >> 1) + modes[mode].hOffset;
   pendingRender.rightBorderPosition = pendingRender.horizontalPosition + pixelsPerLine;
   pendingRender.rightBorderWidth    = effectiveWidth - pendingRender.rightBorderPosition;
 
-  Host::video->miscCmd(SET_BLITTER, modes[_mode].blitter);
+  Host::video->miscCmd(SET_BLITTER, modes[mode].blitter);
 
   // Colors
   static const uint8_t COLOR_MASK = 0x0F;
-  pendingRender.specialColor = colors & COLOR_MASK;
+  pendingRender.specialColor = reg3D9h & COLOR_MASK;
 
   static const uint8_t PALETTE_POS = 4;
   static const uint8_t PALETTE_MASK = 0x03;
 
-  pendingRender.paletteIndex = (colors >> PALETTE_POS) & PALETTE_MASK;
-  pendingRender.vmode        = !(settings & 0x02) ? ((settings & 0x01) ? TEXT_HI : TEXT_LO) : ((settings & 0x10) ? GRAPH_HI : GRAPH_LO);
-
+  pendingRender.paletteIndex = (reg3D9h >> PALETTE_POS) & PALETTE_MASK;
+  if(!(reg3D8h & 0x02))
+  {
+    pendingRender.vmode = (reg3D8h & 0x01) ? TEXT_HI : TEXT_LO;
+  }
+  else if(reg3D8h & 0x10)
+  {
+    pendingRender.vmode = (reg3DEh_3 & 0x08) ? GRAPH_HI_4 : GRAPH_HI_2;
+  }
+  else
+  {
+    pendingRender.vmode = (reg3DEh_3 & 0x10) ? ((reg3D8h & 0x01) ? GRAPH_LO_16 : GRAPH_ULTRALO) : GRAPH_LO_4;
+  }
   pendingRender.pendingChanges = true;
 }
 
@@ -238,7 +299,8 @@ void tgaRender::updateBorder()
     case TEXT_HI:
       barColor = render.hasColor ? paletteHiRes[render.specialColor] : paletteBW[render.specialColor];
       break;
-    case GRAPH_HI:
+    case GRAPH_HI_2:
+    case GRAPH_HI_4:
       barColor = 0;
       break;
     default:

@@ -17,7 +17,7 @@ void SerialMouse_t::onMouseEvent(int32_t dx, int32_t dy, uint8_t btn)
     uint8_t buffer[3];
 
     int8_t const dx_8 = static_cast<int8_t>(dx);
-    int8_t const dy_8 = static_cast<int8_t>(-dy);
+    int8_t const dy_8 = static_cast<int8_t>(dy);
     int8_t const lb = (btn & MOUSE_BUTTON_L) ? (1 << 5) : 0;
     int8_t const rb = (btn & MOUSE_BUTTON_R) ? (1 << 4) : 0;
 

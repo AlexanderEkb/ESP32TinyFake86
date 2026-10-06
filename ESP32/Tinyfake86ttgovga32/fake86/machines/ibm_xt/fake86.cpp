@@ -34,9 +34,9 @@ I8250_t * com1 = new I8250_t(0x3F8, 4);
 SerialMouse_t * serMouse;
 Stats stats;
 
-uint8_t     * ram;
+uint8_t * ram;
 
-uint8_t videoMemory[VIDEO_MEMORY_SIZE];
+extern uint8_t * tgaBuffer;
 
 //////////////////////////////////////////////////////////////////////////// Local function prototypes
 static void createRAM();
@@ -58,26 +58,26 @@ void setup()
   Host::init();
 
   createRAM();
-  #if (IBM_XT_VIDEO_DRIVER == 0)
-  renderInit();
-  #elif (IBM_XT_VIDEO_DRIVER == 1)
-  tgaRender::init();
-  #endif
   inithardware();
   serMouse = new SerialMouse_t(com1);
-#ifndef use_lib_singlecore
-  xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
-#endif
 
 #ifndef use_lib_speaker_cpu
   float auxTimer = (float)1.0 / (float)Speaker_t::SAMPLE_RATE;
   gb_ticker_callback.attach(auxTimer, my_callback_speaker_func);
 #endif
 
-  diskInit();
   Extensions_t::init();
+  #if (IBM_XT_VIDEO_DRIVER == 0)
+  renderInit();
+  #elif (IBM_XT_VIDEO_DRIVER == 1)
+  tgaRender::init();
+#ifndef use_lib_singlecore
+  xTaskCreatePinnedToCore(&videoTask, "videoTask", 1024 * 4, NULL, 5, &videoTaskHandle, 0);
+#endif
+  #endif
+  diskInit();
   reset86();
-  ESP_LOGI(TAG, "END SETUP %d", ESP.getFreeHeap());
+  ESP_LOGI(TAG, "END SETUP, free heap is %lu (max block is %lu)", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
 }
 
 static void inithardware()
@@ -95,7 +95,7 @@ void DoSoftReset()
 {
   gb_reset = 0;
   // ClearRAM();
-  memset(videoMemory, 0, 16384);
+  memset(tgaBuffer, 0, VIDEO_MEMORY_SIZE);
   Host::keyboard->Reset();
   reset86();
   inithardware();
@@ -122,7 +122,7 @@ void videoTask(void *unused)
 #elif (IBM_XT_VIDEO_DRIVER == 1)
     tgaRender::draw();
 #endif
-    vTaskDelay(40 / portTICK_PERIOD_MS);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
   }
   vTaskDelete(NULL);
 }

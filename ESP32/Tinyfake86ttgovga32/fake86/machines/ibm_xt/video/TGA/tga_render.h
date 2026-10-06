@@ -8,11 +8,11 @@
 
 #include "../../../../host/host.h"
 
-extern uint8_t videoMemory[];
-
 static uint32_t const COLORBURST_NO_CHANGE = 0x00;
 static uint32_t const COLORBURST_ENABLE = 0x01;
 static uint32_t const COLORBURST_DISABLE = 0x02;
+
+extern uint8_t * tgaCrtPage;
 
 class cursor_t {
   public:
@@ -85,7 +85,7 @@ class tgaRender
 
     static void init(void);
     static void deinit(void);
-    static void updateSettings(uint8_t settings, uint8_t colors);
+    static void updateSettings(uint8_t reg3D8, uint8_t reg3D9, uint8_t reg3DEh_3);
     static void setCharHeight(uint8_t height);
     static void setColorburstOverride(uint32_t value);
     static void setStartAddr(uint32_t addr);
@@ -94,6 +94,17 @@ class tgaRender
     static void setCursorEnd(uint8_t line);
     static void setCursorAddrMSB(uint8_t addr);
     static void setCursorAddrLSB(uint8_t addr);
+    static void updatePalette(uint32_t index, uint32_t value)
+    {
+      uint8_t const * pal = 
+      ((render.vmode == TEXT_LO) ||
+       (render.vmode == GRAPH_ULTRALO) ||
+       (render.vmode ==GRAPH_LO_4) ||
+       (render.vmode ==GRAPH_LO_16)) ?
+       (render.hasColor ? paletteLoRes : paletteBW) :
+       (render.hasColor ? paletteHiRes : paletteBW);
+      palette[index] = pal[value & 0x0F];
+    }
     static void draw()
     {
       render.frameCount++;
@@ -112,8 +123,11 @@ class tgaRender
     {
       TEXT_LO,
       TEXT_HI,
-      GRAPH_LO,
-      GRAPH_HI
+      GRAPH_ULTRALO,
+      GRAPH_LO_4,
+      GRAPH_LO_16,
+      GRAPH_HI_2,
+      GRAPH_HI_4
     } vmode_t;
 
     typedef struct render_t
@@ -151,7 +165,7 @@ class tgaRender
     static uint32_t const BLITTER_HIRES = 0;
     static uint32_t const BLITTER_LORES = 1;
 
-    static uint32_t const MODE_COUNT = 8;
+    static uint32_t const MODE_COUNT = 32;
 
     static uint8_t palette[16];
     static uint8_t dumpLineBuffer[700];
@@ -170,10 +184,10 @@ class tgaRender
       {
         for (uint32_t x = 0; x < 80; x++)
         {
-          aChar = videoMemory[src];
+          aChar = tgaCrtPage[src];
           src++;
-          aColor = videoMemory[src] & 0x0F;
-          aBgColor = ((videoMemory[src] >> 4) & 0x0F);
+          aColor = tgaCrtPage[src] & 0x0F;
+          aBgColor = ((tgaCrtPage[src] >> 4) & 0x0F);
           printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
           src++;
         }
@@ -188,13 +202,45 @@ class tgaRender
       {
         for (uint32_t x = 0; x < 40; x++)
         {
-          uint8_t aChar = videoMemory[src];
+          uint8_t aChar = tgaCrtPage[src];
           src++;
-          uint8_t aColor = videoMemory[src] & 0x0F;
-          uint8_t aBgColor = ((videoMemory[src] >> 4) & 0x07);
+          uint8_t aColor = tgaCrtPage[src] & 0x0F;
+          uint8_t aBgColor = ((tgaCrtPage[src] >> 4) & 0x07);
           printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
           src++;
         }
+      }
+      OnDumpDone();
+    }
+
+    static void dump160x200x4()
+    {
+      static const uint32_t INITIAL_OFFSET = 0;
+      static const uint32_t INTERLACE_FACTOR = 2;
+      unsigned short int vMemPtr = 0;
+      for(uint32_t i=0; i<INTERLACE_FACTOR; i++)
+      {
+        for (uint32_t y = 0; y < 100; y++)
+        {
+          uint32_t offset = INITIAL_OFFSET;
+          for (uint32_t x = 0; x < 80; x++)
+          {
+            uint8_t src = tgaCrtPage[vMemPtr];
+            uint8_t bPixel1 = (src & 0x0F);
+            src >>= 4;
+            uint8_t bPixel0 = (src & 0x0F);
+
+            dumpLineBuffer[offset++] = palette[bPixel0];
+            dumpLineBuffer[offset++] = palette[bPixel0];
+            dumpLineBuffer[offset++] = palette[bPixel1];
+            dumpLineBuffer[offset++] = palette[bPixel1];
+            vMemPtr++;
+          }
+          uint32_t yDest = (y << 1) + i;
+          uint32_t *dest = (uint32_t *)Host::video->scanline(yDest + VERTICAL_OFFSET);
+          memcpy((void *)dest + render.horizontalPosition, dumpLineBuffer, render.pixelsPerLine);
+        }
+        vMemPtr += 0xC0;
       }
       OnDumpDone();
     }
@@ -208,7 +254,7 @@ class tgaRender
         uint32_t offset = INITIAL_OFFSET;
         for (uint32_t x = 0; x < 80; x++)
         {
-          uint8_t src = videoMemory[cont];
+          uint8_t src = tgaCrtPage[cont];
           uint8_t bPixel3 = (src & 0x03);
           src >>= 2;
           uint8_t bPixel2 = (src & 0x03);
@@ -234,7 +280,7 @@ class tgaRender
         uint32_t offset = INITIAL_OFFSET;
         for (uint32_t x = 0; x < 80; x++)
         {
-          uint8_t src = videoMemory[cont];
+          uint8_t src = tgaCrtPage[cont];
           uint8_t bPixel3 = (src & 0x03);
           src >>= 2;
           uint8_t bPixel2 = (src & 0x03);
@@ -259,44 +305,29 @@ class tgaRender
     static void dump320x200x16()
     {
       static const uint32_t INITIAL_OFFSET = 0;
-      unsigned short int cont = 0;
-      for (uint32_t y = 0; y < 100; y++)
+      static const uint32_t INTERLACE_FACTOR = 4;
+      unsigned short int vMemPtr = 0;
+      for(uint32_t i=0; i<INTERLACE_FACTOR; i++)
       {
-        uint32_t offset = INITIAL_OFFSET;
-        for (uint32_t x = 0; x < 160; x++)
+        for (uint32_t y = 0; y < 50; y++)
         {
-          uint8_t src = videoMemory[cont];
-          uint8_t bPixel1 = (src & 0x0F);
-          src >>= 4;
-          uint8_t bPixel0 = (src & 0x0F);
+          uint32_t offset = INITIAL_OFFSET;
+          for (uint32_t x = 0; x < 160; x++)
+          {
+            uint8_t src = tgaCrtPage[vMemPtr];
+            uint8_t bPixel1 = (src & 0x0F);
+            src >>= 4;
+            uint8_t bPixel0 = (src & 0x0F);
 
-          dumpLineBuffer[offset++] = palette[bPixel0];
-          dumpLineBuffer[offset++] = palette[bPixel1];
-          cont++;
+            dumpLineBuffer[offset++] = palette[bPixel0];
+            dumpLineBuffer[offset++] = palette[bPixel1];
+            vMemPtr++;
+          }
+          uint32_t yDest = (y << 2) + i;
+          uint32_t *dest = (uint32_t *)Host::video->scanline(yDest + VERTICAL_OFFSET);
+          memcpy((void *)dest + render.horizontalPosition, dumpLineBuffer, render.pixelsPerLine);
         }
-        uint32_t yDest = (y << 1);
-        uint32_t *dest = (uint32_t *)Host::video->scanline(yDest + VERTICAL_OFFSET);
-        memcpy((void *)dest + render.horizontalPosition, dumpLineBuffer, render.pixelsPerLine);
-      }
-
-      cont = 0x4000;
-      for (uint32_t y = 0; y < 100; y++)
-      {
-        uint32_t offset = INITIAL_OFFSET;
-        for (uint32_t x = 0; x < 160; x++)
-        {
-          uint8_t src = videoMemory[cont];
-          uint8_t bPixel1 = (src & 0x0F);
-          src >>= 4;
-          uint8_t bPixel0 = (src & 0x0F);
-
-          dumpLineBuffer[offset++] = palette[bPixel0];
-          dumpLineBuffer[offset++] = palette[bPixel1];
-          cont++;
-        }
-        uint32_t yDest = (y << 1) + 1;
-        uint32_t *dest = (uint32_t *)Host::video->scanline(yDest + VERTICAL_OFFSET);
-        memcpy((void *)dest + render.horizontalPosition, dumpLineBuffer, render.pixelsPerLine);
+        vMemPtr += 0xC0;
       }
       OnDumpDone();
     }
@@ -316,7 +347,7 @@ class tgaRender
         uint32_t offset = INITIAL_OFFSET;
         for (x = 0; x < 80; x++)
         {
-          unsigned char src = videoMemory[srcAddr];
+          unsigned char src = tgaCrtPage[srcAddr];
           uint8_t a7 = (src & 0x01);
           src >>= 1;
           uint8_t a6 = (src & 0x01);
@@ -357,7 +388,7 @@ class tgaRender
         uint32_t offset = INITIAL_OFFSET;
         for (x = 0; x < 80; x++)
         {
-          unsigned char src = videoMemory[srcAddr];
+          unsigned char src = tgaCrtPage[srcAddr];
           uint8_t a7 = (src & 0x01);
           src >>= 1;
           uint8_t a6 = (src & 0x01);
@@ -394,6 +425,10 @@ class tgaRender
       OnDumpDone();
     }
 
+    static void dump640x200x4()
+    {
+    }
+
     typedef struct
     {
       /// @brief Characters per line. Only has effect in text modes
@@ -407,14 +442,39 @@ class tgaRender
     } videoMode_t;
 
     static constexpr videoMode_t modes[MODE_COUNT] = {
-      {40, dump40x25,       BLITTER_LORES, 0},
-      {80, dump80x25,       BLITTER_HIRES, 0},
-      {40, dump320x200x4,   BLITTER_LORES, 0},
-      {40, dump320x200x4,   BLITTER_LORES, 0},
-      {40, dump40x25,       BLITTER_LORES, 0},
-      {80, dump80x25,       BLITTER_HIRES, 0},
-      {80, dump640x200x2,   BLITTER_HIRES, 2},
-      {80, dump640x200x2,   BLITTER_HIRES, 2}};
+      {40, dump40x25,       BLITTER_LORES, 0},  // 0x00 40X25 ALPHA
+      {40, dump40x25,       BLITTER_LORES, 0},  // 0x01
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x02 80X25 ALPHA
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x03
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x04
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x05
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x06
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x07
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x08
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x09
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x0A
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x0B
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x0C
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x0D
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x0E
+      {80, dump80x25,       BLITTER_HIRES, 0},  // 0x0F
+      {40, dump320x200x4,   BLITTER_LORES, 0},  // 0x10 320X200 4 COL
+      {20, dump160x200x4,   BLITTER_LORES, 0},  // 0x11 160X200 16 COL
+      {40, dump320x200x4,   BLITTER_LORES, 0},  // 0x12
+      {40, dump320x200x16,  BLITTER_LORES, 0},  // 0x13 320X200 16 COL
+      {40, dump320x200x16,  BLITTER_LORES, 0},  // 0x14
+      {40, dump320x200x16,  BLITTER_LORES, 0},  // 0x15
+      {40, dump320x200x16,  BLITTER_LORES, 0},  // 0x16
+      {40, dump320x200x16,  BLITTER_LORES, 0},  // 0x17
+      {80, dump640x200x2,   BLITTER_HIRES, 0},  // 0x18 640X200 2 COL
+      {80, dump640x200x2,   BLITTER_HIRES, 0},  // 0x19
+      {80, dump640x200x2,   BLITTER_HIRES, 0},  // 0x1A
+      {80, dump640x200x2,   BLITTER_HIRES, 0},  // 0x1B
+      {80, dump640x200x2,   BLITTER_HIRES, 0},  // 0x1C
+      {80, dump640x200x2,   BLITTER_HIRES, 0},  // 0x1D
+      {80, dump640x200x4,   BLITTER_HIRES, 0},  // 0x1E 640X200 4 COL 
+      {80, dump640x200x4,   BLITTER_HIRES, 0},  // 0x1F 
+    };
 
     static __always_inline void OnDumpDone()
     {
@@ -433,13 +493,21 @@ class tgaRender
         case TEXT_HI:
           memcpy(palette, colorEnabled ? paletteHiRes : paletteBW, 16);
           break;
-        case GRAPH_LO:
+        case GRAPH_LO_4:
           memcpy(palette, colorEnabled ? graphPalettes[render.paletteIndex] : graphPalettesBW[render.paletteIndex], GRAPH_PALETTE_SIZE);
           palette[0] = paletteLoRes[render.specialColor];
           break;
-        case GRAPH_HI:
+        case GRAPH_LO_16:
+        case GRAPH_ULTRALO:
+          memcpy(palette, paletteLoRes /*colorEnabled ? paletteLoRes : paletteBW */, 16 /* GRAPH_PALETTE_SIZE */);
+          break;
+        case GRAPH_HI_2:
           palette[0] = 0;
           palette[1] = colorEnabled ? paletteHiRes[render.specialColor] : paletteBW[render.specialColor];
+          break;
+        case GRAPH_HI_4:
+          memcpy(palette, colorEnabled ? paletteLoRes : paletteBW, GRAPH_PALETTE_SIZE);
+          palette[0] = paletteLoRes[render.specialColor];
           break;
         }
 

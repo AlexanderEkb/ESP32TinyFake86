@@ -36,6 +36,7 @@
 #include "esp_heap_caps.h"
 #include "esp_attr.h"
 #include "esp_intr_alloc.h"
+#include "esp_log.h"
 #include "esp_err.h"
 #include "soc/gpio_reg.h"
 #include "soc/rtc.h"
@@ -298,6 +299,8 @@ static esp_err_t start_dma(int line_width,int samples_per_cc, int ch = 1)
     if (esp_intr_alloc(ETS_I2S0_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_INTRDISABLED,
         i2s_intr_handler_video, 0, &_isr_handle) != ESP_OK)
         return -1;
+    const uint32_t coreID = xPortGetCoreID();
+    ESP_LOGI("BLITTER", "NTSC DMA initialized: core #%i", coreID);
 
     // reset conf
     I2S0.conf.val = 1;

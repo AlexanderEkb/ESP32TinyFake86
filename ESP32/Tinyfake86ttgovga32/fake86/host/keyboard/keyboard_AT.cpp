@@ -23,7 +23,7 @@ void KeyboardDriverAT::init()
   pinMode(KEYBOARD_DATA, INPUT_PULLUP);
   pinMode(KEYBOARD_CLK, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(KEYBOARD_CLK), onExti, FALLING);
-  ESP_LOGI(TAG, "AT keyboard interface init ok");
+  ESP_LOGI(TAG, "AT keyboard interface init ok, %lu", ESP.getFreeHeap());
 }
 
 void KeyboardDriverAT::Reset()

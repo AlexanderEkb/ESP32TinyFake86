@@ -1,9 +1,13 @@
 #include "../../config/config.h"
 
 #if (HOST_VIDEO_DRIVER == 0)
+#include <esp32-hal-log.h>
+#include <esp.h>
 #include <string.h>
 #include "RawCompositeVideoBlitter.h"
 #include "compositeNtsc.h"
+
+#define TAG "NTSC"
 
 void VideoCompositeNtsc_t::init()
 {
@@ -12,6 +16,7 @@ void VideoCompositeNtsc_t::init()
   RawCompositeVideoBlitter::_phase = 0;
   RawCompositeVideoBlitter::frame_init(); // The CompositeGraphics lib will do this for us
   RawCompositeVideoBlitter::video_init(RawCompositeVideoBlitter::NTSC);
+  ESP_LOGI(TAG, "Init done, %lu", ESP.getFreeHeap());
 }
 
 void VideoCompositeNtsc_t::miscCmd(uint32_t cmd, uint32_t param)
@@ -38,6 +43,7 @@ void VideoCompositeNtsc_t::miscCmd(uint32_t cmd, uint32_t param)
 
 uint8_t ** VideoCompositeNtsc_t::createBuffer()
 {
+  uint32_t heap = ESP.getFreeHeap();
   bufferNTSC = (uint8_t **)malloc(YRES * sizeof(char *));
   assert(bufferNTSC);
   for (int y = 0; y < YRES; y++)
@@ -46,7 +52,8 @@ uint8_t ** VideoCompositeNtsc_t::createBuffer()
     assert(bufferNTSC[y]);
     memset(bufferNTSC[y], 0x00, XRES * 2);
   }
-
+  heap -= ESP.getFreeHeap();
+  ESP_LOGI(TAG, "Video buffer takes %lu bytes", heap);
   return bufferNTSC;
 }
 

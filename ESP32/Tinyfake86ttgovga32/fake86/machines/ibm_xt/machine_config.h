@@ -21,7 +21,7 @@
 #if (IBM_XT_VIDEO_DRIVER == 0)
 #define VIDEO_MEMORY_SIZE (16384)
 #elif (IBM_XT_VIDEO_DRIVER == 1)
-#define VIDEO_MEMORY_SIZE (32768)
+#define VIDEO_MEMORY_SIZE (65536)
 #endif
 
 /**
@@ -40,7 +40,7 @@
  * @brief RAM size in bytes. Must be lower than 736K.
  * 
  */
-#define RAM_SIZE (640 * 1024)
+#define RAM_SIZE (640 * 1024 - 1)
 
 /**
  * @brief If defined, host generates some real-time statistics about CPU performance.

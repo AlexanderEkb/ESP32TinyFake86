@@ -14,7 +14,7 @@ Mouse_t * Host::mouse;
 
 void Host::init()
 {
-  ESP_LOGI(TAG, "Host init %d", ESP.getFreeHeap());
+  ESP_LOGI(TAG, "Host init %d, %lu", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
 
 #if (KEYBOARD_DRIVER == 0)
   keyboard = new KeyboardDriverSimplifiedXT(); // stm32keyboard();
@@ -24,6 +24,8 @@ void Host::init()
 
 #if (MOUSE_DRIVER == 0)
   mouse = new MousePs2_t();
+#elif (MOUSE_DRIVER == 1)
+  mouse = new MouseSun_t();
 #endif
 
 #if (HOST_VIDEO_DRIVER == 0)
@@ -45,7 +47,7 @@ void Host::init()
   mouse->init();
   video->init();
 
-  ESP_LOGI(TAG, "Host init ok %d", ESP.getFreeHeap());
+  ESP_LOGI(TAG, "Host init ok %d, %lu", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
 }
 
 void Host::run()

@@ -1,3 +1,4 @@
+#include <Esp.h>
 #include <esp32-hal-log.h>
 #include "audio.h"
 #include "../config/config.h"
@@ -35,7 +36,7 @@ void Audio_t::init()
       .duty = 1,
       .hpoint = 0};
   ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
-  ESP_LOGI(TAG, "Init ok");
+  ESP_LOGI(TAG, "Init ok, %lu", ESP.getFreeHeap());
 }
 
 void Audio_t::playSample(uint8_t sample)

@@ -1,10 +1,13 @@
+#include "mouse_ps2.h"
+
+#if (MOUSE_DRIVER == 0)
+
 #include <Arduino.h>
 #include <esp32-hal-gpio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include <esp_log.h>
-#include "mouse_ps2.h"
 #include "../config/config.h"
 
 #define TAG "MOUSE"
@@ -79,7 +82,7 @@ void MousePs2_t::init()
         if(byte == 0xFA)
         {
           state = RUNNING;
-          ESP_LOGI(TAG, "PS/2 mouse interface init ok");
+          ESP_LOGI(TAG, "PS/2 mouse interface init ok, %lu", ESP.getFreeHeap());
         } else
         {
           rstRespCount = 0;
@@ -250,3 +253,5 @@ void MousePs2_t::mouseTask(void * p)
     }
   }
 }
+
+#endif /* MOUSE_DRIVER */

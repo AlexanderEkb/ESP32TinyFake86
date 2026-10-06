@@ -13,12 +13,26 @@ static uint8_t const BTN_MASK = (
   MOUSE_BUTTON_M |
   MOUSE_BUTTON_R);
 
-class MouseImplementation_t
+/**
+ * This is a representation of a mouse for the Machine object.
+ * To emulate a particular kind of a mouse, you should prepare a driver
+ * for it and somehow handle onMouseEvent() method in your Machine.
+ */
+class GenericMouse_t
 {
   public:
     virtual void onMouseEvent(int32_t dx, int32_t dy, uint8_t btn) = 0;
 };
 
+/**
+ * This is a representation of a mouse for the Host object. 
+ * To make your particular mouse working you should prepare a driver
+ * for the particular mouse connected to your build, inherited from
+ * this class, and provide it to the Host;
+ * Now there kinds of mices are supported:
+ *   - PS/2 Mouse
+ *   - Sun Microsystems Mouse (also serial)
+ */
 class Mouse_t
 {
   public:
@@ -28,12 +42,12 @@ class Mouse_t
     }
     virtual ~Mouse_t() {};
     virtual void init() = 0;
-    virtual void bind(MouseImplementation_t * q)
+    virtual void bind(GenericMouse_t * q)
     {
       sink = q;
     }
   protected:
-    MouseImplementation_t * sink;
+    GenericMouse_t * sink;
 };
 
 #endif /* __MOUSE_H__ */

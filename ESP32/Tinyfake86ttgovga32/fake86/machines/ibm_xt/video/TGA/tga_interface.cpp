@@ -54,6 +54,7 @@
  * 
 */
 
+#include <esp32-hal-log.h>
 #include "../../machine_config.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -62,8 +63,9 @@
 #include "../../cpu/cpu.h"
 #include "../../cpu/ports.h"
 
+#define TAG "T_R"
+
 #if (IBM_XT_VIDEO_DRIVER == 1)
-#define LOG_WRITE_PORT(...) (void)(__VA_ARGS__)
 
 #define PORT_3D8_BLINKING			(0x20)
 #define PORT_3D8_HIRES_GRAPH	(0x10)
@@ -91,6 +93,10 @@
 #define MC6845_REG_LPEN_MSB         (16)
 #define MC6845_REG_LPEN_LSB         (17)
 
+extern uint8_t * tgaBuffer;
+extern uint8_t * tgaCrtPage;
+extern uint8_t * tgaCpuPage;
+
 static uint8_t  readDummy(uint32_t portnum);
 static void     write3D4h(uint32_t portnum, uint8_t value);
 static uint8_t  read3D5h(uint32_t portnum);
@@ -110,9 +116,9 @@ IOPort port_3D9h = IOPort(0x3D9, 0xFF, nullptr,   write3D9h);
 IOPort port_3DAh = IOPort(0x3DA, 0xFF, read3DAh,  write3DAh);
 IOPort port_3DBh = IOPort(0x3DB, 0xFF, readDummy, nullptr);
 IOPort port_3DCh = IOPort(0x3DC, 0xFF, readDummy, nullptr);
-IOPort port_3DDh = IOPort(0x3DE, 0xFF, nullptr, write3DDh);
+IOPort port_3DDh = IOPort(0x3DD, 0xFF, nullptr, write3DDh);
 IOPort port_3DEh = IOPort(0x3DE, 0xFF, nullptr, write3DEh);
-IOPort port_3DFh = IOPort(0x3DE, 0xFF, nullptr, write3DFh);
+IOPort port_3DFh = IOPort(0x3DF, 0xFF, nullptr, write3DFh);
 
 static const uint32_t MC6845_REG_TOTAL    = 18;
 static const uint32_t MC6845_REG_READABLE = 0x0D;
@@ -125,7 +131,6 @@ static uint8_t        tgaRegSelector = 0;
 static uint8_t        tgaPaletteMask = 0x0F;
 static uint8_t        tgaBorderColor = 0x00;
 static uint8_t        tgaModeControl = 0x00;
-static uint8_t        tgaPalette[tgaRender::TGA_COLOR_COUNT];
 static uint8_t        tgaExtRamPageReg = 0x00;
 static uint8_t        tgaCRT_CPUPageReg = 0x00;
 
@@ -143,44 +148,44 @@ static void write3D5h (uint32_t portnum, uint8_t value)
   switch (mc6845RegSelector)
   {
   case MC6845_REG_HTOTAL:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write H_TOTAL: %02xh", value);
     break;
   case MC6845_REG_HDISP:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write H_DISP %02xh", value);
     break;
   case MC6845_REG_HSYNC:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write H_SYNC_W %02xh", value);
     break;
   case MC6845_REG_VTOTAL:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write V_TOTAL %02xh", value);
     break;
   case MC6845_REG_VTOTAL_ADJUST:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write V_TOTAL_ADJ %02xh", value);
     break;
   case MC6845_REG_VDISP_POS:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write V_DISP %02xh", value);
     break;
   case MC6845_REG_VSYNC_POS:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write V_SYNC_P %02xh", value);
     break;
   case MC6845_REG_MAX_ROWS:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write MAX_ROWS %02xh", value);
     tgaRender::setCharHeight(value);
     break;
   case MC6845_REG_CURSOS_START:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write CUR_START %02xh", value);
     tgaRender::setCursorStart(value);
     break;
   case MC6845_REG_CURSOR_END:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write CUR_END %02xh", value);
     tgaRender::setCursorEnd(value);
     break;
   case MC6845_REG_START_ADDR_MSB:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write START_M %02xh", value);
     tgaRender::setStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
     break;
   case MC6845_REG_START_ADDR_LSB:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write START_L %02xh", value);
     tgaRender::setStartAddr((mc6845Registers[MC6845_REG_START_ADDR_MSB] << 8) | mc6845Registers[MC6845_REG_START_ADDR_LSB]);
     break;
   case MC6845_REG_CURSOR_ADDR_MSB:
@@ -190,10 +195,10 @@ static void write3D5h (uint32_t portnum, uint8_t value)
     tgaRender::setCursorAddrLSB(value);
     break;
   case MC6845_REG_LPEN_MSB:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write LPEN_M %02xh", value);
     break;
   case MC6845_REG_LPEN_LSB:
-    LOG_WRITE_PORT("MC6845 write reg %02xh: %02xh\n", mc6845RegSelector, value);
+    // ESP_LOGI(TAG, "MC6845 write LPEN_L %02xh", value);
     break;
   }
 }
@@ -206,6 +211,7 @@ uint8_t read3D5h (uint32_t portnum)
     result = 0;
   else
     result = mc6845Registers[mc6845RegSelector];
+  // ESP_LOGI(TAG, "read 3D5h: %02xh", result);
 	return result;
 }
 
@@ -216,38 +222,34 @@ static void write3D8h(uint32_t portnum, uint8_t value)
   
   */
   (void)portnum;
-  LOG_WRITE_PORT("write3D8h(%02x)\n", value);
+  ESP_LOGI(TAG, "CGA_MODE = %02Xh", value);
   port3D8h = value;
-  tgaRender::updateSettings(port3D8h, port3D9h);
+  tgaRender::updateSettings(port3D8h, port3D9h, tgaModeControl);
 }
 
 static void write3D9h(uint32_t portnum, uint8_t value)
 {
   (void)portnum;
-  LOG_WRITE_PORT("write3D9h(%02x)\n", value);
+  // ESP_LOGI(TAG, "3D9h = %02Xh", value);
   port3D9h = value;
-  tgaRender::updateSettings(port3D8h, port3D9h);
+  tgaRender::updateSettings(port3D8h, port3D9h, tgaModeControl);
 }
 
 static uint8_t read3DAh(uint32_t portnum)
 {
   (void)portnum;
-
+  static uint32_t const V_RETRACE = 0x08;
+  static uint32_t const H_RETRACE = 0x01;
   static uint32_t retraceCounter = 0;
-  uint8_t retrace;
-  if(++retraceCounter == 360)
-  {
-    retraceCounter = 0;
-    retrace |= 0x08;
-  }
+  uint8_t flags = 0;
 
-  // TGA version, doesn't work with current BIOS:
-  // uint8_t const dispEn = port3D8h >> 3;
-  // return (retrace | dispEn);
-
-  // CGA version, works well:
-  retrace |= (retraceCounter & 0x04) ? 0x01 : 0x00;
-  return (port3DAh & 0xFE | retrace);
+  ++retraceCounter;
+  retraceCounter %= 320;
+  flags |= (retraceCounter & 0x04) ? H_RETRACE : 0x00;
+  flags |= (retraceCounter == 0x04) ? V_RETRACE : 0x00;
+  uint8_t const result = (port3DAh & 0xF6 | flags);
+  // ESP_LOGI(TAG, "read 3DAh = %02X", result);
+  return result;
 }
 
 void write3DAh(uint32_t portnum, uint8_t value)
@@ -259,6 +261,7 @@ void write3DAh(uint32_t portnum, uint8_t value)
 void write3DDh(uint32_t portnum, uint8_t value)
 {
   (void)portnum;
+  ESP_LOGI(TAG, "EXT_RAM_Page = %02Xh (Unused?)", value);
   tgaExtRamPageReg = value;
 }
 
@@ -268,22 +271,31 @@ void write3DEh(uint32_t portnum, uint8_t value)
   switch(tgaRegSelector)
   {
     case 0x01:
+      // ESP_LOGI(TAG, "PAL_MASK %02Xh", value);
       tgaPaletteMask = value;
       return;
     case 0x02:
+      // ESP_LOGI(TAG, "BORDER %02Xh", value);
       tgaBorderColor = value & 0xDF;
       return;
     case 0x03:
+      // ESP_LOGI(TAG, "TGA_MODE (3DEh_3) = %02Xh", tgaRegSelector, value);
       tgaModeControl = value & 0xFD;
+      ESP_LOGI(TAG, "TGA_MODE = %02Xh", value);
+      tgaRender::updateSettings(port3D8h, port3D9h, tgaModeControl);
       return;
     case 0x10 ... 0x1F:
-      tgaPalette[tgaRegSelector - 0x10] = value;
+      ESP_LOGI(TAG, "TGA_PAL[%02X] = %02Xh", tgaRegSelector, value);
+      tgaRender::updatePalette(tgaRegSelector - 0x10, value);
   }
 }
 
 void write3DFh(uint32_t portnum, uint8_t value)
 {
   (void)portnum;
+  ESP_LOGI(TAG, "CRT_CPU_page %02Xh", value);
+  tgaCrtPage = tgaBuffer + (4000 * (value & 0x07));
+  tgaCpuPage = tgaBuffer + (4000 * ((value >> 3) & 0x07));
   tgaCRT_CPUPageReg = value;
 }
 

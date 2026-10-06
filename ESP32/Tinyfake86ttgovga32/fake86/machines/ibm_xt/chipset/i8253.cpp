@@ -19,7 +19,18 @@
 
 /* i8253.c: functions to emulate the Intel 8253 programmable interval timer.
    these are required for the timer interrupt and PC speaker to be
-   properly emulated! */
+   properly emulated! 
+   
+   CH0: System timer
+   CH1: DRAM refresh
+   CH2: PC Speaker
+
+   Digger does this:
+   [ 48446][I][i8253.cpp:210] writeControl(): [PIT] Channel 02: BOTH  3h BIN
+   [ 48454][I][i8253.cpp:210] writeControl(): [PIT] Channel 00: BOTH  3h BIN
+
+   
+   */
 
 #include <stdint.h>
 #include <stdio.h>
@@ -43,13 +54,13 @@
 
 typedef struct i8253_s
 {
+  uint32_t mode;
   uint16_t update;
   uint8_t accessmode;
   bool MSB;
   bool active;
   // uint16_t counter;
   uint16_t latch;
-  bool isLatched;
 } i8253_s;
 
 static const uint32_t CHANNEL_COUNT = 3;
@@ -156,6 +167,8 @@ static void setCounter(uint32_t channel, uint16_t value)
     default:
       return;
   }
+  // if(counter < 0x20ULL)
+  //   counter = 0x20ULL;
   timer_set_counter_value(TIMER_GROUP_0, idx, counter);
 }
 
@@ -190,21 +203,30 @@ static void writeCounter(uint32_t address, uint8_t value)
 
 static void writeControl(uint32_t address, uint8_t value)
 {
-  // ESP_LOGI(TAG, "%02X: %02X", static_cast<unsigned int>(address), static_cast<unsigned int>(value));
-  const uint32_t channel = value >> 6;
-  const uint8_t accessmode = (value >> 4) & 3;
-  const uint8_t mode = (value >> 1) & 7;
-  const uint16_t counter = getCounter(channel);
+  uint32_t BCD = (value & 0x01);
 
-  i8253[channel].accessmode = accessmode;
-  if(accessmode == PIT_MODE_LATCHCOUNT)
+  uint32_t const channel = value >> 6;
+  uint32_t const RL = (value >> 4) & 0x03;
+  uint8_t  const mode = (value >> 1) & 7;
+  uint16_t const counter = getCounter(channel);
+
+  // ESP_LOGI(TAG, "Channel %02X: %s %01Xh %s", 
+  //   channel,
+  //   (RL == 0) ? "LATCH" : ((RL == 1) ? " LSB " : ((RL == 2) ? " MSB " : "BOTH ")),
+  //   mode,
+  //   (BCD == 0) ? "BIN" : "BCD");
+
+  i8253[channel].mode = mode;
+  i8253[channel].accessmode = RL;
+
+  if ((RL == PIT_MODE_TOGGLE) || (RL == PIT_MODE_LATCHCOUNT))
   {
-    i8253[channel].latch = counter;
-  }
-  i8253[channel].isLatched = (accessmode == PIT_MODE_LATCHCOUNT);
-
-  if ((accessmode == PIT_MODE_TOGGLE) || (accessmode == PIT_MODE_LATCHCOUNT))
     i8253[channel].MSB = false;
+    if(RL == PIT_MODE_LATCHCOUNT)
+    {
+      i8253[channel].latch = counter;
+    }
+  }
 }
 
 static uint8_t readCounter(uint32_t address)
@@ -212,12 +234,13 @@ static uint8_t readCounter(uint32_t address)
   const uint32_t channel = address & 0x03;
   uint8_t & accessMode = i8253[channel].accessmode;
   uint16_t counter = getCounter(channel);
-
   const bool interleavedRead = (accessMode == PIT_MODE_LATCHCOUNT) || (accessMode == PIT_MODE_TOGGLE);
   const bool readMSB = (accessMode == PIT_MODE_HIBYTE) || (interleavedRead && i8253[channel].MSB);
 
-  uint16_t & value = (i8253[channel].isLatched) ? i8253[channel].latch : counter;
-  if ((accessMode == 0) || (accessMode == PIT_MODE_TOGGLE))
+  // uint16_t & value = (i8253[channel].isLatched) ? i8253[channel].latch : counter;
+  uint16_t & value = (accessMode == PIT_MODE_LATCHCOUNT) ? i8253[channel].latch : counter;
+  
+  if (interleavedRead)
     i8253[channel].MSB = !i8253[channel].MSB;
 
   const uint8_t result = readMSB ? ((uint8_t)value) : ((uint8_t)(value >> 8));
@@ -234,7 +257,10 @@ static uint8_t readControl(uint32_t address)
 static void IRAM_ATTR ch0isr(void * p)
 {
   timer_spinlock_take(TIMER_GROUP_0);
-  doirq(0);
+  switch(i8253[0].mode) {
+    default:
+      doirq(0);
+  }
   timer_group_clr_intr_status_in_isr(TIMER_GROUP_0, TIMER_0);
   timer_group_enable_alarm_in_isr(TIMER_GROUP_0, TIMER_0);
   timer_spinlock_give(TIMER_GROUP_0);

@@ -15,6 +15,8 @@
 
 #if (MOUSE_DRIVER == 0)
 #include "mouse/mouse_ps2.h"
+#elif (MOUSE_DRIVER == 1)
+#include "mouse/mouse_sun.h"
 #else
 #error "Choose any supported mouse driver!"
 #endif

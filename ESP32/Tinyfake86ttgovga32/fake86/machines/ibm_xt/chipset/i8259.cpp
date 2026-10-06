@@ -53,9 +53,9 @@ static void write_20h(uint32_t address, uint8_t value)
 {
   if (value & 0x10)
   { // begin initialization sequence
-    i8259.icwstep = 1;
+    i8259.icw[1] = value;
     i8259.imr = 0; // clear interrupt mask register
-    i8259.icw[i8259.icwstep++] = value;
+    i8259.icwstep = 2;
     return;
   }
   if ((value & 0x98) == 8)
@@ -76,10 +76,14 @@ static void write_20h(uint32_t address, uint8_t value)
 
 static void write_21h(uint32_t address, uint8_t value)
 {
-		 if ((i8259.icwstep==3) && (i8259.icw[1] & 2)) i8259.icwstep = 4; //single mode, so don't read ICW3
-		 if (i8259.icwstep<5) { i8259.icw[i8259.icwstep++] = value; return; }
-		 //if we get to this point, this is just a new IMR value
-		 i8259.imr = value;
+  if ((i8259.icwstep==3) && (i8259.icw[1] & 2)) i8259.icwstep = 4; //single mode, so skip ICW3
+
+  if (i8259.icwstep<5) {
+    i8259.icw[i8259.icwstep++] = value;
+    return; 
+  }
+  //if we get to this point, this is just a new IMR value
+  i8259.imr = value;
 }
 
 uint8_t nextintr() {

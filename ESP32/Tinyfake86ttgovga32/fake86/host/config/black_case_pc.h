@@ -19,8 +19,9 @@
 /**
  @brief Mouse driver used in the system.
  0 is for PS/2 one.
+ 1 is for retro-looking (and feeling) Sun Microsystems "Compact 1" model.
 */
-#define MOUSE_DRIVER 0
+#define MOUSE_DRIVER 1
 
 /**
  * @brief Video driver used in the system/
@@ -38,6 +39,7 @@
  */
 #define KEYBOARD_CLK    27
 
+#if (MOUSE_DRIVER == 0)
 /**
  * @brief PS/2 mouse DATA pin
  */
@@ -47,6 +49,14 @@
  * @brief  PS/2 mouse CLK pin
  */
 #define PS2_MOUSE_CLK    19
+
+#elif (MOUSE_DRIVER == 1)
+/**
+ * @brief  Sun Compact 1 mouse serial data.
+ * 1200 8N1
+ */
+#define MOUSE_DATA (18)
+#endif /* MOUSE_DRIVER */
 
 //=====================================================================[SD-Card]
 #define RG_STORAGE_HOST SDMMC_HOST_SLOT_1

@@ -152,7 +152,7 @@ class cursor_t {
 
 cursor_t cursor;
 
-extern unsigned char videoMemory[16384];
+extern unsigned char videoRAM[16384];
 
 typedef struct render_t
 {
@@ -326,10 +326,10 @@ static void dump80x25()
   {
     for (uint32_t x = 0; x < 80; x++)
     {
-      aChar = videoMemory[src];
+      aChar = videoRAM[src];
       src++;
-      aColor = videoMemory[src] & 0x0F;
-      aBgColor = ((videoMemory[src] >> 4) & 0x0F);
+      aColor = videoRAM[src] & 0x0F;
+      aBgColor = ((videoRAM[src] >> 4) & 0x0F);
       printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
       src++;
     }
@@ -344,10 +344,10 @@ static void dump40x25()
   {
     for (uint32_t x = 0; x < 40; x++)
     {
-      uint8_t aChar = videoMemory[src];
+      uint8_t aChar = videoRAM[src];
       src++;
-      uint8_t aColor = videoMemory[src] & 0x0F;
-      uint8_t aBgColor = ((videoMemory[src] >> 4) & 0x07);
+      uint8_t aColor = videoRAM[src] & 0x0F;
+      uint8_t aBgColor = ((videoRAM[src] >> 4) & 0x07);
       printChar(aChar, (x << 3), (y * render.textCharHeight), aColor, aBgColor); // Sin capturadora
       src++;
     }
@@ -365,7 +365,7 @@ static void dump320x200()
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
-      uint8_t src = videoMemory[cont];
+      uint8_t src = videoRAM[cont];
       uint8_t bPixel3 = (src & 0x03);
       src >>= 2;
       uint8_t bPixel2 = (src & 0x03);
@@ -391,7 +391,7 @@ static void dump320x200()
     uint32_t offset = INITIAL_OFFSET;
     for (uint32_t x = 0; x < 80; x++)
     {
-      uint8_t src = videoMemory[cont];
+      uint8_t src = videoRAM[cont];
       uint8_t bPixel3 = (src & 0x03);
       src >>= 2;
       uint8_t bPixel2 = (src & 0x03);
@@ -429,7 +429,7 @@ static void dump640x200()
     uint32_t offset = INITIAL_OFFSET;
     for (x = 0; x < 80; x++)
     {
-      unsigned char src = videoMemory[srcAddr];
+      unsigned char src = videoRAM[srcAddr];
       uint8_t a7 = (src & 0x01);
       src >>= 1;
       uint8_t a6 = (src & 0x01);
@@ -470,7 +470,7 @@ static void dump640x200()
     uint32_t offset = INITIAL_OFFSET;
     for (x = 0; x < 80; x++)
     {
-      unsigned char src = videoMemory[srcAddr];
+      unsigned char src = videoRAM[srcAddr];
       uint8_t a7 = (src & 0x01);
       src >>= 1;
       uint8_t a6 = (src & 0x01);

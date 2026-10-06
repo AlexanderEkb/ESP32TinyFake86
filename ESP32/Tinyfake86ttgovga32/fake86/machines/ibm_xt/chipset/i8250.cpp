@@ -10,10 +10,10 @@ I8250_t::I8250_t(uint16_t baseAddress, uint32_t intr)
   this->intr = intr;
   this->periph = nullptr;
 
-  inbound = xQueueCreate(16, sizeof(uint8_t));
+  inbound = xQueueCreate(64, sizeof(uint8_t));
   assert(inbound);
 
-  regDR  = new UartReg_t(baseAddress + UART_DR,  this); ///< Data register.               r/w
+  regDR  = new UartReg_t(baseAddress + UART_DR,  this); ///< Data register.               notLast/w
   regIER = new UartReg_t(baseAddress + UART_IER, this); ///< Interrupt enable register    w
   regMCR = new UartReg_t(baseAddress + UART_MCR, this); ///< Modem control register.      w
   regLSR = new UartReg_t(baseAddress + UART_LSR, this); ///< Line status register.        r
@@ -165,7 +165,8 @@ void I8250_t::onRx(uint8_t data)
 {
   if(regs[UART_LSR] & UART_LSR_RXNE)
   {
-    xQueueSend(inbound, &data, 0);
+    if(xQueueSend(inbound, &data, 0) != pdTRUE)
+      ESP_LOGW(TAG, "RX overrun!");
   }
   else
   {
@@ -188,8 +189,8 @@ uint8_t I8250_t::readDR()
 {
   const uint8_t readByte = rx;
   uint8_t next;
-  portBASE_TYPE r = xQueueReceive(inbound, &next, 0);
-  if(r == pdPASS)
+  bool notLast = (xQueueReceive(inbound, &next, 0) == pdTRUE);
+  if(notLast)
     rx = next;
   else
     regs[UART_LSR] &= ~UART_LSR_RXNE;

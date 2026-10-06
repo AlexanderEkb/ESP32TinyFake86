@@ -37,6 +37,7 @@
 #include "../chipset/i8253.h"
 #include "../chipset/i8259.h"
 #include "ports.h"
+#include <esp32-hal-log.h>
 #include <Arduino.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -56,8 +57,10 @@
 #define putsegreg(regid, writeval) segregs[regid] = writeval
 #define segbase(x) ((uint32_t)x << 4)
 
+#define TAG "CPU"
+
 extern uint8_t * ram;
-extern unsigned char videoMemory[];
+extern uint8_t * tgaCpuPage;
 
 extern struct structpic i8259;
 uint64_t curtimer, lasttimer, timerfreq;
@@ -136,8 +139,8 @@ void write86 (unsigned int addr32, unsigned char value)
    case 0x0000 ... RAM_SIZE:
      ram[addr32]= value;
      return;
-   case 0xB8000 ... (0xB7FFF + VIDEO_MEMORY_SIZE):
-     videoMemory[(addr32-0xB8000)]= value;
+   case 0xB8000 ... (0xBFFFF):
+     tgaCpuPage[(addr32-0xB8000)] = value;
      return;
  }
 
@@ -162,8 +165,8 @@ unsigned char read86 (unsigned int addr32)
   {
     case 0x00000 ... RAM_SIZE:
       return (ram[addr32]);
-    case 0xB8000 ... (0xB7FFF + VIDEO_MEMORY_SIZE):
-      return videoMemory[(addr32-0xB8000)];
+    case 0xB8000 ... (0xBFFFF):
+      return tgaCpuPage[(addr32-0xB8000)];
     case 0xF6000 ... 0xFDFFF:
       return gb_rom_basic[(addr32-0xF6000)];
     case 0xFE000 ... 0xFFFFF:
@@ -613,10 +616,24 @@ static void intcall86(unsigned char intnum)
   /************************************/
   /********** INT13H : Disks **********/
   /************************************/
+  case 0x10:
+    // switch(regs.byteregs[regah])
+    // {
+    //   case 0:
+    //     ESP_LOGI(TAG, "INT 10h AH=00h AL=%02Xh", regs.byteregs[regal]);
+    //     break;
+    //   case 0x0F:
+    //     ESP_LOGI(TAG, "INT 10h AH=0Fh");
+    //     break;
+    // }
+    break;
   case 0x13:
   case 0xFD:
     diskhandler();
     return;
+  case 0x15:
+    // ESP_LOGI(TAG, "INT 15h AH=%02Xh", regs.byteregs[regah]);
+    break;
   }
 
   push(makeflagsword());
@@ -639,14 +656,14 @@ void __attribute__((optimize("-Ofast"))) IRAM_ATTR exec86(uint32_t execloops)
 {
 
 	uint8_t	docontinue;
-  static uint16_t trap_toggle = 0;
+  static bool trap_toggle = 0;
 
 	for (loopcount = 0; loopcount < execloops; loopcount++)
 	{
     if (trap_toggle)
       intcall86 (1);
-    trap_toggle=  (tf)?1:0;
-    if (!trap_toggle && (ifl && (i8259.irr & (~i8259.imr) ) ) )
+    trap_toggle = (tf != 0);
+    if (!trap_toggle && ifl && i8259.pending() )
       intcall86 (nextintr() );	/* get next interrupt from the i8259, if any */
 
     reptype = 0;

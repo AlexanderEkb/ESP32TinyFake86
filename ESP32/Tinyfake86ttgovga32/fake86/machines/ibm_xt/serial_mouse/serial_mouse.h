@@ -6,7 +6,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
-class SerialMouse_t : public MouseImplementation_t, SerialPeripheral_t
+class SerialMouse_t : public GenericMouse_t, SerialPeripheral_t
 {
   public:
     SerialMouse_t(I8250_t * port);

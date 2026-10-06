@@ -19,7 +19,7 @@
  * PB1 ──────┬─────>┤Gate             Out├>─X 
  * CPU_bus ────┬──<>┤Counter reg (R/W)   │ 
  *           │ │    ╰────────────────────╯ 
- *           │ │       'Ticker' - to play sound and not overloading this we-eak CPU
+ *           │ │       'Ticker' - to play sound and not overload this we-eak CPU
  *           │ │    ╭────────────────╮
  *           │ └───>┤Cnt (R/O)       │
  *           └─────>┤Gate         Out├>─┐ 
