@@ -7,6 +7,7 @@ class Speaker_t
 {
   public:
     static Speaker_t & getInstance() {return instance;};
+    static void init();
     static void driveByTimer(bool state);
     static void driveDirectly(bool state);
     static void mute();

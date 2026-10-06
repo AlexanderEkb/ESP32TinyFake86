@@ -19,22 +19,31 @@ bool Speaker_t::muted = false;
                                  ┌─────────┤     │
       PB0 ───────────────────────┘         ╰─────╯
 */
-void Speaker_t::driveByTimer(bool state)
+
+void Speaker_t::init()
+{
+  // pinMode(33, OUTPUT);
+}
+
+void IRAM_ATTR Speaker_t::driveByTimer(bool state)
 {
   Ch2 = state;
   Covox_t::getInstance().driveSpeaker(Ch2 && PB1);
+  // digitalWrite(33, Ch2 && PB1);
 }
 
-void Speaker_t::driveDirectly(bool state)
+void IRAM_ATTR Speaker_t::driveDirectly(bool state)
 {
   PB1 = state;
   Covox_t::getInstance().driveSpeaker(Ch2 && PB1);
+  // digitalWrite(33, Ch2 && PB1);
 }
 
 void Speaker_t::mute()
 {
   muted = true;
   Covox_t::getInstance().driveSpeaker(false);
+  // digitalWrite(33, 0);
 }
 
 void Speaker_t::unmute()
